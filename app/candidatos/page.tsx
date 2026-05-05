@@ -2,6 +2,8 @@ import Link from "next/link";
 import { listCandidates } from "@/lib/repositories/candidates";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 
+export const dynamic = "force-dynamic";
+
 export default async function CandidatesPage() {
   const candidates = await listCandidates();
 

@@ -3,6 +3,8 @@ import { getCandidateImplantation } from "@/lib/repositories/implantation";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 import { StepList } from "@/components/step-list";
 
+export const dynamic = "force-dynamic";
+
 type CandidatePageProps = {
   params: Promise<{
     idCandidato: string;
