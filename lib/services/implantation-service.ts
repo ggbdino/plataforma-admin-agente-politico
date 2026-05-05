@@ -1,0 +1,197 @@
+import { db } from "@/lib/db";
+import { triggerN8nWebhook } from "@/lib/n8n";
+
+type ExecuteStepInput = {
+  idCandidato: string;
+  codigoEtapa: string;
+  executedBy: string;
+  source: string;
+  payload: Record<string, unknown>;
+};
+
+const STEP_TO_WEBHOOK: Record<string, string | null> = {
+  cadastro_candidato: "/webhook/candidato-sync",
+  configurar_canais: "/webhook/agente-politico/0001/governanca",
+  gerar_qrcode: "/webhook/agente-politico/0001/qrcode/canais",
+  configurar_evolution: null,
+  validar_inbound: "/webhook/agente-politico/0001/entrada-eleitor",
+  validar_outbound: "/webhook/agente-politico/0001/cadencia",
+  ativar_campanha: null
+};
+
+export async function executeImplantationStep(input: ExecuteStepInput) {
+  const client = await db.connect();
+
+  try {
+    await client.query("begin");
+
+    const implantationResult = await client.query<{
+      implantacao_id: string;
+      etapa_id: string;
+      nome_etapa: string;
+    }>(
+      `
+        select
+          ic.id as implantacao_id,
+          iec.id as etapa_id,
+          iec.nome_etapa
+        from implantacoes_candidato ic
+        join implantacao_etapas_candidato iec
+          on iec.implantacao_id = ic.id
+        where ic.id_candidato = $1
+          and iec.codigo_etapa = $2
+      `,
+      [input.idCandidato, input.codigoEtapa]
+    );
+
+    const implantation = implantationResult.rows[0];
+
+    if (!implantation) {
+      throw new Error("Etapa de implantacao nao encontrada para o candidato.");
+    }
+
+    const executionResult = await client.query<{ id: string }>(
+      `
+        insert into execucoes_implantacao (
+          implantacao_id,
+          etapa_id,
+          id_candidato,
+          tipo_execucao,
+          status_execucao,
+          origem,
+          payload_enviado,
+          iniciado_em
+        )
+        values ($1, $2, $3, 'execucao_etapa', 'iniciada', $4, $5::jsonb, now())
+        returning id
+      `,
+      [
+        implantation.implantacao_id,
+        implantation.etapa_id,
+        input.idCandidato,
+        input.source,
+        JSON.stringify({
+          ...input.payload,
+          executado_por: input.executedBy
+        })
+      ]
+    );
+
+    await client.query(
+      `
+        update implantacao_etapas_candidato
+        set
+          status_etapa = 'em_andamento',
+          executado_em = now(),
+          mensagem_status = 'Etapa em execucao',
+          atualizado_em = now()
+        where id = $1
+      `,
+      [implantation.etapa_id]
+    );
+
+    await client.query("commit");
+
+    const executionId = executionResult.rows[0].id;
+    const webhookPath = STEP_TO_WEBHOOK[input.codigoEtapa];
+
+    if (!webhookPath) {
+      await markExecutionFinished({
+        executionId,
+        idCandidato: input.idCandidato,
+        codigoEtapa: input.codigoEtapa,
+        status: "concluida",
+        message: "Etapa registrada como manual ou dependente de configuracao externa.",
+        responsePayload: { manual: true }
+      });
+
+      return {
+        status: "concluido",
+        codigo_etapa: input.codigoEtapa,
+        mensagem: "Etapa registrada. Finalizacao manual ou externa."
+      };
+    }
+
+    const defaultPayload = buildDefaultPayload(input.idCandidato, input.codigoEtapa);
+    const responsePayload = await triggerN8nWebhook(webhookPath, {
+      ...defaultPayload,
+      ...input.payload
+    });
+
+    await markExecutionFinished({
+      executionId,
+      idCandidato: input.idCandidato,
+      codigoEtapa: input.codigoEtapa,
+      status: "concluida",
+      message: `Etapa ${implantation.nome_etapa} executada com sucesso.`,
+      responsePayload
+    });
+
+    return {
+      status: "concluido",
+      codigo_etapa: input.codigoEtapa,
+      mensagem: `Etapa ${implantation.nome_etapa} executada com sucesso.`,
+      detalhes: responsePayload
+    };
+  } catch (error) {
+    await client.query("rollback").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+function buildDefaultPayload(idCandidato: string, codigoEtapa: string) {
+  if (codigoEtapa === "validar_inbound") {
+    return {
+      id_candidato: idCandidato,
+      telefone: "5561981297840",
+      nome: "Eleitor Teste",
+      mensagem: "Teste de inbound do candidato.",
+      tema_interesse: "geral",
+      consentimento_lgpd: true,
+      origem_captacao: "whatsapp"
+    };
+  }
+
+  return {
+    id_candidato: idCandidato
+  };
+}
+
+async function markExecutionFinished(input: {
+  executionId: string;
+  idCandidato: string;
+  codigoEtapa: string;
+  status: "concluida" | "com_erro";
+  message: string;
+  responsePayload: unknown;
+}) {
+  const statusExecucao = input.status === "concluida" ? "concluida" : "com_erro";
+
+  await db.query(
+    `
+      update execucoes_implantacao
+      set
+        status_execucao = $2,
+        resposta_resumida = $3::jsonb,
+        finalizado_em = now()
+      where id = $1
+    `,
+    [input.executionId, statusExecucao, JSON.stringify(input.responsePayload ?? {})]
+  );
+
+  await db.query(
+    `
+      update implantacao_etapas_candidato
+      set
+        status_etapa = $3,
+        finalizado_em = now(),
+        mensagem_status = $4,
+        atualizado_em = now()
+      where id_candidato = $1
+        and codigo_etapa = $2
+    `,
+    [input.idCandidato, input.codigoEtapa, input.status, input.message]
+  );
+}
