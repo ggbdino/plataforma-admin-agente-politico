@@ -1,7 +1,7 @@
-import { env } from "./env";
+import { env, getRequiredEnv } from "./env";
 
 export async function triggerN8nWebhook(path: string, payload: Record<string, unknown>) {
-  const url = new URL(path, env.n8nBaseUrl).toString();
+  const url = new URL(path, getRequiredEnv("N8N_BASE_URL")).toString();
   const headers: HeadersInit = {
     "Content-Type": "application/json"
   };

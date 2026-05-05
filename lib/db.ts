@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { env } from "./env";
+import { getRequiredEnv } from "./env";
 
 const globalForPg = globalThis as unknown as {
   pool?: Pool;
@@ -8,7 +8,7 @@ const globalForPg = globalThis as unknown as {
 export const db =
   globalForPg.pool ??
   new Pool({
-    connectionString: env.databaseUrl
+    connectionString: getRequiredEnv("DATABASE_URL")
   });
 
 if (!globalForPg.pool) {

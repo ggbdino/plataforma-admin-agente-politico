@@ -1,18 +1,9 @@
-function required(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`Variavel obrigatoria ausente: ${name}`);
-  }
-
-  return value;
-}
-
 export const env = {
-  databaseUrl: required("DATABASE_URL"),
-  n8nBaseUrl: required("N8N_BASE_URL"),
+  databaseUrl: process.env.DATABASE_URL,
+  n8nBaseUrl: process.env.N8N_BASE_URL,
   n8nApiKey: process.env.N8N_API_KEY ?? "",
-  n8nWebhookCandidateSync: process.env.N8N_WEBHOOK_CANDIDATO_SYNC ?? "/webhook/candidato-sync",
+  n8nWebhookCandidateSync:
+    process.env.N8N_WEBHOOK_CANDIDATO_SYNC ?? "/webhook/candidato-sync",
   n8nWebhookGovernancaBrunex:
     process.env.N8N_WEBHOOK_GOVERNANCA_BRUNEX ??
     "/webhook/agente-politico/0001/governanca",
@@ -26,3 +17,13 @@ export const env = {
     process.env.N8N_WEBHOOK_CADENCIA_BRUNEX ??
     "/webhook/agente-politico/0001/cadencia"
 };
+
+export function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`Variavel obrigatoria ausente: ${name}`);
+  }
+
+  return value;
+}
