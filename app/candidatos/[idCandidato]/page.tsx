@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { getCandidateImplantation } from "@/lib/repositories/implantation";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 import { StepList } from "@/components/step-list";
@@ -29,8 +30,13 @@ export default async function CandidateImplantationPage({
           {data.cabecalho.nome_urna} <span className="mono">#{data.cabecalho.id_candidato}</span>
         </h1>
         <p className="subtitle">
-          Assistente de implantacao da campanha com QR Code, dados tecnicos e etapas.
+          Assistente de implantacao da campanha com QR Code, dados tecnicos e etapas
+          operacionais da GAP.
         </p>
+        <div className="hero-meta">
+          <ImplantationStatusPill status={data.cabecalho.status_implantacao} />
+          <span className="pill">Instancia {data.cabecalho.instancia_evolution ?? "pendente"}</span>
+        </div>
       </section>
 
       <section className="grid grid-2" style={{ marginBottom: 20 }}>
@@ -51,11 +57,11 @@ export default async function CandidateImplantationPage({
           </div>
           <div>
             <strong>Webhook inbound</strong>
-            <div className="mono">{data.cabecalho.webhook_inbound_url ?? "-"}</div>
+            <div className="mono mono-wrap">{data.cabecalho.webhook_inbound_url ?? "-"}</div>
           </div>
           <div>
             <strong>Webhook outbound</strong>
-            <div className="mono">{data.cabecalho.webhook_outbound_url ?? "-"}</div>
+            <div className="mono mono-wrap">{data.cabecalho.webhook_outbound_url ?? "-"}</div>
           </div>
         </article>
 
@@ -63,12 +69,15 @@ export default async function CandidateImplantationPage({
           <strong>QR Code do agente</strong>
           {data.cabecalho.qr_code_url ? (
             <>
-              <img
+              <Image
                 alt={`QR Code do candidato ${data.cabecalho.nome_urna}`}
                 className="qr-image"
+                height={240}
                 src={data.cabecalho.qr_code_url}
+                unoptimized
+                width={240}
               />
-              <div className="mono">{data.cabecalho.qr_code_url}</div>
+              <div className="mono mono-wrap">{data.cabecalho.qr_code_url}</div>
             </>
           ) : (
             <p className="muted">QR Code ainda nao gerado.</p>
@@ -77,7 +86,7 @@ export default async function CandidateImplantationPage({
       </section>
 
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>Etapas da implantacao</h2>
+        <h2 className="section-title">Etapas da implantacao</h2>
         <StepList idCandidato={idCandidato} steps={data.etapas} />
       </section>
     </main>

@@ -30,7 +30,7 @@ export function StepList({ idCandidato, steps }: StepListProps) {
                 {step.workflow_nome ?? "Etapa manual"}
               </div>
               {step.webhook_path ? (
-                <div className="muted mono">{step.webhook_path}</div>
+                <div className="muted mono mono-wrap">{step.webhook_path}</div>
               ) : null}
               {step.mensagem_status ? (
                 <div className="muted" style={{ marginTop: 8 }}>

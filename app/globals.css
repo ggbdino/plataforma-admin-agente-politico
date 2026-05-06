@@ -1,12 +1,14 @@
 :root {
-  --bg: #f5f1e8;
-  --surface: #fffdf8;
-  --surface-strong: #efe6d3;
-  --ink: #1b1a17;
-  --muted: #6c665d;
-  --accent: #0d6b5f;
-  --accent-strong: #08463f;
-  --line: #d8cbb5;
+  --bg: #eaf4fb;
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-strong: #d8ecf8;
+  --surface-soft: #f4fbff;
+  --ink: #163245;
+  --muted: #5d788b;
+  --accent: #4ea8de;
+  --accent-strong: #1f6d9f;
+  --accent-deep: #0f3f5d;
+  --line: #bed8e8;
   --danger: #9f2f2f;
   --warning: #9a6500;
 }
@@ -19,9 +21,12 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: linear-gradient(180deg, #f7f3eb 0%, #efe4d2 100%);
+  background:
+    radial-gradient(circle at top left, rgba(120, 196, 234, 0.22), transparent 28%),
+    radial-gradient(circle at top right, rgba(78, 168, 222, 0.18), transparent 24%),
+    linear-gradient(180deg, #f7fcff 0%, #e6f2f9 48%, #d8eaf5 100%);
   color: var(--ink);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 a {
@@ -39,17 +44,64 @@ button {
   padding: 24px;
 }
 
+.brand-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 14px 28px rgba(24, 79, 117, 0.16);
+}
+
+.brand-kicker {
+  display: inline-flex;
+  margin-bottom: 6px;
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.brand-subtitle {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
 .hero-card,
 .card {
-  background: rgba(255, 253, 248, 0.96);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(45, 34, 12, 0.08);
+  box-shadow: 0 18px 40px rgba(36, 95, 133, 0.12);
 }
 
 .hero-card {
-  padding: 28px;
+  padding: 30px;
   margin-bottom: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(234, 246, 252, 0.94)),
+    var(--surface);
 }
 
 .card {
@@ -71,13 +123,16 @@ button {
 
 .title {
   margin: 0 0 8px;
-  font-size: 2rem;
+  font-size: 2.35rem;
   line-height: 1.1;
+  letter-spacing: -0.04em;
 }
 
 .subtitle {
   margin: 0;
   color: var(--muted);
+  max-width: 760px;
+  line-height: 1.6;
 }
 
 .pill {
@@ -87,12 +142,12 @@ button {
   padding: 6px 12px;
   font-size: 0.9rem;
   border: 1px solid var(--line);
-  background: var(--surface-strong);
+  background: var(--surface-soft);
 }
 
 .pill.ok {
-  background: rgba(13, 107, 95, 0.1);
-  color: var(--accent-strong);
+  background: rgba(78, 168, 222, 0.12);
+  color: var(--accent-deep);
 }
 
 .pill.warn {
@@ -131,14 +186,15 @@ button {
   justify-content: center;
   border-radius: 12px;
   border: 1px solid var(--accent);
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), #76c4ea);
   color: white;
   padding: 10px 14px;
   cursor: pointer;
+  box-shadow: 0 10px 22px rgba(78, 168, 222, 0.2);
 }
 
 .button.secondary {
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--accent-strong);
 }
 
@@ -165,7 +221,7 @@ button {
   padding: 16px;
   border-radius: 14px;
   border: 1px solid var(--line);
-  background: #fffdf9;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(242, 250, 255, 0.95));
 }
 
 .step-head {
@@ -178,6 +234,12 @@ button {
 .mono {
   font-family: "Courier New", monospace;
   font-size: 0.9rem;
+}
+
+.mono-wrap {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.45;
 }
 
 .qr-frame {
@@ -194,4 +256,44 @@ button {
   border: 1px solid var(--line);
   background: white;
   padding: 10px;
+}
+
+.section-title {
+  margin: 0 0 14px;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    padding: 16px;
+  }
+
+  .brand-bar,
+  .brand-lockup,
+  .step-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .title {
+    font-size: 1.9rem;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .qr-image {
+    width: 200px;
+    height: 200px;
+  }
 }

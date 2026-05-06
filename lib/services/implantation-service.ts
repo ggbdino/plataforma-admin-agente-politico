@@ -9,13 +9,19 @@ type ExecuteStepInput = {
   payload: Record<string, unknown>;
 };
 
-const STEP_TO_WEBHOOK: Record<string, string | null> = {
-  cadastro_candidato: "/webhook/candidato-sync",
-  configurar_canais: "/webhook/agente-politico/0001/governanca",
-  gerar_qrcode: "/webhook/agente-politico/0001/qrcode/canais",
+const STEP_TO_WEBHOOK: Record<
+  string,
+  {
+    path: string;
+    method?: "GET" | "POST";
+  } | null
+> = {
+  cadastro_candidato: { path: "/webhook/candidato-sync", method: "POST" },
+  configurar_canais: { path: "/webhook/agente-politico/0001/governanca", method: "POST" },
+  gerar_qrcode: { path: "/webhook/agente-politico/0001/qrcode/canais", method: "GET" },
   configurar_evolution: null,
-  validar_inbound: "/webhook/agente-politico/0001/entrada-eleitor",
-  validar_outbound: "/webhook/agente-politico/0001/cadencia",
+  validar_inbound: { path: "/webhook/agente-politico/0001/entrada-eleitor", method: "POST" },
+  validar_outbound: { path: "/webhook/agente-politico/0001/cadencia", method: "POST" },
   ativar_campanha: null
 };
 
@@ -93,9 +99,9 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     await client.query("commit");
 
     const executionId = executionResult.rows[0].id;
-    const webhookPath = STEP_TO_WEBHOOK[input.codigoEtapa];
+    const webhookConfig = STEP_TO_WEBHOOK[input.codigoEtapa];
 
-    if (!webhookPath) {
+    if (!webhookConfig) {
       await markExecutionFinished({
         executionId,
         idCandidato: input.idCandidato,
@@ -113,9 +119,13 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     }
 
     const defaultPayload = buildDefaultPayload(input.idCandidato, input.codigoEtapa);
-    const responsePayload = await triggerN8nWebhook(webhookPath, {
-      ...defaultPayload,
-      ...input.payload
+    const responsePayload = await triggerN8nWebhook({
+      path: webhookConfig.path,
+      method: webhookConfig.method ?? "POST",
+      payload: {
+        ...defaultPayload,
+        ...input.payload
+      }
     });
 
     await markExecutionFinished({

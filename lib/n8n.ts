@@ -1,6 +1,16 @@
 import { env, getRequiredEnv } from "./env";
 
-export async function triggerN8nWebhook(path: string, payload: Record<string, unknown>) {
+type TriggerWebhookInput = {
+  path: string;
+  payload: Record<string, unknown>;
+  method?: "GET" | "POST";
+};
+
+export async function triggerN8nWebhook({
+  path,
+  payload,
+  method = "POST"
+}: TriggerWebhookInput) {
   const url = new URL(path, getRequiredEnv("N8N_BASE_URL")).toString();
   const headers: HeadersInit = {
     "Content-Type": "application/json"
@@ -10,10 +20,22 @@ export async function triggerN8nWebhook(path: string, payload: Record<string, un
     headers["X-N8N-API-KEY"] = env.n8nApiKey;
   }
 
-  const response = await fetch(url, {
-    method: "POST",
+  const requestUrl =
+    method === "GET"
+      ? new URL(
+          `${url}${url.includes("?") ? "&" : "?"}${new URLSearchParams(
+            Object.entries(payload).reduce<Record<string, string>>((acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            }, {})
+          ).toString()}`
+        ).toString()
+      : url;
+
+  const response = await fetch(requestUrl, {
+    method,
     headers,
-    body: JSON.stringify(payload),
+    body: method === "POST" ? JSON.stringify(payload) : undefined,
     cache: "no-store"
   });
 

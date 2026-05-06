@@ -13,7 +13,8 @@ export default async function CandidatesPage() {
         <span className="pill">Tela 1</span>
         <h1 className="title">Candidatos</h1>
         <p className="subtitle">
-          Cadastros importados da planilha e campanhas em implantacao.
+          Cadastros importados da planilha, status de implantacao e acesso rapido ao
+          painel de campanha da GAP.
         </p>
       </section>
 
