@@ -8,10 +8,17 @@ type StepListProps = {
 };
 
 export function StepList({ idCandidato, steps }: StepListProps) {
+  const firstPendingStep = steps.find(
+    (step) => step.status_etapa !== "concluida"
+  );
+
   return (
     <div className="step-list">
       {steps.map((step) => (
-        <article className="step-item" key={step.codigo_etapa}>
+        <article
+          className={`step-item ${isStepBlocked(step, firstPendingStep?.codigo_etapa) ? "is-blocked" : ""}`}
+          key={step.codigo_etapa}
+        >
           <div className="step-head">
             <div>
               <strong>
@@ -20,12 +27,25 @@ export function StepList({ idCandidato, steps }: StepListProps) {
               <div className="muted mono" style={{ marginTop: 6 }}>
                 {step.workflow_nome ?? "Etapa manual"}
               </div>
+              <div className="step-badges">
+                <span className="pill">
+                  {getStepMode(step.codigo_etapa) === "manual" ? "Etapa manual" : "Webhook n8n"}
+                </span>
+                {firstPendingStep?.codigo_etapa === step.codigo_etapa ? (
+                  <span className="pill ok">Proxima etapa recomendada</span>
+                ) : null}
+              </div>
               {step.webhook_path ? (
                 <div className="muted mono mono-wrap">{step.webhook_path}</div>
               ) : null}
               {step.mensagem_status ? (
                 <div className="muted" style={{ marginTop: 8 }}>
                   {step.mensagem_status}
+                </div>
+              ) : null}
+              {isStepBlocked(step, firstPendingStep?.codigo_etapa) ? (
+                <div className="step-warning">
+                  Esta etapa fica disponivel somente apos concluir a etapa anterior da sequencia.
                 </div>
               ) : null}
               <div className="step-meta">
@@ -47,10 +67,15 @@ export function StepList({ idCandidato, steps }: StepListProps) {
             <input type="hidden" name="codigoEtapa" value={step.codigo_etapa} />
             <button
               className="button"
-              disabled={step.status_etapa === "em_andamento"}
+              disabled={
+                step.status_etapa === "em_andamento" ||
+                isStepBlocked(step, firstPendingStep?.codigo_etapa)
+              }
               type="submit"
             >
-              {step.status_etapa === "concluida" || step.status_etapa === "com_erro"
+              {getStepMode(step.codigo_etapa) === "manual"
+                ? "Registrar etapa"
+                : step.status_etapa === "concluida" || step.status_etapa === "com_erro"
                 ? "Reprocessar"
                 : step.status_etapa === "em_andamento"
                   ? "Executando..."
@@ -61,6 +86,30 @@ export function StepList({ idCandidato, steps }: StepListProps) {
       ))}
     </div>
   );
+}
+
+function getStepMode(codigoEtapa: string) {
+  if (
+    codigoEtapa === "configurar_evolution" ||
+    codigoEtapa === "validar_outbound" ||
+    codigoEtapa === "ativar_campanha"
+  ) {
+    return "manual";
+  }
+
+  return "webhook";
+}
+
+function isStepBlocked(step: ImplantationStep, firstPendingStepCode?: string) {
+  if (!firstPendingStepCode) {
+    return false;
+  }
+
+  if (step.status_etapa === "concluida") {
+    return false;
+  }
+
+  return step.codigo_etapa !== firstPendingStepCode;
 }
 
 function formatDateTime(value: string) {

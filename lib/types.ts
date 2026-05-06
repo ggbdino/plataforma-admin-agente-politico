@@ -42,3 +42,5 @@ export type ImplantationStep = {
   mensagem_status: string | null;
   detalhes: Record<string, unknown> | null;
 };
+
+export type StepExecutionMode = "webhook" | "manual";

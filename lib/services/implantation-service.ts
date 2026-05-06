@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { triggerN8nWebhook } from "@/lib/n8n";
+import type { StepExecutionMode } from "@/lib/types";
 
 type ExecuteStepInput = {
   idCandidato: string;
@@ -14,14 +15,15 @@ const STEP_TO_WEBHOOK: Record<
   {
     path: string;
     method?: "GET" | "POST";
+    mode: StepExecutionMode;
   } | null
 > = {
-  cadastro_candidato: { path: "/webhook/candidato-sync", method: "POST" },
-  configurar_canais: { path: "/webhook/agente-politico/0001/governanca", method: "POST" },
-  gerar_qrcode: { path: "/webhook/agente-politico/0001/qrcode/canais", method: "GET" },
+  cadastro_candidato: { path: "/webhook/candidato-sync", method: "POST", mode: "webhook" },
+  configurar_canais: { path: "/webhook/agente-politico/0001/governanca", method: "GET", mode: "webhook" },
+  gerar_qrcode: { path: "/webhook/agente-politico/0001/qrcode/canais", method: "GET", mode: "webhook" },
   configurar_evolution: null,
-  validar_inbound: { path: "/webhook/agente-politico/0001/entrada-eleitor", method: "POST" },
-  validar_outbound: { path: "/webhook/agente-politico/0001/cadencia", method: "POST" },
+  validar_inbound: { path: "/webhook/agente-politico/0001/entrada-eleitor", method: "GET", mode: "webhook" },
+  validar_outbound: null,
   ativar_campanha: null
 };
 
@@ -55,6 +57,34 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
 
     if (!implantation) {
       throw new Error("Etapa de implantacao nao encontrada para o candidato.");
+    }
+
+    const previousStepsResult = await client.query<{
+      codigo_etapa: string;
+      nome_etapa: string;
+      status_etapa: string;
+    }>(
+      `
+        select codigo_etapa, nome_etapa, status_etapa
+        from implantacao_etapas_candidato
+        where id_candidato = $1
+          and ordem < (
+            select ordem
+            from implantacao_etapas_candidato
+            where id_candidato = $1
+              and codigo_etapa = $2
+          )
+        order by ordem
+      `,
+      [input.idCandidato, input.codigoEtapa]
+    );
+
+    const blockingStep = previousStepsResult.rows.find((step) => step.status_etapa !== "concluida");
+
+    if (blockingStep) {
+      throw new Error(
+        `Execute antes a etapa ${blockingStep.nome_etapa} para respeitar a sequencia da implantacao.`
+      );
     }
 
     const executionResult = await client.query<{ id: string }>(
@@ -103,19 +133,34 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     const webhookConfig = STEP_TO_WEBHOOK[input.codigoEtapa];
 
     if (!webhookConfig) {
+      const manualMessage = getManualStepMessage(input.codigoEtapa);
+
       await markExecutionFinished({
         executionId,
         idCandidato: input.idCandidato,
         codigoEtapa: input.codigoEtapa,
         status: "concluida",
-        message: "Etapa registrada como manual ou dependente de configuracao externa.",
-        responsePayload: { manual: true }
+        message: manualMessage,
+        responsePayload: { manual: true, codigo_etapa: input.codigoEtapa }
       });
+
+      if (input.codigoEtapa === "ativar_campanha") {
+        await db.query(
+          `
+            update implantacoes_candidato
+            set
+              status_implantacao = 'ativo',
+              atualizado_em = now()
+            where id_candidato = $1
+          `,
+          [input.idCandidato]
+        );
+      }
 
       return {
         status: "concluido",
         codigo_etapa: input.codigoEtapa,
-        mensagem: "Etapa registrada. Finalizacao manual ou externa."
+        mensagem: manualMessage
       };
     }
 
@@ -222,4 +267,17 @@ async function markExecutionFinished(input: {
     `,
     [input.idCandidato, input.codigoEtapa, input.status, input.message]
   );
+}
+
+function getManualStepMessage(codigoEtapa: string) {
+  switch (codigoEtapa) {
+    case "configurar_evolution":
+      return "Etapa registrada como manual. Configure a instancia Evolution dedicada do candidato.";
+    case "validar_outbound":
+      return "Etapa registrada como manual/agendada. A validacao outbound depende do schedule da cadencia.";
+    case "ativar_campanha":
+      return "Campanha marcada como ativa no painel administrativo.";
+    default:
+      return "Etapa registrada como manual ou dependente de configuracao externa.";
+  }
 }
