@@ -28,6 +28,18 @@ export default async function CandidateImplantationPage({
     notFound();
   }
 
+  const totalEtapas = data.etapas.length;
+  const etapasConcluidas = data.etapas.filter((step) => step.status_etapa === "concluida").length;
+  const etapasComErro = data.etapas.filter((step) => step.status_etapa === "com_erro").length;
+  const progresso = totalEtapas > 0 ? Math.round((etapasConcluidas / totalEtapas) * 100) : 0;
+  const proximaEtapa =
+    data.etapas.find((step) => step.status_etapa !== "concluida")?.nome_etapa ??
+    "Implantacao concluida";
+  const prontaParaAtivar =
+    data.etapas
+      .filter((step) => step.codigo_etapa !== "ativar_campanha")
+      .every((step) => step.status_etapa === "concluida") && data.cabecalho.status_implantacao !== "ativo";
+
   return (
     <main className="page-shell">
       {query?.feedback && query?.mensagem ? (
@@ -51,7 +63,42 @@ export default async function CandidateImplantationPage({
         <div className="hero-meta">
           <ImplantationStatusPill status={data.cabecalho.status_implantacao} />
           <span className="pill">Instancia {data.cabecalho.instancia_evolution ?? "pendente"}</span>
+          <span className="pill">{progresso}% concluido</span>
         </div>
+      </section>
+
+      <section className="grid grid-3" style={{ marginBottom: 20 }}>
+        <article className="card metric-card">
+          <span className="metric-label">Progresso da implantacao</span>
+          <strong className="metric-value">{progresso}%</strong>
+          <div className="progress-track">
+            <div className="progress-bar" style={{ width: `${progresso}%` }} />
+          </div>
+        </article>
+        <article className="card metric-card">
+          <span className="metric-label">Proxima etapa</span>
+          <strong className="metric-title">{proximaEtapa}</strong>
+          <span className="muted">
+            {etapasConcluidas} de {totalEtapas} etapas concluidas
+          </span>
+        </article>
+        <article className="card metric-card">
+          <span className="metric-label">Leitura operacional</span>
+          <strong className="metric-title">
+            {prontaParaAtivar
+              ? "Campanha pronta para ativacao"
+              : etapasComErro > 0
+                ? "Existem incidentes a tratar"
+                : "Implantacao em andamento"}
+          </strong>
+          <span className="muted">
+            {etapasComErro > 0
+              ? `${etapasComErro} etapa(s) com erro exigem revisao`
+              : prontaParaAtivar
+                ? "A etapa final pode ser registrada no painel"
+                : "Conclua a proxima etapa recomendada para seguir"}
+          </span>
+        </article>
       </section>
 
       <section className="grid grid-2" style={{ marginBottom: 20 }}>

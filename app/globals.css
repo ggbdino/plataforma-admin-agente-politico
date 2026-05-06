@@ -437,6 +437,12 @@ button {
   letter-spacing: -0.04em;
 }
 
+.metric-title {
+  font-size: 1.1rem;
+  color: var(--accent-deep);
+  line-height: 1.35;
+}
+
 .progress-inline {
   display: flex;
   align-items: center;
