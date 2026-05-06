@@ -366,6 +366,12 @@ button {
   justify-items: start;
 }
 
+.qr-description {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .qr-image {
   width: 240px;
   height: 240px;
@@ -403,6 +409,39 @@ button {
   margin-bottom: 12px;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.step-form-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.step-channel-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.step-panel-callout {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(36, 135, 211, 0.2);
+  background: rgba(237, 246, 252, 0.9);
+  color: var(--accent-deep);
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
+.step-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font: inherit;
 }
 
 .step-textarea {

@@ -4,10 +4,12 @@ import { ImplantationStatusPill } from "./implantation-status-pill";
 
 type StepListProps = {
   idCandidato: string;
+  candidateName: string;
+  officialNumber: string | null;
   steps: ImplantationStep[];
 };
 
-export function StepList({ idCandidato, steps }: StepListProps) {
+export function StepList({ idCandidato, candidateName, officialNumber, steps }: StepListProps) {
   const firstPendingStep = steps.find(
     (step) => step.status_etapa !== "concluida"
   );
@@ -65,6 +67,63 @@ export function StepList({ idCandidato, steps }: StepListProps) {
           <form action={executeStepAction} style={{ marginTop: 12 }}>
             <input type="hidden" name="idCandidato" value={idCandidato} />
             <input type="hidden" name="codigoEtapa" value={step.codigo_etapa} />
+            {step.codigo_etapa === "configurar_canais" ? (
+              <div className="step-channel-panel">
+                <div className="step-panel-callout">
+                  O WhatsApp oficial do Agente Politico e o unico canal operacional do produto.
+                  O QR Code da campanha deve apontar para esse numero, e todos os outros canais
+                  de divulgacao devem tracionar o eleitor para esse contato.
+                </div>
+                <div className="step-form-grid">
+                  <label className="step-note">
+                    <span>Nome do canal oficial</span>
+                    <input
+                      className="step-input"
+                      defaultValue={`Agente Politico ${candidateName}`}
+                      name="nome_canal"
+                      type="text"
+                    />
+                  </label>
+                  <label className="step-note">
+                    <span>Tipo do canal oficial</span>
+                    <input
+                      className="step-input"
+                      defaultValue="whatsapp_agente"
+                      name="tipo_canal"
+                      readOnly
+                      type="text"
+                    />
+                  </label>
+                  <label className="step-note">
+                    <span>Numero oficial da campanha</span>
+                    <input
+                      className="step-input"
+                      defaultValue={officialNumber ?? ""}
+                      name="identificador_externo"
+                      type="text"
+                    />
+                  </label>
+                  <label className="step-note">
+                    <span>Link oficial do WhatsApp</span>
+                    <input
+                      className="step-input"
+                      defaultValue={officialNumber ? `https://wa.me/${officialNumber}` : ""}
+                      name="url_canal"
+                      type="text"
+                    />
+                  </label>
+                </div>
+                <label className="step-note">
+                  <span>Canais de divulgacao que apontam para esse WhatsApp</span>
+                  <textarea
+                    className="step-textarea"
+                    name="canais_divulgacao"
+                    placeholder="Ex.: Instagram oficial, site da campanha, materiais graficos, landing page e redes sociais que divulgam o QR Code e o numero do Agente Politico."
+                    rows={3}
+                  />
+                </label>
+              </div>
+            ) : null}
             {getStepMode(step.codigo_etapa) === "manual" ? (
               <label className="step-note">
                 <span>Observacao do gestor</span>
@@ -101,6 +160,7 @@ export function StepList({ idCandidato, steps }: StepListProps) {
 
 function getStepMode(codigoEtapa: string) {
   if (
+    codigoEtapa === "configurar_canais" ||
     codigoEtapa === "configurar_evolution" ||
     codigoEtapa === "validar_outbound" ||
     codigoEtapa === "ativar_campanha"

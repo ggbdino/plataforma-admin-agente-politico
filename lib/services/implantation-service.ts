@@ -19,7 +19,7 @@ const STEP_TO_WEBHOOK: Record<
   } | null
 > = {
   cadastro_candidato: { path: "/webhook/candidato-sync", method: "POST", mode: "webhook" },
-  configurar_canais: { path: "/webhook/agente-politico/0001/governanca", method: "GET", mode: "webhook" },
+  configurar_canais: null,
   gerar_qrcode: { path: "/webhook/agente-politico/0001/qrcode/canais", method: "GET", mode: "webhook" },
   configurar_evolution: null,
   validar_inbound: { path: "/webhook/agente-politico/0001/entrada-eleitor", method: "GET", mode: "webhook" },
@@ -133,6 +133,10 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     const webhookConfig = STEP_TO_WEBHOOK[input.codigoEtapa];
 
     if (!webhookConfig) {
+      if (input.codigoEtapa === "configurar_canais") {
+        await upsertCandidateChannel(input.idCandidato, input.payload);
+      }
+
       const manualMessage = getManualStepMessage(input.codigoEtapa, input.payload);
 
       await markExecutionFinished({
@@ -276,6 +280,8 @@ function getManualStepMessage(codigoEtapa: string, payload: Record<string, unkno
       : "";
 
   switch (codigoEtapa) {
+    case "configurar_canais":
+      return `Canal oficial do Agente Politico registrado no painel, com QR Code vinculado ao telefone da campanha e canais de divulgacao orientados para esse contato.${observacao}`;
     case "configurar_evolution":
       return `Etapa registrada como manual. Configure a instancia Evolution dedicada do candidato.${observacao}`;
     case "validar_outbound":
@@ -285,4 +291,99 @@ function getManualStepMessage(codigoEtapa: string, payload: Record<string, unkno
     default:
       return `Etapa registrada como manual ou dependente de configuracao externa.${observacao}`;
   }
+}
+
+async function upsertCandidateChannel(
+  idCandidato: string,
+  payload: Record<string, unknown>
+) {
+  const nomeCanal =
+    typeof payload.nome_canal === "string" && payload.nome_canal.trim().length > 0
+      ? payload.nome_canal.trim()
+      : null;
+  const tipoCanal =
+    typeof payload.tipo_canal === "string" && payload.tipo_canal.trim().length > 0
+      ? payload.tipo_canal.trim()
+      : null;
+  const identificadorExterno =
+    typeof payload.identificador_externo === "string" && payload.identificador_externo.trim().length > 0
+      ? payload.identificador_externo.trim()
+      : null;
+  const urlCanal =
+    typeof payload.url_canal === "string" && payload.url_canal.trim().length > 0
+      ? payload.url_canal.trim()
+      : null;
+  const canaisDivulgacao =
+    typeof payload.canais_divulgacao === "string" && payload.canais_divulgacao.trim().length > 0
+      ? payload.canais_divulgacao.trim()
+      : null;
+
+  if (!nomeCanal || !tipoCanal || !identificadorExterno || !urlCanal) {
+    throw new Error(
+      "Preencha nome do canal oficial, tipo do canal, numero oficial da campanha e link oficial do WhatsApp para concluir esta etapa."
+    );
+  }
+
+  const updateResult = await db.query<{ id: string }>(
+    `
+      update canais_integracao
+      set
+        nome_canal = $2,
+        tipo_canal = $3,
+        identificador_externo = $4,
+        url_canal = $5,
+        status = 'ativo',
+        metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+          'origem_interface', 'plataforma_admin',
+          'exibir_em_qrcode', true,
+          'papel_canal', 'canal_oficial_funil',
+          'qrcode_vinculado', true,
+          'numero_oficial_campanha', $4,
+          'canais_divulgacao', $6
+        ),
+        atualizado_em = now()
+      where id_candidato = $1
+        and tipo_canal = $3
+      returning id
+    `,
+    [idCandidato, nomeCanal, tipoCanal, identificadorExterno, urlCanal, canaisDivulgacao]
+  );
+
+  if (updateResult.rowCount && updateResult.rowCount > 0) {
+    return updateResult.rows[0].id;
+  }
+
+  const insertResult = await db.query<{ id: string }>(
+    `
+      insert into canais_integracao (
+        id_candidato,
+        nome_canal,
+        tipo_canal,
+        identificador_externo,
+        url_canal,
+        status,
+        metadata
+      )
+      values (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        'ativo',
+        jsonb_build_object(
+          'origem_interface', 'plataforma_admin',
+          'exibir_em_qrcode', true,
+          'papel_canal', 'canal_oficial_funil',
+          'qrcode_vinculado', true,
+          'numero_oficial_campanha', $4,
+          'canais_divulgacao', $6
+        )
+      )
+      returning id
+    `,
+    [idCandidato, nomeCanal, tipoCanal, identificadorExterno, urlCanal, canaisDivulgacao]
+  );
+
+  return insertResult.rows[0].id;
 }

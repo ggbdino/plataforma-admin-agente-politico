@@ -8,6 +8,11 @@ export async function executeStepAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "");
   const codigoEtapa = String(formData.get("codigoEtapa") ?? "");
   const observacao = String(formData.get("observacao") ?? "").trim();
+  const nomeCanal = String(formData.get("nome_canal") ?? "").trim();
+  const tipoCanal = String(formData.get("tipo_canal") ?? "").trim();
+  const identificadorExterno = String(formData.get("identificador_externo") ?? "").trim();
+  const urlCanal = String(formData.get("url_canal") ?? "").trim();
+  const canaisDivulgacao = String(formData.get("canais_divulgacao") ?? "").trim();
 
   if (!idCandidato || !codigoEtapa) {
     throw new Error("Dados insuficientes para executar a etapa.");
@@ -19,7 +24,14 @@ export async function executeStepAction(formData: FormData) {
       codigoEtapa,
       executedBy: "operador@plataforma.local",
       source: "frontend_admin",
-      payload: observacao ? { observacao } : {}
+      payload: {
+        ...(observacao ? { observacao } : {}),
+        ...(nomeCanal ? { nome_canal: nomeCanal } : {}),
+        ...(tipoCanal ? { tipo_canal: tipoCanal } : {}),
+        ...(identificadorExterno ? { identificador_externo: identificadorExterno } : {}),
+        ...(urlCanal ? { url_canal: urlCanal } : {}),
+        ...(canaisDivulgacao ? { canais_divulgacao: canaisDivulgacao } : {})
+      }
     });
   } catch (error) {
     const message =
