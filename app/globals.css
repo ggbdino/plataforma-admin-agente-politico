@@ -212,6 +212,11 @@ button {
   border-collapse: collapse;
 }
 
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .table th,
 .table td {
   text-align: left;
@@ -232,6 +237,11 @@ button {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.table td:last-child,
+.table th:last-child {
+  min-width: 140px;
 }
 
 .button {
@@ -484,8 +494,7 @@ button {
   }
 
   .table {
-    display: block;
-    overflow-x: auto;
+    min-width: 980px;
   }
 
   .qr-image {

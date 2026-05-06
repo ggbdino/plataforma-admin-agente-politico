@@ -56,6 +56,7 @@ export default async function GestorDashboardPage() {
 
       <section className="card">
         <h2 className="section-title">Situacao por candidato</h2>
+        <div className="table-responsive">
         <table className="table">
           <thead>
             <tr>
@@ -108,6 +109,7 @@ export default async function GestorDashboardPage() {
             })}
           </tbody>
         </table>
+        </div>
       </section>
     </main>
   );

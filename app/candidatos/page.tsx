@@ -47,6 +47,7 @@ export default async function CandidatesPage() {
       </section>
 
       <section className="card">
+        <div className="table-responsive">
         <table className="table">
           <thead>
             <tr>
@@ -104,6 +105,7 @@ export default async function CandidatesPage() {
             })}
           </tbody>
         </table>
+        </div>
       </section>
     </main>
   );

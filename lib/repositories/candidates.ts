@@ -39,6 +39,9 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
         from implantacao_etapas_candidato iec
         where iec.id_candidato = c.id_candidato
       ) stats on true
+      where c.nome_urna is not null
+        and btrim(c.nome_urna) <> ''
+        and c.id_candidato ~ '^[0-9]+$'
       order by c.id_candidato
     `
   );
