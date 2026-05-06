@@ -52,8 +52,92 @@ export async function getCandidateImplantation(idCandidato: string) {
     [idCandidato]
   );
 
+  const reconciledSteps = await reconcileImplantationSteps(
+    idCandidato,
+    headerResult.rows[0],
+    stepsResult.rows
+  );
+
   return {
     cabecalho: headerResult.rows[0],
-    etapas: stepsResult.rows
+    etapas: reconciledSteps
   };
+}
+
+async function reconcileImplantationSteps(
+  idCandidato: string,
+  header: ImplantationHeader,
+  steps: ImplantationStep[]
+) {
+  const updates: Array<{
+    codigo_etapa: string;
+    mensagem: string;
+  }> = [];
+
+  const hasCandidateBase =
+    Boolean(header.nome_urna) &&
+    Boolean(header.nome_completo) &&
+    Boolean(header.partido) &&
+    Boolean(header.cargo_disputado);
+
+  if (hasCandidateBase) {
+    const cadastroStep = steps.find((step) => step.codigo_etapa === "cadastro_candidato");
+
+    if (cadastroStep && cadastroStep.status_etapa !== "concluida") {
+      updates.push({
+        codigo_etapa: "cadastro_candidato",
+        mensagem: "Etapa conciliada automaticamente: candidato ja existente na base de dados."
+      });
+    }
+  }
+
+  if (header.qr_code_url) {
+    const qrStep = steps.find((step) => step.codigo_etapa === "gerar_qrcode");
+
+    if (qrStep && qrStep.status_etapa !== "concluida") {
+      updates.push({
+        codigo_etapa: "gerar_qrcode",
+        mensagem: "Etapa conciliada automaticamente: QR Code ja existente para o candidato."
+      });
+    }
+  }
+
+  if (updates.length === 0) {
+    return steps;
+  }
+
+  for (const update of updates) {
+    await db.query(
+      `
+        update implantacao_etapas_candidato
+        set
+          status_etapa = 'concluida',
+          finalizado_em = coalesce(finalizado_em, now()),
+          executado_em = coalesce(executado_em, now()),
+          mensagem_status = $3,
+          atualizado_em = now()
+        where id_candidato = $1
+          and codigo_etapa = $2
+      `,
+      [idCandidato, update.codigo_etapa, update.mensagem]
+    );
+  }
+
+  return steps.map((step) => {
+    const matchedUpdate = updates.find((update) => update.codigo_etapa === step.codigo_etapa);
+
+    if (!matchedUpdate) {
+      return step;
+    }
+
+    const now = new Date().toISOString();
+
+    return {
+      ...step,
+      status_etapa: "concluida",
+      executado_em: step.executado_em ?? now,
+      finalizado_em: step.finalizado_em ?? now,
+      mensagem_status: matchedUpdate.mensagem
+    };
+  });
 }
