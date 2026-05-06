@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { executeImplantationStep } from "@/lib/services/implantation-service";
 
 export async function executeStepAction(formData: FormData) {
@@ -11,14 +12,32 @@ export async function executeStepAction(formData: FormData) {
     throw new Error("Dados insuficientes para executar a etapa.");
   }
 
-  await executeImplantationStep({
-    idCandidato,
-    codigoEtapa,
-    executedBy: "operador@plataforma.local",
-    source: "frontend_admin",
-    payload: {}
-  });
+  try {
+    await executeImplantationStep({
+      idCandidato,
+      codigoEtapa,
+      executedBy: "operador@plataforma.local",
+      source: "frontend_admin",
+      payload: {}
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Falha inesperada ao executar a etapa.";
+
+    revalidatePath("/candidatos");
+    revalidatePath(`/candidatos/${idCandidato}`);
+
+    redirect(
+      `/candidatos/${idCandidato}?feedback=erro&mensagem=${encodeURIComponent(message)}`
+    );
+  }
 
   revalidatePath("/candidatos");
   revalidatePath(`/candidatos/${idCandidato}`);
+
+  redirect(
+    `/candidatos/${idCandidato}?feedback=sucesso&mensagem=${encodeURIComponent(
+      "Etapa executada com sucesso."
+    )}`
+  );
 }

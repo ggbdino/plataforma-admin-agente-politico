@@ -10,12 +10,18 @@ type CandidatePageProps = {
   params: Promise<{
     idCandidato: string;
   }>;
+  searchParams?: Promise<{
+    feedback?: string;
+    mensagem?: string;
+  }>;
 };
 
 export default async function CandidateImplantationPage({
-  params
+  params,
+  searchParams
 }: CandidatePageProps) {
   const { idCandidato } = await params;
+  const query = searchParams ? await searchParams : undefined;
   const data = await getCandidateImplantation(idCandidato);
 
   if (!data) {
@@ -24,6 +30,15 @@ export default async function CandidateImplantationPage({
 
   return (
     <main className="page-shell">
+      {query?.feedback && query?.mensagem ? (
+        <section
+          className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}
+        >
+          <strong>{query.feedback === "sucesso" ? "Operacao concluida." : "Falha na etapa."}</strong>
+          <div style={{ marginTop: 6 }}>{query.mensagem}</div>
+        </section>
+      ) : null}
+
       <section className="hero-card">
         <span className="pill">Tela 2</span>
         <h1 className="title">

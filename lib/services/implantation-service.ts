@@ -27,6 +27,7 @@ const STEP_TO_WEBHOOK: Record<
 
 export async function executeImplantationStep(input: ExecuteStepInput) {
   const client = await db.connect();
+  let executionId: string | null = null;
 
   try {
     await client.query("begin");
@@ -98,7 +99,7 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
 
     await client.query("commit");
 
-    const executionId = executionResult.rows[0].id;
+    executionId = executionResult.rows[0].id;
     const webhookConfig = STEP_TO_WEBHOOK[input.codigoEtapa];
 
     if (!webhookConfig) {
@@ -145,6 +146,23 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     };
   } catch (error) {
     await client.query("rollback").catch(() => undefined);
+
+    if (executionId) {
+      const message =
+        error instanceof Error ? error.message : "Falha inesperada ao executar a etapa.";
+
+      await markExecutionFinished({
+        executionId,
+        idCandidato: input.idCandidato,
+        codigoEtapa: input.codigoEtapa,
+        status: "com_erro",
+        message,
+        responsePayload: {
+          erro: message
+        }
+      }).catch(() => undefined);
+    }
+
     throw error;
   } finally {
     client.release();
