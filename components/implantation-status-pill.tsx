@@ -13,7 +13,7 @@ const LABELS: Record<string, string> = {
 
 export function ImplantationStatusPill({ status }: ImplantationStatusPillProps) {
   const normalized = status ?? "nao_iniciado";
-  const className = normalized === "com_erro" ? "pill warn" : "pill ok";
+  const className = `pill status-pill ${normalized}`;
 
   return <span className={className}>{LABELS[normalized] ?? normalized}</span>;
 }

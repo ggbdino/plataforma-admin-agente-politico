@@ -1,19 +1,10 @@
 import { executeStepAction } from "@/lib/actions/execute-step-action";
+import type { ImplantationStep } from "@/lib/types";
 import { ImplantationStatusPill } from "./implantation-status-pill";
-
-type Step = {
-  codigo_etapa: string;
-  nome_etapa: string;
-  ordem: number;
-  status_etapa: string;
-  workflow_nome: string | null;
-  webhook_path: string | null;
-  mensagem_status: string | null;
-};
 
 type StepListProps = {
   idCandidato: string;
-  steps: Step[];
+  steps: ImplantationStep[];
 };
 
 export function StepList({ idCandidato, steps }: StepListProps) {
@@ -37,6 +28,16 @@ export function StepList({ idCandidato, steps }: StepListProps) {
                   {step.mensagem_status}
                 </div>
               ) : null}
+              <div className="step-meta">
+                <span>
+                  <strong>Execucao:</strong>{" "}
+                  {step.executado_em ? formatDateTime(step.executado_em) : "ainda nao iniciada"}
+                </span>
+                <span>
+                  <strong>Finalizacao:</strong>{" "}
+                  {step.finalizado_em ? formatDateTime(step.finalizado_em) : "pendente"}
+                </span>
+              </div>
             </div>
             <ImplantationStatusPill status={step.status_etapa} />
           </div>
@@ -44,12 +45,33 @@ export function StepList({ idCandidato, steps }: StepListProps) {
           <form action={executeStepAction} style={{ marginTop: 12 }}>
             <input type="hidden" name="idCandidato" value={idCandidato} />
             <input type="hidden" name="codigoEtapa" value={step.codigo_etapa} />
-            <button className="button" type="submit">
-              Executar
+            <button
+              className="button"
+              disabled={step.status_etapa === "em_andamento"}
+              type="submit"
+            >
+              {step.status_etapa === "concluida" || step.status_etapa === "com_erro"
+                ? "Reprocessar"
+                : step.status_etapa === "em_andamento"
+                  ? "Executando..."
+                  : "Executar"}
             </button>
           </form>
         </article>
       ))}
     </div>
   );
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(date);
 }
