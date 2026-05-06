@@ -13,6 +13,11 @@ export async function executeStepAction(formData: FormData) {
   const identificadorExterno = String(formData.get("identificador_externo") ?? "").trim();
   const urlCanal = String(formData.get("url_canal") ?? "").trim();
   const canaisDivulgacao = String(formData.get("canais_divulgacao") ?? "").trim();
+  const telefone = String(formData.get("telefone") ?? "").trim();
+  const nome = String(formData.get("nome") ?? "").trim();
+  const mensagem = String(formData.get("mensagem") ?? "").trim();
+  const temaInteresse = String(formData.get("tema_interesse") ?? "").trim();
+  const origemCaptacao = String(formData.get("origem_captacao") ?? "").trim();
 
   if (!idCandidato || !codigoEtapa) {
     throw new Error("Dados insuficientes para executar a etapa.");
@@ -30,7 +35,12 @@ export async function executeStepAction(formData: FormData) {
         ...(tipoCanal ? { tipo_canal: tipoCanal } : {}),
         ...(identificadorExterno ? { identificador_externo: identificadorExterno } : {}),
         ...(urlCanal ? { url_canal: urlCanal } : {}),
-        ...(canaisDivulgacao ? { canais_divulgacao: canaisDivulgacao } : {})
+        ...(canaisDivulgacao ? { canais_divulgacao: canaisDivulgacao } : {}),
+        ...(telefone ? { telefone } : {}),
+        ...(nome ? { nome } : {}),
+        ...(mensagem ? { mensagem } : {}),
+        ...(temaInteresse ? { tema_interesse: temaInteresse } : {}),
+        ...(origemCaptacao ? { origem_captacao: origemCaptacao } : {})
       }
     });
   } catch (error) {
