@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Agente Politico Admin",
-  description: "Painel administrativo do Agente Politico"
+  title: "GAP Consult Tecnologia | Plataforma Administrativa",
+  description: "Painel administrativo da GAP Consult Tecnologia para operacao do agente politico"
 };
 
 export default function RootLayout({
@@ -20,22 +20,25 @@ export default function RootLayout({
           <header className="brand-bar">
             <Link className="brand-lockup" href="/">
               <Image
-                alt="Logo GAP Consult"
+                alt="Logo oficial da GAP Consult Tecnologia"
                 className="brand-logo"
-                height={72}
+                height={56}
                 priority
-                src="/gap-logo-2024.png"
-                width={72}
+                src="/gap-logo-oficial.png"
+                width={271}
               />
               <div>
-                <span className="brand-kicker">GAP Consult</span>
+                <span className="brand-kicker">Gap Consult Tecnologia</span>
                 <h1 className="brand-title">Plataforma Administrativa</h1>
-                <p className="brand-subtitle">Gestao operacional do agente politico</p>
+                <p className="brand-subtitle">Gestao operacional do agente politico e implantacao de campanhas</p>
               </div>
             </Link>
           </header>
         </div>
         {children}
+        <footer className="page-footer">
+          Powered by <strong>GapConsult</strong>
+        </footer>
       </body>
     </html>
   );
