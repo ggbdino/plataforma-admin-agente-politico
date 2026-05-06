@@ -15,10 +15,30 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
         ic.instancia_evolution,
         ic.numero_agente_oficial,
         ic.qr_code_url,
-        ic.atualizado_em::text as implantacao_atualizada_em
+        ic.atualizado_em::text as implantacao_atualizada_em,
+        coalesce(stats.total_etapas, 0) as total_etapas,
+        coalesce(stats.etapas_concluidas, 0) as etapas_concluidas,
+        coalesce(stats.etapas_com_erro, 0) as etapas_com_erro,
+        stats.proxima_etapa
       from candidatos c
       left join implantacoes_candidato ic
         on ic.id_candidato = c.id_candidato
+      left join lateral (
+        select
+          count(*)::int as total_etapas,
+          count(*) filter (where iec.status_etapa = 'concluida')::int as etapas_concluidas,
+          count(*) filter (where iec.status_etapa = 'com_erro')::int as etapas_com_erro,
+          (
+            select nome_etapa
+            from implantacao_etapas_candidato next_step
+            where next_step.id_candidato = c.id_candidato
+              and next_step.status_etapa <> 'concluida'
+            order by next_step.ordem
+            limit 1
+          ) as proxima_etapa
+        from implantacao_etapas_candidato iec
+        where iec.id_candidato = c.id_candidato
+      ) stats on true
       order by c.id_candidato
     `
   );

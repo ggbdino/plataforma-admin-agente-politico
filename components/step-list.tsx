@@ -65,6 +65,17 @@ export function StepList({ idCandidato, steps }: StepListProps) {
           <form action={executeStepAction} style={{ marginTop: 12 }}>
             <input type="hidden" name="idCandidato" value={idCandidato} />
             <input type="hidden" name="codigoEtapa" value={step.codigo_etapa} />
+            {getStepMode(step.codigo_etapa) === "manual" ? (
+              <label className="step-note">
+                <span>Observacao do gestor</span>
+                <textarea
+                  className="step-textarea"
+                  name="observacao"
+                  placeholder="Descreva a evidencia ou a acao manual realizada nesta etapa."
+                  rows={3}
+                />
+              </label>
+            ) : null}
             <button
               className="button"
               disabled={

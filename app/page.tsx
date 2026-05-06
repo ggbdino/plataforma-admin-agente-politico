@@ -20,6 +20,9 @@ export default function HomePage() {
           <Link className="button" href="/candidatos">
             Abrir candidatos
           </Link>
+          <Link className="button secondary" href="/gestor">
+            Painel do gestor
+          </Link>
         </div>
       </section>
     </main>

@@ -7,6 +7,7 @@ import { executeImplantationStep } from "@/lib/services/implantation-service";
 export async function executeStepAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "");
   const codigoEtapa = String(formData.get("codigoEtapa") ?? "");
+  const observacao = String(formData.get("observacao") ?? "").trim();
 
   if (!idCandidato || !codigoEtapa) {
     throw new Error("Dados insuficientes para executar a etapa.");
@@ -18,7 +19,7 @@ export async function executeStepAction(formData: FormData) {
       codigoEtapa,
       executedBy: "operador@plataforma.local",
       source: "frontend_admin",
-      payload: {}
+      payload: observacao ? { observacao } : {}
     });
   } catch (error) {
     const message =

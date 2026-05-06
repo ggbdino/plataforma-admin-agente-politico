@@ -10,6 +10,10 @@ export type CandidateListItem = {
   numero_agente_oficial: string | null;
   qr_code_url: string | null;
   implantacao_atualizada_em: string | null;
+  total_etapas: number;
+  etapas_concluidas: number;
+  etapas_com_erro: number;
+  proxima_etapa: string | null;
 };
 
 export type ImplantationHeader = {

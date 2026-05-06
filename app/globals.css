@@ -373,11 +373,81 @@ button {
   letter-spacing: -0.02em;
 }
 
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .hero-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 18px;
+}
+
+.step-note {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.step-textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font: inherit;
+}
+
+.metric-card {
+  display: grid;
+  gap: 8px;
+  min-height: 110px;
+  align-content: start;
+}
+
+.metric-label {
+  color: var(--muted);
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 2rem;
+  color: var(--accent-deep);
+  letter-spacing: -0.04em;
+}
+
+.progress-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
+}
+
+.progress-track {
+  position: relative;
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(186, 214, 234, 0.55);
+  overflow: hidden;
+}
+
+.progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), #5db4ea);
 }
 
 .page-footer {
@@ -399,7 +469,8 @@ button {
 
   .brand-bar,
   .brand-lockup,
-  .step-head {
+  .step-head,
+  .section-heading {
     flex-direction: column;
     align-items: flex-start;
   }

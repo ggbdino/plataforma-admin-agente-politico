@@ -133,7 +133,7 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     const webhookConfig = STEP_TO_WEBHOOK[input.codigoEtapa];
 
     if (!webhookConfig) {
-      const manualMessage = getManualStepMessage(input.codigoEtapa);
+      const manualMessage = getManualStepMessage(input.codigoEtapa, input.payload);
 
       await markExecutionFinished({
         executionId,
@@ -269,15 +269,20 @@ async function markExecutionFinished(input: {
   );
 }
 
-function getManualStepMessage(codigoEtapa: string) {
+function getManualStepMessage(codigoEtapa: string, payload: Record<string, unknown>) {
+  const observacao =
+    typeof payload.observacao === "string" && payload.observacao.trim().length > 0
+      ? ` Observacao do gestor: ${payload.observacao.trim()}`
+      : "";
+
   switch (codigoEtapa) {
     case "configurar_evolution":
-      return "Etapa registrada como manual. Configure a instancia Evolution dedicada do candidato.";
+      return `Etapa registrada como manual. Configure a instancia Evolution dedicada do candidato.${observacao}`;
     case "validar_outbound":
-      return "Etapa registrada como manual/agendada. A validacao outbound depende do schedule da cadencia.";
+      return `Etapa registrada como manual/agendada. A validacao outbound depende do schedule da cadencia.${observacao}`;
     case "ativar_campanha":
-      return "Campanha marcada como ativa no painel administrativo.";
+      return `Campanha marcada como ativa no painel administrativo.${observacao}`;
     default:
-      return "Etapa registrada como manual ou dependente de configuracao externa.";
+      return `Etapa registrada como manual ou dependente de configuracao externa.${observacao}`;
   }
 }
