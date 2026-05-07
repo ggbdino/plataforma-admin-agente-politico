@@ -3,7 +3,8 @@ import type {
   CampaignChannelOption,
   CampaignManagerContext,
   ImplantationHeader,
-  ImplantationStep
+  ImplantationStep,
+  ManagerUpdateSummary
 } from "@/lib/types";
 
 export async function getCandidateImplantation(idCandidato: string) {
@@ -63,9 +64,35 @@ export async function getCandidateImplantation(idCandidato: string) {
     stepsResult.rows
   );
 
+  const managerUpdateResult = await db.query<ManagerUpdateSummary>(
+    `
+      select
+        ei.origem,
+        ei.status_execucao,
+        ei.iniciado_em::text as executado_em,
+        ei.finalizado_em::text as finalizado_em,
+        ei.payload_enviado ->> 'observacao' as observacao,
+        coalesce(
+          ei.payload_enviado ->> 'observacao',
+          iec.mensagem_status,
+          'Atualizacao registrada pela gestora da campanha.'
+        ) as resumo
+      from execucoes_implantacao ei
+      join implantacao_etapas_candidato iec
+        on iec.id = ei.etapa_id
+      where ei.id_candidato = $1
+        and iec.codigo_etapa = 'configurar_canais'
+        and ei.origem = 'gestor_campanha'
+      order by ei.iniciado_em desc
+      limit 1
+    `,
+    [idCandidato]
+  );
+
   return {
     cabecalho: headerResult.rows[0],
-    etapas: reconciledSteps
+    etapas: reconciledSteps,
+    atualizacaoGestora: managerUpdateResult.rows[0] ?? null
   };
 }
 

@@ -28,6 +28,9 @@ export default async function CandidatesPage() {
           <Link className="button secondary" href="/gestor">
             Abrir painel do gestor
           </Link>
+          <Link className="button secondary" href="/gestora">
+            Abrir area da gestora
+          </Link>
         </div>
       </section>
 
@@ -60,6 +63,7 @@ export default async function CandidatesPage() {
               <th>Proxima etapa</th>
               <th>Numero do agente</th>
               <th>QR</th>
+              <th>Atualizacao da gestora</th>
               <th>Acoes</th>
             </tr>
           </thead>
@@ -90,6 +94,21 @@ export default async function CandidatesPage() {
                   <td>{candidate.proxima_etapa ?? "Implantacao concluida"}</td>
                   <td className="mono">{candidate.numero_agente_oficial ?? "-"}</td>
                   <td>{candidate.qr_code_url ? "QR disponivel" : "QR pendente"}</td>
+                  <td>
+                    {candidate.ultima_atualizacao_gestora_em ? (
+                      <div className="muted">
+                        <strong>
+                          {new Intl.DateTimeFormat("pt-BR", {
+                            dateStyle: "short",
+                            timeStyle: "short"
+                          }).format(new Date(candidate.ultima_atualizacao_gestora_em))}
+                        </strong>
+                        <div>{candidate.ultima_atualizacao_gestora_resumo ?? "Atualizacao da gestora registrada."}</div>
+                      </div>
+                    ) : (
+                      "Sem atualizacao"
+                    )}
+                  </td>
                   <td>
                     <div className="actions">
                       <Link

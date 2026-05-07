@@ -14,6 +14,8 @@ export type CandidateListItem = {
   etapas_concluidas: number;
   etapas_com_erro: number;
   proxima_etapa: string | null;
+  ultima_atualizacao_gestora_em: string | null;
+  ultima_atualizacao_gestora_resumo: string | null;
 };
 
 export type ImplantationHeader = {
@@ -70,4 +72,13 @@ export type CampaignManagerContext = {
   canais_divulgacao_origem: string | null;
   observacao_padrao: string;
   canais_divulgacao: CampaignChannelOption[];
+};
+
+export type ManagerUpdateSummary = {
+  origem: string;
+  status_execucao: string;
+  executado_em: string | null;
+  finalizado_em: string | null;
+  observacao: string | null;
+  resumo: string | null;
 };

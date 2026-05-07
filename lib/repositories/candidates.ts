@@ -19,7 +19,9 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
         coalesce(stats.total_etapas, 0) as total_etapas,
         coalesce(stats.etapas_concluidas, 0) as etapas_concluidas,
         coalesce(stats.etapas_com_erro, 0) as etapas_com_erro,
-        stats.proxima_etapa
+        stats.proxima_etapa,
+        manager_update.executado_em::text as ultima_atualizacao_gestora_em,
+        manager_update.resumo as ultima_atualizacao_gestora_resumo
       from candidatos c
       left join implantacoes_candidato ic
         on ic.id_candidato = c.id_candidato
@@ -39,6 +41,23 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
         from implantacao_etapas_candidato iec
         where iec.id_candidato = c.id_candidato
       ) stats on true
+      left join lateral (
+        select
+          ei.iniciado_em as executado_em,
+          coalesce(
+            ei.payload_enviado ->> 'observacao',
+            iec.mensagem_status,
+            'Atualizacao registrada pela gestora'
+          ) as resumo
+        from execucoes_implantacao ei
+        join implantacao_etapas_candidato iec
+          on iec.id = ei.etapa_id
+        where ei.id_candidato = c.id_candidato
+          and iec.codigo_etapa = 'configurar_canais'
+          and ei.origem = 'gestor_campanha'
+        order by ei.iniciado_em desc
+        limit 1
+      ) manager_update on true
       where c.nome_urna is not null
         and btrim(c.nome_urna) <> ''
         and c.id_candidato ~ '^[0-9]+$'

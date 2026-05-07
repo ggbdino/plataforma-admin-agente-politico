@@ -107,6 +107,52 @@ export default async function CandidateImplantationPage({
         </article>
       </section>
 
+      {data.atualizacaoGestora ? (
+        <section className="card manager-update-card" style={{ marginBottom: 20 }}>
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Ultima atualizacao da gestora</h2>
+              <p className="subtitle">
+                Registro trazido da area especial da gestora para dar visibilidade imediata
+                ao administrativo sobre o que foi alterado na campanha.
+              </p>
+            </div>
+            <span className="pill ok">Origem: gestora da campanha</span>
+          </div>
+          <div className="manager-update-grid">
+            <div>
+              <strong>Executado em</strong>
+              <div className="muted">
+                {data.atualizacaoGestora.executado_em
+                  ? new Intl.DateTimeFormat("pt-BR", {
+                      dateStyle: "short",
+                      timeStyle: "short"
+                    }).format(new Date(data.atualizacaoGestora.executado_em))
+                  : "-"}
+              </div>
+            </div>
+            <div>
+              <strong>Finalizado em</strong>
+              <div className="muted">
+                {data.atualizacaoGestora.finalizado_em
+                  ? new Intl.DateTimeFormat("pt-BR", {
+                      dateStyle: "short",
+                      timeStyle: "short"
+                    }).format(new Date(data.atualizacaoGestora.finalizado_em))
+                  : "-"}
+              </div>
+            </div>
+            <div>
+              <strong>Status do registro</strong>
+              <div className="muted">{data.atualizacaoGestora.status_execucao}</div>
+            </div>
+          </div>
+          <div className="step-panel-callout" style={{ marginTop: 14 }}>
+            {data.atualizacaoGestora.resumo ?? "Sem resumo da ultima atualizacao."}
+          </div>
+        </section>
+      ) : null}
+
       <section className="grid grid-2" style={{ marginBottom: 20 }}>
         <article className="card key-value">
           <div>

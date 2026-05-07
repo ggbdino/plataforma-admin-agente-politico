@@ -58,6 +58,15 @@ export default async function GestoraDashboardPage() {
                 <div className="muted">
                   <strong>Numero oficial:</strong> {candidate.numero_agente_oficial ?? "-"}
                 </div>
+                <div className="muted">
+                  <strong>Ultima atualizacao da gestora:</strong>{" "}
+                  {candidate.ultima_atualizacao_gestora_em
+                    ? new Intl.DateTimeFormat("pt-BR", {
+                        dateStyle: "short",
+                        timeStyle: "short"
+                      }).format(new Date(candidate.ultima_atualizacao_gestora_em))
+                    : "ainda nao registrada"}
+                </div>
                 <div className="actions" style={{ marginTop: 12 }}>
                   <Link className="button secondary" href={`/gestor/candidato/${candidate.id_candidato}`}>
                     Abrir area da gestora
