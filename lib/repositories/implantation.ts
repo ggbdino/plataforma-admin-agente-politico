@@ -80,6 +80,7 @@ export async function getCampaignManagerContext(
     email_responsavel: string | null;
     numero_agente_oficial: string | null;
     url_canal_oficial: string | null;
+    qr_code_url: string | null;
     dados_brutos: Record<string, unknown> | null;
     configuracao: Record<string, unknown> | null;
     canais_divulgacao_whatsapp: string | null;
@@ -92,6 +93,7 @@ export async function getCampaignManagerContext(
         c.responsavel_preenchimento,
         c.email_responsavel,
         ic.numero_agente_oficial,
+        ic.qr_code_url,
         official.url_canal as url_canal_oficial,
         c.dados_brutos,
         camp.configuracao,
@@ -152,6 +154,7 @@ export async function getCampaignManagerContext(
     email_responsavel: candidate.email_responsavel,
     numero_agente_oficial: candidate.numero_agente_oficial,
     url_canal_oficial: candidate.url_canal_oficial,
+    qr_code_url: candidate.qr_code_url,
     canais_divulgacao_origem: candidate.canais_divulgacao_whatsapp,
     observacao_padrao:
       "Dados apresentados a seguir foram importados do formulario de entrada e podem ser ajustados sob o controle do Gestor da Campanha.",

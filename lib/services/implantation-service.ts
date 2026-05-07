@@ -312,7 +312,7 @@ async function upsertCandidateChannel(
   const urlCanal =
     typeof payload.url_canal === "string" && payload.url_canal.trim().length > 0
       ? payload.url_canal.trim()
-      : null;
+      : "";
   const canaisDivulgacao =
     typeof payload.canais_divulgacao === "string" && payload.canais_divulgacao.trim().length > 0
       ? payload.canais_divulgacao.trim()
@@ -320,9 +320,9 @@ async function upsertCandidateChannel(
   const normalizedPhone = normalizeCampaignPhone(identificadorExterno);
   const normalizedWhatsappUrl = normalizeWhatsappUrl(urlCanal, normalizedPhone);
 
-  if (!nomeCanal || !tipoCanal || !identificadorExterno || !urlCanal) {
+  if (!nomeCanal || !tipoCanal || !identificadorExterno) {
     throw new Error(
-      "Preencha nome do canal oficial, tipo do canal, numero oficial da campanha e link oficial do WhatsApp para concluir esta etapa."
+      "Preencha nome do canal oficial, tipo do canal e numero oficial da campanha para concluir esta etapa."
     );
   }
 
@@ -337,9 +337,7 @@ async function upsertCandidateChannel(
   }
 
   if (!normalizedWhatsappUrl) {
-    throw new Error(
-      "Informe um link oficial valido do WhatsApp. Use o formato https://wa.me/NUMERO_OFICIAL."
-    );
+    throw new Error("Nao foi possivel derivar o link oficial do WhatsApp a partir do numero informado.");
   }
 
   const updateResult = await db.query<{ id: string }>(

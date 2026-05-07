@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import {
@@ -117,6 +118,24 @@ export default async function CampaignManagerPage({
                 campanha para associar o numero ao Agente Politico. Todo eleitor captado por
                 qualquer canal deve ser direcionado para esse contato no WhatsApp.
               </div>
+              {data.qr_code_url ? (
+                <div className="manager-qr-panel">
+                  <strong>QR Code oficial da campanha</strong>
+                  <Image
+                    alt={`QR Code oficial de ${data.nome_urna}`}
+                    className="qr-image"
+                    height={220}
+                    src={data.qr_code_url}
+                    unoptimized
+                    width={220}
+                  />
+                  <div className="muted">
+                    Este mesmo QR Code pode ser reutilizado se a gestora trocar o aparelho da
+                    campanha, desde que a leitura seja feita no telefone oficial vinculado ao
+                    Agente Politico.
+                  </div>
+                </div>
+              ) : null}
               <ul className="manager-checklist">
                 <li>Numero oficial da campanha validado no nosso produto</li>
                 <li>QR Code pronto para eventos, site e material grafico</li>
@@ -151,11 +170,11 @@ export default async function CampaignManagerPage({
                   />
                 </label>
                 <label className="step-note">
-                  <span>Link oficial do WhatsApp</span>
+                  <span>Link oficial derivado automaticamente</span>
                   <input
                     className="step-input"
-                    defaultValue={data.url_canal_oficial ?? ""}
-                    name="url_canal"
+                    defaultValue={data.url_canal_oficial ?? (data.numero_agente_oficial ? `https://wa.me/${data.numero_agente_oficial}` : "")}
+                    disabled
                     type="text"
                   />
                 </label>

@@ -575,6 +575,12 @@ button {
   gap: 10px;
 }
 
+.manager-qr-panel {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
 @media (max-width: 720px) {
   .page-shell {
     padding: 16px;

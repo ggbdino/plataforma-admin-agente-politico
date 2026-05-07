@@ -52,7 +52,6 @@ export async function registerCampaignChannelAction(formData: FormData) {
   const nomeCanal = String(formData.get("nome_canal") ?? "").trim();
   const tipoCanal = String(formData.get("tipo_canal") ?? "").trim();
   const identificadorExterno = String(formData.get("identificador_externo") ?? "").trim();
-  const urlCanal = String(formData.get("url_canal") ?? "").trim();
   const observacao = String(formData.get("observacao") ?? "").trim();
   const canaisDivulgacao = formData
     .getAll("canais_divulgacao_item")
@@ -75,7 +74,6 @@ export async function registerCampaignChannelAction(formData: FormData) {
         nome_canal: nomeCanal,
         tipo_canal: tipoCanal,
         identificador_externo: identificadorExterno,
-        url_canal: urlCanal,
         observacao,
         canais_divulgacao: [canaisDivulgacao, canaisDivulgacaoExtra].filter(Boolean).join(" | ")
       }
