@@ -57,7 +57,7 @@ export async function registerCampaignChannelAction(formData: FormData) {
   const canaisDivulgacaoItems = formData
     .getAll("canais_divulgacao_item")
     .map(parseChannelOptionValue)
-    .filter((item): item is CampaignChannelOption => item !== null);
+    .filter(Boolean) as CampaignChannelOption[];
   const canaisDivulgacaoExtra = String(formData.get("canais_divulgacao_extra") ?? "").trim();
   const canaisDivulgacaoExtras = canaisDivulgacaoExtra
     .split(/\r?\n|[|;]/)
@@ -114,7 +114,7 @@ function normalizeDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function parseChannelOptionValue(value: FormDataEntryValue) {
+function parseChannelOptionValue(value: FormDataEntryValue): CampaignChannelOption | null {
   const raw = String(value ?? "").trim();
 
   if (!raw) {
@@ -135,7 +135,7 @@ function parseChannelOptionValue(value: FormDataEntryValue) {
       identificador_externo: parsed.identificador_externo ?? null,
       status: parsed.status ?? "ativo",
       selecionado_por_padrao: true
-    } satisfies CampaignChannelOption;
+    };
   } catch {
     return null;
   }
