@@ -517,6 +517,58 @@ button {
   color: var(--accent-deep);
 }
 
+.manager-auth-card,
+.manager-info-card {
+  display: grid;
+  gap: 14px;
+}
+
+.manager-auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.manager-checklist {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.manager-channel-box {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.manager-channel-options {
+  display: grid;
+  gap: 10px;
+}
+
+.manager-channel-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(145, 187, 219, 0.45);
+  background: rgba(244, 251, 255, 0.9);
+}
+
+.manager-channel-option input {
+  margin-top: 3px;
+}
+
+.manager-channel-option span {
+  display: grid;
+  gap: 4px;
+}
+
 @media (max-width: 720px) {
   .page-shell {
     padding: 16px;

@@ -1,5 +1,10 @@
 import { db } from "@/lib/db";
-import type { ImplantationHeader, ImplantationStep } from "@/lib/types";
+import type {
+  CampaignChannelOption,
+  CampaignManagerContext,
+  ImplantationHeader,
+  ImplantationStep
+} from "@/lib/types";
 
 export async function getCandidateImplantation(idCandidato: string) {
   const headerResult = await db.query<ImplantationHeader>(
@@ -62,6 +67,202 @@ export async function getCandidateImplantation(idCandidato: string) {
     cabecalho: headerResult.rows[0],
     etapas: reconciledSteps
   };
+}
+
+export async function getCampaignManagerContext(
+  idCandidato: string
+): Promise<CampaignManagerContext | null> {
+  const candidateResult = await db.query<{
+    id_candidato: string;
+    nome_urna: string;
+    telefone_responsavel: string | null;
+    responsavel_preenchimento: string | null;
+    email_responsavel: string | null;
+    numero_agente_oficial: string | null;
+    url_canal_oficial: string | null;
+    dados_brutos: Record<string, unknown> | null;
+    configuracao: Record<string, unknown> | null;
+    canais_divulgacao_whatsapp: string | null;
+  }>(
+    `
+      select
+        c.id_candidato,
+        c.nome_urna,
+        c.telefone_responsavel,
+        c.responsavel_preenchimento,
+        c.email_responsavel,
+        ic.numero_agente_oficial,
+        official.url_canal as url_canal_oficial,
+        c.dados_brutos,
+        camp.configuracao,
+        camp.canais_divulgacao_whatsapp
+      from candidatos c
+      left join implantacoes_candidato ic
+        on ic.id_candidato = c.id_candidato
+      left join campanhas camp
+        on camp.id_candidato = c.id_candidato
+      left join lateral (
+        select url_canal
+        from canais_integracao ci
+        where ci.id_candidato = c.id_candidato
+          and ci.tipo_canal = 'whatsapp_agente'
+        order by ci.atualizado_em desc
+        limit 1
+      ) official on true
+      where c.id_candidato = $1
+    `,
+    [idCandidato]
+  );
+
+  const candidate = candidateResult.rows[0];
+
+  if (!candidate) {
+    return null;
+  }
+
+  const channelsResult = await db.query<{
+    nome_canal: string;
+    tipo_canal: string;
+    url_canal: string | null;
+    identificador_externo: string | null;
+  }>(
+    `
+      select nome_canal, tipo_canal, url_canal, identificador_externo
+      from canais_integracao
+      where id_candidato = $1
+        and tipo_canal <> 'whatsapp_agente'
+      order by
+        case tipo_canal
+          when 'site_campanha' then 1
+          when 'rede_social' then 2
+          else 3
+        end,
+        nome_canal
+    `,
+    [idCandidato]
+  );
+
+  const rawChannels = buildChannelOptions(candidate, channelsResult.rows);
+
+  return {
+    id_candidato: candidate.id_candidato,
+    nome_urna: candidate.nome_urna,
+    telefone_responsavel: candidate.telefone_responsavel,
+    responsavel_preenchimento: candidate.responsavel_preenchimento,
+    email_responsavel: candidate.email_responsavel,
+    numero_agente_oficial: candidate.numero_agente_oficial,
+    url_canal_oficial: candidate.url_canal_oficial,
+    canais_divulgacao_origem: candidate.canais_divulgacao_whatsapp,
+    observacao_padrao:
+      "Dados apresentados a seguir foram importados do formulario de entrada e podem ser ajustados sob o controle do Gestor da Campanha.",
+    canais_divulgacao: rawChannels
+  };
+}
+
+export async function getManagerAccessData(idCandidato: string) {
+  const result = await db.query<{
+    telefone_responsavel: string | null;
+  }>(
+    `
+      select telefone_responsavel
+      from candidatos
+      where id_candidato = $1
+    `,
+    [idCandidato]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+function buildChannelOptions(
+  candidate: {
+    dados_brutos: Record<string, unknown> | null;
+    configuracao: Record<string, unknown> | null;
+    canais_divulgacao_whatsapp: string | null;
+  },
+  existingChannels: Array<{
+    nome_canal: string;
+    tipo_canal: string;
+    url_canal: string | null;
+    identificador_externo: string | null;
+  }>
+): CampaignChannelOption[] {
+  const options: CampaignChannelOption[] = existingChannels.map((channel) => ({
+    ...channel,
+    selecionado_por_padrao: true
+  }));
+
+  const seen = new Set(options.map((item) => `${item.tipo_canal}:${item.nome_canal}`));
+  const raw = candidate.dados_brutos ?? {};
+  const config = candidate.configuracao ?? {};
+
+  const extras: Array<CampaignChannelOption | null> = [
+    typeof raw.site_campanha === "string" && raw.site_campanha
+      ? {
+          nome_canal: "Site da campanha",
+          tipo_canal: "site_campanha",
+          url_canal: normalizeUrl(raw.site_campanha),
+          identificador_externo: String(raw.site_campanha),
+          selecionado_por_padrao: true
+        }
+      : null,
+    typeof raw.redes_sociais === "string" && raw.redes_sociais
+      ? {
+          nome_canal: "Redes sociais da campanha",
+          tipo_canal: "rede_social",
+          url_canal: normalizeUrl(raw.redes_sociais),
+          identificador_externo: String(raw.redes_sociais),
+          selecionado_por_padrao: true
+        }
+      : null,
+    typeof config.site_campanha === "string" && config.site_campanha
+      ? {
+          nome_canal: "Site da campanha",
+          tipo_canal: "site_campanha",
+          url_canal: normalizeUrl(config.site_campanha),
+          identificador_externo: String(config.site_campanha),
+          selecionado_por_padrao: true
+        }
+      : null,
+    typeof config.redes_sociais === "string" && config.redes_sociais
+      ? {
+          nome_canal: "Redes sociais da campanha",
+          tipo_canal: "rede_social",
+          url_canal: normalizeUrl(config.redes_sociais),
+          identificador_externo: String(config.redes_sociais),
+          selecionado_por_padrao: true
+        }
+      : null
+  ];
+
+  for (const extra of extras) {
+    if (!extra) {
+      continue;
+    }
+
+    const key = `${extra.tipo_canal}:${extra.nome_canal}`;
+
+    if (!seen.has(key)) {
+      options.push(extra);
+      seen.add(key);
+    }
+  }
+
+  return options;
+}
+
+function normalizeUrl(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return null;
+  }
+
+  if (text.startsWith("http://") || text.startsWith("https://")) {
+    return text;
+  }
+
+  return `https://${text}`;
 }
 
 async function reconcileImplantationSteps(

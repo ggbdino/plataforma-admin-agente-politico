@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { getCandidateImplantation } from "@/lib/repositories/implantation";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 import { StepList } from "@/components/step-list";
@@ -64,6 +65,11 @@ export default async function CandidateImplantationPage({
           <ImplantationStatusPill status={data.cabecalho.status_implantacao} />
           <span className="pill">Instancia {data.cabecalho.instancia_evolution ?? "pendente"}</span>
           <span className="pill">{progresso}% concluido</span>
+        </div>
+        <div className="actions" style={{ marginTop: 18 }}>
+          <Link className="button secondary" href={`/gestor/candidato/${idCandidato}`}>
+            Area do Gestor da Campanha
+          </Link>
         </div>
       </section>
 

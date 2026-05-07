@@ -48,3 +48,24 @@ export type ImplantationStep = {
 };
 
 export type StepExecutionMode = "webhook" | "manual";
+
+export type CampaignChannelOption = {
+  nome_canal: string;
+  tipo_canal: string;
+  url_canal: string | null;
+  identificador_externo: string | null;
+  selecionado_por_padrao: boolean;
+};
+
+export type CampaignManagerContext = {
+  id_candidato: string;
+  nome_urna: string;
+  telefone_responsavel: string | null;
+  responsavel_preenchimento: string | null;
+  email_responsavel: string | null;
+  numero_agente_oficial: string | null;
+  url_canal_oficial: string | null;
+  canais_divulgacao_origem: string | null;
+  observacao_padrao: string;
+  canais_divulgacao: CampaignChannelOption[];
+};
