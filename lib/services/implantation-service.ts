@@ -317,10 +317,28 @@ async function upsertCandidateChannel(
     typeof payload.canais_divulgacao === "string" && payload.canais_divulgacao.trim().length > 0
       ? payload.canais_divulgacao.trim()
       : null;
+  const normalizedPhone = normalizeCampaignPhone(identificadorExterno);
+  const normalizedWhatsappUrl = normalizeWhatsappUrl(urlCanal, normalizedPhone);
 
   if (!nomeCanal || !tipoCanal || !identificadorExterno || !urlCanal) {
     throw new Error(
       "Preencha nome do canal oficial, tipo do canal, numero oficial da campanha e link oficial do WhatsApp para concluir esta etapa."
+    );
+  }
+
+  if (tipoCanal !== "whatsapp_agente") {
+    throw new Error("O canal oficial da campanha deve permanecer como whatsapp_agente.");
+  }
+
+  if (!normalizedPhone) {
+    throw new Error(
+      "Informe um numero oficial valido para a campanha, contendo apenas digitos com DDD e codigo do pais quando necessario."
+    );
+  }
+
+  if (!normalizedWhatsappUrl) {
+    throw new Error(
+      "Informe um link oficial valido do WhatsApp. Use o formato https://wa.me/NUMERO_OFICIAL."
     );
   }
 
@@ -333,6 +351,7 @@ async function upsertCandidateChannel(
         identificador_externo = $4,
         url_canal = $5,
         status = 'ativo',
+        origem_dados = 'plataforma_admin',
         metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
           'origem_interface', 'plataforma_admin',
           'exibir_em_qrcode', true,
@@ -346,7 +365,7 @@ async function upsertCandidateChannel(
         and tipo_canal = $3
       returning id
     `,
-    [idCandidato, nomeCanal, tipoCanal, identificadorExterno, urlCanal, canaisDivulgacao]
+    [idCandidato, nomeCanal, tipoCanal, normalizedPhone, normalizedWhatsappUrl, canaisDivulgacao]
   );
 
   if (updateResult.rowCount && updateResult.rowCount > 0) {
@@ -362,6 +381,7 @@ async function upsertCandidateChannel(
         identificador_externo,
         url_canal,
         status,
+        origem_dados,
         metadata
       )
       values (
@@ -371,6 +391,7 @@ async function upsertCandidateChannel(
         $4,
         $5,
         'ativo',
+        'plataforma_admin',
         jsonb_build_object(
           'origem_interface', 'plataforma_admin',
           'exibir_em_qrcode', true,
@@ -382,8 +403,46 @@ async function upsertCandidateChannel(
       )
       returning id
     `,
-    [idCandidato, nomeCanal, tipoCanal, identificadorExterno, urlCanal, canaisDivulgacao]
+    [idCandidato, nomeCanal, tipoCanal, normalizedPhone, normalizedWhatsappUrl, canaisDivulgacao]
   );
 
   return insertResult.rows[0].id;
+}
+
+function normalizeCampaignPhone(value: string | null) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+
+  if (digits.length < 10 || digits.length > 14) {
+    return null;
+  }
+
+  return digits;
+}
+
+function normalizeWhatsappUrl(url: string | null, phone: string | null) {
+  if (!phone) {
+    return null;
+  }
+
+  const text = String(url ?? "").trim();
+
+  if (!text) {
+    return `https://wa.me/${phone}`;
+  }
+
+  const match = text.match(/(?:wa\.me\/|phone=)(\d{10,14})/);
+
+  if (match?.[1]) {
+    if (match[1] !== phone) {
+      return null;
+    }
+
+    return `https://wa.me/${phone}`;
+  }
+
+  if (text === `https://wa.me/${phone}` || text === `http://wa.me/${phone}`) {
+    return `https://wa.me/${phone}`;
+  }
+
+  return null;
 }

@@ -59,6 +59,7 @@ export async function registerCampaignChannelAction(formData: FormData) {
     .map((item) => String(item).trim())
     .filter(Boolean)
     .join(" | ");
+  const canaisDivulgacaoExtra = String(formData.get("canais_divulgacao_extra") ?? "").trim();
 
   if (!idCandidato) {
     throw new Error("Candidato nao identificado para o registro do canal oficial.");
@@ -76,7 +77,7 @@ export async function registerCampaignChannelAction(formData: FormData) {
         identificador_externo: identificadorExterno,
         url_canal: urlCanal,
         observacao,
-        canais_divulgacao: canaisDivulgacao
+        canais_divulgacao: [canaisDivulgacao, canaisDivulgacaoExtra].filter(Boolean).join(" | ")
       }
     });
   } catch (error) {

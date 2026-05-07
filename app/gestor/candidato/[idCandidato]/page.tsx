@@ -186,6 +186,16 @@ export default async function CampaignManagerPage({
               </div>
 
               <label className="step-note">
+                <span>Sugerir novos canais de divulgacao</span>
+                <textarea
+                  className="step-textarea"
+                  name="canais_divulgacao_extra"
+                  placeholder="Ex.: comites regionais, influenciadores locais, carro de som, panfletagem com QR Code, novos perfis sociais ou parceiros de divulgacao."
+                  rows={3}
+                />
+              </label>
+
+              <label className="step-note">
                 <span>Observacao do gestor</span>
                 <textarea
                   className="step-textarea"
