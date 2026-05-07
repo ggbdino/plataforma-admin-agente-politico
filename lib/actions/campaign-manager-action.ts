@@ -78,6 +78,7 @@ export async function registerCampaignChannelAction(formData: FormData) {
         nome_canal: nomeCanal,
         tipo_canal: tipoCanal,
         identificador_externo: identificadorExterno,
+        origem_execucao: "gestor_campanha",
         observacao,
         canais_divulgacao: buildChannelsSummary(canaisDivulgacaoItems, canaisDivulgacaoExtras),
         canais_divulgacao_itens: canaisDivulgacaoItems,

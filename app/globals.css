@@ -612,6 +612,33 @@ button {
   justify-items: start;
 }
 
+.manager-candidate-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.manager-candidate-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 249, 255, 0.98));
+}
+
+.manager-candidate-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.manager-candidate-progress {
+  display: grid;
+  gap: 6px;
+}
+
 @media (max-width: 720px) {
   .page-shell {
     padding: 16px;

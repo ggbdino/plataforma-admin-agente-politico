@@ -23,6 +23,9 @@ export default function HomePage() {
           <Link className="button secondary" href="/gestor">
             Painel do gestor
           </Link>
+          <Link className="button secondary" href="/gestora">
+            Area da gestora
+          </Link>
         </div>
       </section>
     </main>

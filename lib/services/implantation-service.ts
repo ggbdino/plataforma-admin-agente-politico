@@ -274,6 +274,8 @@ async function markExecutionFinished(input: {
 }
 
 function getManualStepMessage(codigoEtapa: string, payload: Record<string, unknown>) {
+  const origemExecucao =
+    typeof payload.origem_execucao === "string" ? payload.origem_execucao : "admin";
   const observacao =
     typeof payload.observacao === "string" && payload.observacao.trim().length > 0
       ? ` Observacao do gestor: ${payload.observacao.trim()}`
@@ -281,7 +283,9 @@ function getManualStepMessage(codigoEtapa: string, payload: Record<string, unkno
 
   switch (codigoEtapa) {
     case "configurar_canais":
-      return `Canal oficial do Agente Politico registrado no painel, com QR Code vinculado ao telefone da campanha e canais de divulgacao orientados para esse contato.${observacao}`;
+      return `Canal oficial do Agente Politico registrado no painel, com QR Code vinculado ao telefone da campanha e canais de divulgacao orientados para esse contato. Atualizacao realizada pela ${origemExecucao === "gestor_campanha" ? "Area da Gestora da Campanha" : "administracao"}.${
+        observacao
+      }`;
     case "configurar_evolution":
       return `Etapa registrada como manual. Configure a instancia Evolution dedicada do candidato.${observacao}`;
     case "validar_outbound":
