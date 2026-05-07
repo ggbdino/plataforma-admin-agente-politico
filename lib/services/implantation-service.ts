@@ -346,8 +346,8 @@ async function upsertCandidateChannel(
       set
         nome_canal = $2,
         tipo_canal = $3,
-        identificador_externo = $4,
-        url_canal = $5,
+        identificador_externo = $4::text,
+        url_canal = $5::text,
         status = 'ativo',
         origem_dados = 'plataforma_admin',
         metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
@@ -355,8 +355,8 @@ async function upsertCandidateChannel(
           'exibir_em_qrcode', true,
           'papel_canal', 'canal_oficial_funil',
           'qrcode_vinculado', true,
-          'numero_oficial_campanha', $4,
-          'canais_divulgacao', $6
+          'numero_oficial_campanha', $4::text,
+          'canais_divulgacao', $6::text
         ),
         atualizado_em = now()
       where id_candidato = $1
@@ -386,8 +386,8 @@ async function upsertCandidateChannel(
         $1,
         $2,
         $3,
-        $4,
-        $5,
+        $4::text,
+        $5::text,
         'ativo',
         'plataforma_admin',
         jsonb_build_object(
@@ -395,8 +395,8 @@ async function upsertCandidateChannel(
           'exibir_em_qrcode', true,
           'papel_canal', 'canal_oficial_funil',
           'qrcode_vinculado', true,
-          'numero_oficial_campanha', $4,
-          'canais_divulgacao', $6
+          'numero_oficial_campanha', $4::text,
+          'canais_divulgacao', $6::text
         )
       )
       returning id

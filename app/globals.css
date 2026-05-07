@@ -83,6 +83,28 @@ button {
   color: var(--accent-deep);
 }
 
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.version-badge,
+.page-footer-version {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid rgba(36, 135, 211, 0.22);
+  background: rgba(244, 251, 255, 0.92);
+  color: var(--accent-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
 .brand-subtitle {
   margin: 4px 0 0;
   color: var(--muted);
@@ -515,6 +537,10 @@ button {
 
 .page-footer strong {
   color: var(--accent-deep);
+}
+
+.page-footer-version {
+  margin-left: 8px;
 }
 
 .manager-auth-card,

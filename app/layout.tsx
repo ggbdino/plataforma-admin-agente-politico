@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Painel administrativo da GAP Consult Tecnologia para operacao do agente politico"
 };
 
+const APP_VERSION = "V.1.0";
+
 export default function RootLayout({
   children
 }: Readonly<{
@@ -29,7 +31,10 @@ export default function RootLayout({
               />
               <div>
                 <span className="brand-kicker">Gap Consult Tecnologia</span>
-                <h1 className="brand-title">Plataforma Administrativa</h1>
+                <div className="brand-title-row">
+                  <h1 className="brand-title">Plataforma Administrativa</h1>
+                  <span className="version-badge">{APP_VERSION}</span>
+                </div>
                 <p className="brand-subtitle">Gestao operacional do agente politico e implantacao de campanhas</p>
               </div>
             </Link>
@@ -37,7 +42,7 @@ export default function RootLayout({
         </div>
         {children}
         <footer className="page-footer">
-          Powered by <strong>GapConsult</strong>
+          Powered by <strong>GapConsult</strong> <span className="page-footer-version">{APP_VERSION}</span>
         </footer>
       </body>
     </html>
