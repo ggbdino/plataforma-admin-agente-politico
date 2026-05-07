@@ -127,9 +127,10 @@ export async function getCampaignManagerContext(
     tipo_canal: string;
     url_canal: string | null;
     identificador_externo: string | null;
+    status: string;
   }>(
     `
-      select nome_canal, tipo_canal, url_canal, identificador_externo
+      select nome_canal, tipo_canal, url_canal, identificador_externo, status
       from canais_integracao
       where id_candidato = $1
         and tipo_canal <> 'whatsapp_agente'
@@ -188,11 +189,12 @@ function buildChannelOptions(
     tipo_canal: string;
     url_canal: string | null;
     identificador_externo: string | null;
+    status: string;
   }>
 ): CampaignChannelOption[] {
   const options: CampaignChannelOption[] = existingChannels.map((channel) => ({
     ...channel,
-    selecionado_por_padrao: true
+    selecionado_por_padrao: channel.status !== "inativo"
   }));
 
   const seen = new Set(options.map((item) => `${item.tipo_canal}:${item.nome_canal}`));
@@ -206,6 +208,7 @@ function buildChannelOptions(
           tipo_canal: "site_campanha",
           url_canal: normalizeUrl(raw.site_campanha),
           identificador_externo: String(raw.site_campanha),
+          status: "ativo",
           selecionado_por_padrao: true
         }
       : null,
@@ -215,6 +218,7 @@ function buildChannelOptions(
           tipo_canal: "rede_social",
           url_canal: normalizeUrl(raw.redes_sociais),
           identificador_externo: String(raw.redes_sociais),
+          status: "ativo",
           selecionado_por_padrao: true
         }
       : null,
@@ -224,6 +228,7 @@ function buildChannelOptions(
           tipo_canal: "site_campanha",
           url_canal: normalizeUrl(config.site_campanha),
           identificador_externo: String(config.site_campanha),
+          status: "ativo",
           selecionado_por_padrao: true
         }
       : null,
@@ -233,6 +238,7 @@ function buildChannelOptions(
           tipo_canal: "rede_social",
           url_canal: normalizeUrl(config.redes_sociais),
           identificador_externo: String(config.redes_sociais),
+          status: "ativo",
           selecionado_por_padrao: true
         }
       : null

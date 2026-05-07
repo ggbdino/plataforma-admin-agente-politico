@@ -193,7 +193,13 @@ export default async function CampaignManagerPage({
                         defaultChecked={channel.selecionado_por_padrao}
                         name="canais_divulgacao_item"
                         type="checkbox"
-                        value={`${channel.nome_canal} (${channel.tipo_canal})${channel.url_canal ? ` - ${channel.url_canal}` : ""}`}
+                        value={JSON.stringify({
+                          nome_canal: channel.nome_canal,
+                          tipo_canal: channel.tipo_canal,
+                          url_canal: channel.url_canal,
+                          identificador_externo: channel.identificador_externo,
+                          status: channel.status
+                        })}
                       />
                       <span>
                         <strong>{channel.nome_canal}</strong>

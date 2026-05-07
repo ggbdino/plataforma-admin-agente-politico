@@ -54,6 +54,7 @@ export type CampaignChannelOption = {
   tipo_canal: string;
   url_canal: string | null;
   identificador_externo: string | null;
+  status: string;
   selecionado_por_padrao: boolean;
 };
 

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { triggerN8nWebhook } from "@/lib/n8n";
-import type { StepExecutionMode } from "@/lib/types";
+import type { CampaignChannelOption, StepExecutionMode } from "@/lib/types";
 
 type ExecuteStepInput = {
   idCandidato: string;
@@ -317,6 +317,8 @@ async function upsertCandidateChannel(
     typeof payload.canais_divulgacao === "string" && payload.canais_divulgacao.trim().length > 0
       ? payload.canais_divulgacao.trim()
       : null;
+  const canaisDivulgacaoItens = normalizeChannelItems(payload.canais_divulgacao_itens);
+  const canaisDivulgacaoExtras = normalizeExtraChannelItems(payload.canais_divulgacao_extra);
   const normalizedPhone = normalizeCampaignPhone(identificadorExterno);
   const normalizedWhatsappUrl = normalizeWhatsappUrl(urlCanal, normalizedPhone);
 
@@ -366,45 +368,55 @@ async function upsertCandidateChannel(
     [idCandidato, nomeCanal, tipoCanal, normalizedPhone, normalizedWhatsappUrl, canaisDivulgacao]
   );
 
+  let officialChannelId: string;
+
   if (updateResult.rowCount && updateResult.rowCount > 0) {
-    return updateResult.rows[0].id;
+    officialChannelId = updateResult.rows[0].id;
+  } else {
+    const insertResult = await db.query<{ id: string }>(
+      `
+        insert into canais_integracao (
+          id_candidato,
+          nome_canal,
+          tipo_canal,
+          identificador_externo,
+          url_canal,
+          status,
+          origem_dados,
+          metadata
+        )
+        values (
+          $1,
+          $2,
+          $3,
+          $4::text,
+          $5::text,
+          'ativo',
+          'plataforma_admin',
+          jsonb_build_object(
+            'origem_interface', 'plataforma_admin',
+            'exibir_em_qrcode', true,
+            'papel_canal', 'canal_oficial_funil',
+            'qrcode_vinculado', true,
+            'numero_oficial_campanha', $4::text,
+            'canais_divulgacao', $6::text
+          )
+        )
+        returning id
+      `,
+      [idCandidato, nomeCanal, tipoCanal, normalizedPhone, normalizedWhatsappUrl, canaisDivulgacao]
+    );
+
+    officialChannelId = insertResult.rows[0].id;
   }
 
-  const insertResult = await db.query<{ id: string }>(
-    `
-      insert into canais_integracao (
-        id_candidato,
-        nome_canal,
-        tipo_canal,
-        identificador_externo,
-        url_canal,
-        status,
-        origem_dados,
-        metadata
-      )
-      values (
-        $1,
-        $2,
-        $3,
-        $4::text,
-        $5::text,
-        'ativo',
-        'plataforma_admin',
-        jsonb_build_object(
-          'origem_interface', 'plataforma_admin',
-          'exibir_em_qrcode', true,
-          'papel_canal', 'canal_oficial_funil',
-          'qrcode_vinculado', true,
-          'numero_oficial_campanha', $4::text,
-          'canais_divulgacao', $6::text
-        )
-      )
-      returning id
-    `,
-    [idCandidato, nomeCanal, tipoCanal, normalizedPhone, normalizedWhatsappUrl, canaisDivulgacao]
+  await syncDisseminationChannels(
+    idCandidato,
+    officialChannelId,
+    [...canaisDivulgacaoItens, ...canaisDivulgacaoExtras]
   );
 
-  return insertResult.rows[0].id;
+  return officialChannelId;
 }
 
 function normalizeCampaignPhone(value: string | null) {
@@ -443,4 +455,220 @@ function normalizeWhatsappUrl(url: string | null, phone: string | null) {
   }
 
   return null;
+}
+
+function normalizeChannelItems(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const dedupe = new Set<string>();
+  const items: CampaignChannelOption[] = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    const channel = item as Partial<CampaignChannelOption>;
+    const nomeCanal = String(channel.nome_canal ?? "").trim();
+    const tipoCanal = String(channel.tipo_canal ?? "").trim();
+    const identificadorExterno = String(channel.identificador_externo ?? "").trim() || null;
+    const urlCanal = normalizeGenericUrl(channel.url_canal);
+
+    if (!nomeCanal || !tipoCanal) {
+      continue;
+    }
+
+    const key = `${tipoCanal}|${identificadorExterno ?? nomeCanal}`;
+
+    if (dedupe.has(key)) {
+      continue;
+    }
+
+    dedupe.add(key);
+    items.push({
+      nome_canal: nomeCanal,
+      tipo_canal: tipoCanal,
+      url_canal: urlCanal,
+      identificador_externo: identificadorExterno,
+      status: "ativo",
+      selecionado_por_padrao: true
+    });
+  }
+
+  return items;
+}
+
+function normalizeExtraChannelItems(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const dedupe = new Set<string>();
+  const items: CampaignChannelOption[] = [];
+
+  for (const item of value) {
+    const raw = String(item ?? "").trim();
+
+    if (!raw) {
+      continue;
+    }
+
+    const key = raw.toLowerCase();
+
+    if (dedupe.has(key)) {
+      continue;
+    }
+
+    dedupe.add(key);
+    items.push({
+      nome_canal: raw,
+      tipo_canal: "canal_divulgacao",
+      url_canal: normalizeGenericUrl(raw),
+      identificador_externo: raw,
+      status: "ativo",
+      selecionado_por_padrao: true
+    });
+  }
+
+  return items;
+}
+
+function normalizeGenericUrl(value: unknown) {
+  const text = String(value ?? "").trim();
+
+  if (!text) {
+    return null;
+  }
+
+  if (text.startsWith("http://") || text.startsWith("https://")) {
+    return text;
+  }
+
+  if (text.startsWith("@")) {
+    return null;
+  }
+
+  if (text.includes(".") && !text.includes(" ")) {
+    return `https://${text}`;
+  }
+
+  return null;
+}
+
+async function syncDisseminationChannels(
+  idCandidato: string,
+  officialChannelId: string,
+  channels: CampaignChannelOption[]
+) {
+  await db.query(
+    `
+      update canais_integracao
+      set
+        status = 'inativo',
+        atualizado_em = now(),
+        metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+          'origem_interface', 'plataforma_admin',
+          'papel_canal', 'canal_divulgacao',
+          'promove_whatsapp_oficial', false,
+          'promove_qrcode', false,
+          'canal_oficial_id', $2::text
+        )
+      where id_candidato = $1
+        and tipo_canal <> 'whatsapp_agente'
+    `,
+    [idCandidato, officialChannelId]
+  );
+
+  for (const channel of channels) {
+    await upsertDisseminationChannel(idCandidato, officialChannelId, channel);
+  }
+}
+
+async function upsertDisseminationChannel(
+  idCandidato: string,
+  officialChannelId: string,
+  channel: CampaignChannelOption
+) {
+  const updateResult = await db.query<{ id: string }>(
+    `
+      update canais_integracao
+      set
+        nome_canal = $2,
+        identificador_externo = $4::text,
+        url_canal = $5::text,
+        status = 'ativo',
+        origem_dados = 'plataforma_admin',
+        metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+          'origem_interface', 'plataforma_admin',
+          'papel_canal', 'canal_divulgacao',
+          'promove_whatsapp_oficial', true,
+          'promove_qrcode', true,
+          'canal_oficial_id', $6::text
+        ),
+        atualizado_em = now()
+      where id_candidato = $1
+        and tipo_canal = $3
+        and (
+          coalesce(identificador_externo, '') = coalesce($4::text, '')
+          or nome_canal = $2
+        )
+      returning id
+    `,
+    [
+      idCandidato,
+      channel.nome_canal,
+      channel.tipo_canal,
+      channel.identificador_externo,
+      channel.url_canal,
+      officialChannelId
+    ]
+  );
+
+  if (updateResult.rowCount && updateResult.rowCount > 0) {
+    return updateResult.rows[0].id;
+  }
+
+  const insertResult = await db.query<{ id: string }>(
+    `
+      insert into canais_integracao (
+        id_candidato,
+        nome_canal,
+        tipo_canal,
+        identificador_externo,
+        url_canal,
+        status,
+        origem_dados,
+        metadata
+      )
+      values (
+        $1,
+        $2,
+        $3,
+        $4::text,
+        $5::text,
+        'ativo',
+        'plataforma_admin',
+        jsonb_build_object(
+          'origem_interface', 'plataforma_admin',
+          'papel_canal', 'canal_divulgacao',
+          'promove_whatsapp_oficial', true,
+          'promove_qrcode', true,
+          'canal_oficial_id', $6::text
+        )
+      )
+      returning id
+    `,
+    [
+      idCandidato,
+      channel.nome_canal,
+      channel.tipo_canal,
+      channel.identificador_externo,
+      channel.url_canal,
+      officialChannelId
+    ]
+  );
+
+  return insertResult.rows[0].id;
 }
