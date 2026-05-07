@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { executeStepAction } from "@/lib/actions/execute-step-action";
 import type { ImplantationStep } from "@/lib/types";
 import { ImplantationStatusPill } from "./implantation-status-pill";
@@ -72,56 +73,14 @@ export function StepList({ idCandidato, candidateName, officialNumber, steps }: 
                 <div className="step-panel-callout">
                   O WhatsApp oficial do Agente Politico e o unico canal operacional do produto.
                   O QR Code da campanha deve apontar para esse numero, e todos os outros canais
-                  de divulgacao devem tracionar o eleitor para esse contato.
+                  de divulgacao devem tracionar o eleitor para esse contato. Essa configuracao
+                  fica sob responsabilidade do Gestor da Campanha na area reservada.
                 </div>
-                <div className="step-form-grid">
-                  <label className="step-note">
-                    <span>Nome do canal oficial</span>
-                    <input
-                      className="step-input"
-                      defaultValue={`Agente Politico ${candidateName}`}
-                      name="nome_canal"
-                      type="text"
-                    />
-                  </label>
-                  <label className="step-note">
-                    <span>Tipo do canal oficial</span>
-                    <input
-                      className="step-input"
-                      defaultValue="whatsapp_agente"
-                      name="tipo_canal"
-                      readOnly
-                      type="text"
-                    />
-                  </label>
-                  <label className="step-note">
-                    <span>Numero oficial da campanha</span>
-                    <input
-                      className="step-input"
-                      defaultValue={officialNumber ?? ""}
-                      name="identificador_externo"
-                      type="text"
-                    />
-                  </label>
-                  <label className="step-note">
-                    <span>Link oficial do WhatsApp</span>
-                    <input
-                      className="step-input"
-                      defaultValue={officialNumber ? `https://wa.me/${officialNumber}` : ""}
-                      name="url_canal"
-                      type="text"
-                    />
-                  </label>
+                <div className="manager-inline-actions">
+                  <Link className="button secondary" href={`/gestor/candidato/${idCandidato}`}>
+                    Abrir area do Gestor da Campanha
+                  </Link>
                 </div>
-                <label className="step-note">
-                  <span>Canais de divulgacao que apontam para esse WhatsApp</span>
-                  <textarea
-                    className="step-textarea"
-                    name="canais_divulgacao"
-                    placeholder="Ex.: Instagram oficial, site da campanha, materiais graficos, landing page e redes sociais que divulgam o QR Code e o numero do Agente Politico."
-                    rows={3}
-                  />
-                </label>
               </div>
             ) : null}
             {step.codigo_etapa === "validar_inbound" ? (
@@ -191,22 +150,24 @@ export function StepList({ idCandidato, candidateName, officialNumber, steps }: 
                 />
               </label>
             ) : null}
-            <button
-              className="button"
-              disabled={
-                step.status_etapa === "em_andamento" ||
-                isStepBlocked(step, firstPendingStep?.codigo_etapa)
-              }
-              type="submit"
-            >
-              {getStepMode(step.codigo_etapa) === "manual"
-                ? "Registrar etapa"
-                : step.status_etapa === "concluida" || step.status_etapa === "com_erro"
-                ? "Reprocessar"
-                : step.status_etapa === "em_andamento"
-                  ? "Executando..."
-                  : "Executar"}
-            </button>
+            {step.codigo_etapa !== "configurar_canais" ? (
+              <button
+                className="button"
+                disabled={
+                  step.status_etapa === "em_andamento" ||
+                  isStepBlocked(step, firstPendingStep?.codigo_etapa)
+                }
+                type="submit"
+              >
+                {getStepMode(step.codigo_etapa) === "manual"
+                  ? "Registrar etapa"
+                  : step.status_etapa === "concluida" || step.status_etapa === "com_erro"
+                  ? "Reprocessar"
+                  : step.status_etapa === "em_andamento"
+                    ? "Executando..."
+                    : "Executar"}
+              </button>
+            ) : null}
           </form>
         </article>
       ))}
