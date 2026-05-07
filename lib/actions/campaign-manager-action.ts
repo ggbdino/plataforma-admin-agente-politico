@@ -57,7 +57,7 @@ export async function registerCampaignChannelAction(formData: FormData) {
   const canaisDivulgacaoItems = formData
     .getAll("canais_divulgacao_item")
     .map(parseChannelOptionValue)
-    .filter((item): item is CampaignChannelOption => Boolean(item));
+    .filter((item): item is CampaignChannelOption => item !== null);
   const canaisDivulgacaoExtra = String(formData.get("canais_divulgacao_extra") ?? "").trim();
   const canaisDivulgacaoExtras = canaisDivulgacaoExtra
     .split(/\r?\n|[|;]/)
