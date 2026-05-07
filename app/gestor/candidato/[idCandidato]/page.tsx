@@ -210,6 +210,29 @@ export default async function CampaignManagerPage({
                 </div>
               </div>
 
+              <div className="manager-channel-box">
+                <strong>Canais ja registrados na campanha</strong>
+                <p className="muted">
+                  Esta lista consolida os canais atualmente conhecidos pela plataforma, sem repetir
+                  site ou rede social quando o conteudo for o mesmo.
+                </p>
+                <div className="manager-channel-options">
+                  {data.canais_divulgacao.map((channel) => (
+                    <div className="manager-channel-option manager-channel-readonly" key={`registered-${channel.tipo_canal}-${channel.nome_canal}`}>
+                      <span>
+                        <strong>{channel.nome_canal}</strong>
+                        <small className="muted">
+                          {channel.url_canal ?? channel.identificador_externo ?? "-"}
+                        </small>
+                      </span>
+                      <span className={`pill ${channel.status === "inativo" ? "warn" : "ok"}`}>
+                        {channel.status === "inativo" ? "Inativo" : "Ativo"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <label className="step-note">
                 <span>Sugerir novos canais de divulgacao</span>
                 <textarea

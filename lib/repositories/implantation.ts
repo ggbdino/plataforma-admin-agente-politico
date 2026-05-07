@@ -193,11 +193,14 @@ function buildChannelOptions(
   }>
 ): CampaignChannelOption[] {
   const options: CampaignChannelOption[] = existingChannels.map((channel) => ({
-    ...channel,
+    nome_canal: inferChannelDisplayName(channel.nome_canal, channel.tipo_canal, channel.identificador_externo, channel.url_canal),
+    tipo_canal: channel.tipo_canal,
+    url_canal: channel.url_canal,
+    identificador_externo: channel.identificador_externo,
+    status: channel.status,
     selecionado_por_padrao: channel.status !== "inativo"
   }));
 
-  const seen = new Set(options.map((item) => `${item.tipo_canal}:${item.nome_canal}`));
   const raw = candidate.dados_brutos ?? {};
   const config = candidate.configuracao ?? {};
 
@@ -244,20 +247,10 @@ function buildChannelOptions(
       : null
   ];
 
-  for (const extra of extras) {
-    if (!extra) {
-      continue;
-    }
-
-    const key = `${extra.tipo_canal}:${extra.nome_canal}`;
-
-    if (!seen.has(key)) {
-      options.push(extra);
-      seen.add(key);
-    }
-  }
-
-  return options;
+  return dedupeChannelOptions([
+    ...options,
+    ...extras.filter((extra): extra is CampaignChannelOption => Boolean(extra))
+  ]);
 }
 
 function normalizeUrl(value: unknown) {
@@ -272,6 +265,136 @@ function normalizeUrl(value: unknown) {
   }
 
   return `https://${text}`;
+}
+
+function dedupeChannelOptions(options: CampaignChannelOption[]) {
+  const deduped = new Map<string, CampaignChannelOption>();
+
+  for (const option of options) {
+    const key = buildChannelKey(option);
+    const existing = deduped.get(key);
+
+    if (!existing) {
+      deduped.set(key, option);
+      continue;
+    }
+
+    deduped.set(key, choosePreferredChannel(existing, option));
+  }
+
+  return Array.from(deduped.values()).sort((left, right) => {
+    const orderLeft = getChannelSortOrder(left.tipo_canal);
+    const orderRight = getChannelSortOrder(right.tipo_canal);
+
+    if (orderLeft !== orderRight) {
+      return orderLeft - orderRight;
+    }
+
+    return left.nome_canal.localeCompare(right.nome_canal, "pt-BR");
+  });
+}
+
+function buildChannelKey(option: CampaignChannelOption) {
+  const reference = normalizeComparableChannelValue(
+    option.url_canal ?? option.identificador_externo ?? option.nome_canal
+  );
+
+  return `${normalizeChannelFamily(option.tipo_canal)}|${reference}`;
+}
+
+function choosePreferredChannel(current: CampaignChannelOption, candidate: CampaignChannelOption) {
+  const currentScore = scoreChannel(current);
+  const candidateScore = scoreChannel(candidate);
+
+  return candidateScore > currentScore ? candidate : current;
+}
+
+function scoreChannel(option: CampaignChannelOption) {
+  let score = 0;
+
+  if (option.status !== "inativo") {
+    score += 4;
+  }
+
+  if (option.url_canal) {
+    score += 3;
+  }
+
+  if (option.identificador_externo) {
+    score += 2;
+  }
+
+  if (
+    option.nome_canal === "Site Oficial Brunex" ||
+    option.nome_canal === "Rede Social Principal Brunex" ||
+    option.nome_canal === "Site da campanha" ||
+    option.nome_canal === "Redes sociais da campanha"
+  ) {
+    score += 1;
+  }
+
+  return score;
+}
+
+function normalizeChannelFamily(tipoCanal: string) {
+  if (tipoCanal === "site_campanha") {
+    return "site";
+  }
+
+  if (tipoCanal === "rede_social" || tipoCanal === "canal_divulgacao") {
+    return "social";
+  }
+
+  return tipoCanal;
+}
+
+function normalizeComparableChannelValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/+$/, "");
+}
+
+function inferChannelDisplayName(
+  nomeCanal: string,
+  tipoCanal: string,
+  identificadorExterno: string | null,
+  urlCanal: string | null
+) {
+  if (tipoCanal === "site_campanha") {
+    return "Site oficial da campanha";
+  }
+
+  if (tipoCanal === "rede_social") {
+    return "Rede social principal da campanha";
+  }
+
+  const reference = identificadorExterno ?? urlCanal ?? nomeCanal;
+
+  if (tipoCanal === "canal_divulgacao" && reference.startsWith("@")) {
+    return `Perfil social sugerido ${reference}`;
+  }
+
+  if (tipoCanal === "canal_divulgacao") {
+    return nomeCanal || "Canal de divulgacao complementar";
+  }
+
+  return nomeCanal;
+}
+
+function getChannelSortOrder(tipoCanal: string) {
+  switch (tipoCanal) {
+    case "site_campanha":
+      return 1;
+    case "rede_social":
+      return 2;
+    case "canal_divulgacao":
+      return 3;
+    default:
+      return 4;
+  }
 }
 
 async function reconcileImplantationSteps(

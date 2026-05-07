@@ -595,6 +595,11 @@ button {
   gap: 4px;
 }
 
+.manager-channel-readonly {
+  justify-content: space-between;
+  align-items: center;
+}
+
 .manager-inline-actions {
   display: flex;
   flex-wrap: wrap;
