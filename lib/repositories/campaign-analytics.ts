@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { QueryResultRow } from "pg";
 import type {
   AdminCampaignStatItem,
   AdminCampaignStatsSnapshot,
@@ -51,7 +52,8 @@ export async function getCampaignAnalyticsSnapshot(
     return null;
   }
 
-  const summaryResult = await db.query<CampaignAnalyticsSummary>(
+  const summaryResult = await queryOrDefault<CampaignAnalyticsSummary>(
+    "campaign-summary",
     `
       with eleitor_base as (
         select *
@@ -106,10 +108,33 @@ export async function getCampaignAnalyticsSnapshot(
           )
         end as meta_contatos_percentual
     `,
-    [idCandidato, cabecalho.meta_contatos_whatsapp ?? 0]
+    [idCandidato, cabecalho.meta_contatos_whatsapp ?? 0],
+    [
+      {
+        total_eleitores: 0,
+        leads_novos: 0,
+        leads_qualificados: 0,
+        leads_engajados: 0,
+        apoiadores: 0,
+        indecisos: 0,
+        opt_outs: 0,
+        interacoes_total: 0,
+        interacoes_24h: 0,
+        inbound_total: 0,
+        outbound_total: 0,
+        eventos_ativos: 0,
+        confirmacoes_evento: 0,
+        comparecimentos_evento: 0,
+        score_engajamento_medio: 0,
+        score_propensao_medio: 0,
+        taxa_conversao_percentual: 0,
+        meta_contatos_percentual: 0
+      }
+    ]
   );
 
-  const periodSummaryResult = await db.query<CampaignPeriodSummary>(
+  const periodSummaryResult = await queryOrDefault<CampaignPeriodSummary>(
+    "campaign-period-summary",
     `
       with interaction_period as (
         select *
@@ -141,10 +166,22 @@ export async function getCampaignAnalyticsSnapshot(
           )
         end as conversao_periodo_percentual
     `,
-    [idCandidato, normalizedPeriodDays]
+    [idCandidato, normalizedPeriodDays],
+    [
+      {
+        periodo_dias: normalizedPeriodDays,
+        novos_leads_periodo: 0,
+        interacoes_periodo: 0,
+        inbound_periodo: 0,
+        outbound_periodo: 0,
+        apoiadores_periodo: 0,
+        conversao_periodo_percentual: 0
+      }
+    ]
   );
 
-  const goalProgressResult = await db.query<CampaignGoalProgress>(
+  const goalProgressResult = await queryOrDefault<CampaignGoalProgress>(
+    "campaign-goals",
     `
       with eleitor_base as (
         select *
@@ -183,10 +220,23 @@ export async function getCampaignAnalyticsSnapshot(
       idCandidato,
       cabecalho.meta_contatos_whatsapp ?? 0,
       cabecalho.meta_conversao_votos ?? 0
+    ],
+    [
+      {
+        meta_contatos_whatsapp: Number(cabecalho.meta_contatos_whatsapp ?? 0),
+        base_total_atual: 0,
+        gap_contatos: Number(cabecalho.meta_contatos_whatsapp ?? 0),
+        realizado_contatos_percentual: 0,
+        meta_conversao_votos: Number(cabecalho.meta_conversao_votos ?? 0),
+        apoiadores_atuais: 0,
+        gap_conversao: Number(cabecalho.meta_conversao_votos ?? 0),
+        realizado_conversao_percentual: 0
+      }
     ]
   );
 
-  const funilResult = await db.query<CampaignStageMetric>(
+  const funilResult = await queryOrDefault<CampaignStageMetric>(
+    "campaign-funnel",
     `
       select
         coalesce(etapa_funil, 'nao_classificado') as etapa_funil,
@@ -196,10 +246,12 @@ export async function getCampaignAnalyticsSnapshot(
       group by coalesce(etapa_funil, 'nao_classificado')
       order by total desc, etapa_funil asc
     `,
-    [idCandidato]
+    [idCandidato],
+    []
   );
 
-  const originsResult = await db.query<CampaignOriginMetric>(
+  const originsResult = await queryOrDefault<CampaignOriginMetric>(
+    "campaign-origins",
     `
       select
         coalesce(origem_captacao, 'nao_informada') as origem_captacao,
@@ -209,10 +261,12 @@ export async function getCampaignAnalyticsSnapshot(
       group by coalesce(origem_captacao, 'nao_informada')
       order by total desc, origem_captacao asc
     `,
-    [idCandidato]
+    [idCandidato],
+    []
   );
 
-  const themesResult = await db.query<{ tema: string; total: number }>(
+  const themesResult = await queryOrDefault<{ tema: string; total: number }>(
+    "campaign-themes",
     `
       select
         tema,
@@ -235,10 +289,12 @@ export async function getCampaignAnalyticsSnapshot(
       order by total desc, tema asc
       limit 8
     `,
-    [idCandidato]
+    [idCandidato],
+    []
   );
 
-  const dailyResult = await db.query<CampaignDailyMetric>(
+  const dailyResult = await queryOrDefault<CampaignDailyMetric>(
+    "campaign-daily",
     `
       with days as (
         select generate_series(
@@ -270,10 +326,12 @@ export async function getCampaignAnalyticsSnapshot(
       left join interacoes_dia on interacoes_dia.ref = days.ref
       order by days.ref
     `,
-    [idCandidato]
+    [idCandidato],
+    buildEmptyDailySeries()
   );
 
-  const recentConversationsResult = await db.query<CampaignRecentConversation>(
+  const recentConversationsResult = await queryOrDefault<CampaignRecentConversation>(
+    "campaign-recent-conversations",
     `
       with interaction_rank as (
         select
@@ -320,7 +378,8 @@ export async function getCampaignAnalyticsSnapshot(
       order by coalesce(e.ultimo_contato_em, e.ultima_resposta_em, e.atualizado_em, e.criado_em) desc
       limit 20
     `,
-    [idCandidato]
+    [idCandidato],
+    []
   );
 
   return {
@@ -405,7 +464,8 @@ export async function getCampaignConversationExplorer(
 
   const whereClause = conditions.join(" and ");
 
-  const conversationsResult = await db.query<CampaignRecentConversation>(
+  const conversationsResult = await queryOrDefault<CampaignRecentConversation>(
+    "conversation-explorer-list",
     `
       with interaction_rank as (
         select
@@ -452,7 +512,8 @@ export async function getCampaignConversationExplorer(
       order by coalesce(e.ultimo_contato_em, e.ultima_resposta_em, e.atualizado_em, e.criado_em) desc
       limit 60
     `,
-    values
+    values,
+    []
   );
 
   const selectedUid =
@@ -462,7 +523,8 @@ export async function getCampaignConversationExplorer(
     conversationsResult.rows.find((item) => item.eleitor_uid === selectedUid) ?? null;
 
   const timelineResult = selectedUid
-    ? await db.query<CampaignConversationTimelineItem>(
+    ? await queryOrDefault<CampaignConversationTimelineItem>(
+        "conversation-explorer-timeline",
         `
           select
             id::text as id,
@@ -483,38 +545,45 @@ export async function getCampaignConversationExplorer(
           order by criado_em desc
           limit 80
         `,
-        [idCandidato, selectedUid]
+        [idCandidato, selectedUid],
+        []
       )
     : { rows: [] as CampaignConversationTimelineItem[] };
 
-  const etapaOptions = await db.query<{ valor: string }>(
+  const etapaOptions = await queryOrDefault<{ valor: string }>(
+    "conversation-explorer-stage-options",
     `
       select distinct coalesce(etapa_funil, 'nao_classificado') as valor
       from eleitores
       where id_candidato = $1
       order by valor
     `,
-    [idCandidato]
+    [idCandidato],
+    []
   );
 
-  const origemOptions = await db.query<{ valor: string }>(
+  const origemOptions = await queryOrDefault<{ valor: string }>(
+    "conversation-explorer-origin-options",
     `
       select distinct coalesce(origem_captacao, 'nao_informada') as valor
       from eleitores
       where id_candidato = $1
       order by valor
     `,
-    [idCandidato]
+    [idCandidato],
+    []
   );
 
-  const sentimentoOptions = await db.query<{ valor: string }>(
+  const sentimentoOptions = await queryOrDefault<{ valor: string }>(
+    "conversation-explorer-sentiment-options",
     `
       select distinct coalesce(sentimento, 'nao_classificado') as valor
       from eleitores
       where id_candidato = $1
       order by valor
     `,
-    [idCandidato]
+    [idCandidato],
+    []
   );
 
   return {
@@ -648,6 +717,40 @@ function normalizePeriodDays(periodDays: number) {
   }
 
   return 30;
+}
+
+async function queryOrDefault<T extends QueryResultRow>(
+  label: string,
+  query: string,
+  values: unknown[],
+  fallbackRows: T[]
+) {
+  try {
+    return await db.query<T>(query, values);
+  } catch (error) {
+    console.error(`[campaign-analytics:${label}]`, error);
+    return { rows: fallbackRows } as { rows: T[] };
+  }
+}
+
+function buildEmptyDailySeries(): CampaignDailyMetric[] {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+
+  return Array.from({ length: 14 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (13 - index));
+
+    return {
+      data_referencia: formatter.format(date),
+      novos_leads: 0,
+      interacoes: 0
+    };
+  });
 }
 
 function buildRanking(
