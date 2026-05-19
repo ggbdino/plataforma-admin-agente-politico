@@ -21,7 +21,7 @@ export default function HomePage() {
             Abrir candidatos
           </Link>
           <Link className="button secondary" href="/estatisticas">
-            Estatisticas
+            Inteligencia da Campanha
           </Link>
           <Link className="button secondary" href="/gestor">
             Painel do gestor

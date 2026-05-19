@@ -196,14 +196,21 @@ export default async function CampaignConversationsPage({
                 {explorer.conversas.map((conversation) => (
                   <tr key={conversation.eleitor_uid}>
                     <td>
-                      <strong>{conversation.nome ?? "Eleitor nao identificado"}</strong>
-                      <div className="mono">{conversation.telefone ?? conversation.eleitor_id}</div>
+                      <strong>{normalizeDisplayValue(conversation.nome, "Eleitor nao identificado")}</strong>
+                      <div className="mono">
+                        {normalizeDisplayValue(
+                          conversation.telefone,
+                          normalizeDisplayValue(conversation.eleitor_id, "Sem identificador")
+                        )}
+                      </div>
                     </td>
-                    <td>{conversation.origem_captacao ?? "-"}</td>
+                    <td>{normalizeDisplayValue(conversation.origem_captacao, "-")}</td>
                     <td>{labelStage(conversation.etapa_funil)}</td>
                     <td>
-                      <div>{conversation.intencao_voto ?? "sem leitura"}</div>
-                      <div className="muted">{conversation.sentimento ?? "sem sentimento"}</div>
+                      <div>{normalizeDisplayValue(conversation.intencao_voto, "sem leitura")}</div>
+                      <div className="muted">
+                        {normalizeDisplayValue(conversation.sentimento, "sem sentimento")}
+                      </div>
                     </td>
                     <td>{conversation.total_interacoes}</td>
                     <td>
@@ -236,14 +243,24 @@ export default async function CampaignConversationsPage({
           {explorer.conversaSelecionada ? (
             <>
               <div className="manager-channel-box">
-                <strong>{explorer.conversaSelecionada.resumo.nome ?? "Eleitor nao identificado"}</strong>
+                <strong>
+                  {normalizeDisplayValue(
+                    explorer.conversaSelecionada.resumo.nome,
+                    "Eleitor nao identificado"
+                  )}
+                </strong>
                 <div className="mono">
-                  {explorer.conversaSelecionada.resumo.telefone ??
-                    explorer.conversaSelecionada.resumo.eleitor_id}
+                  {normalizeDisplayValue(
+                    explorer.conversaSelecionada.resumo.telefone,
+                    normalizeDisplayValue(explorer.conversaSelecionada.resumo.eleitor_id, "Sem identificador")
+                  )}
                 </div>
                 <div className="muted">
                   {labelStage(explorer.conversaSelecionada.resumo.etapa_funil)} |{" "}
-                  {explorer.conversaSelecionada.resumo.intencao_voto ?? "sem leitura de intencao"}
+                  {normalizeDisplayValue(
+                    explorer.conversaSelecionada.resumo.intencao_voto,
+                    "sem leitura de intencao"
+                  )}
                 </div>
               </div>
               <div className="conversation-timeline">
@@ -266,11 +283,21 @@ export default async function CampaignConversationsPage({
                       {renderConversationBodies(item)}
                     </div>
                     <div className="conversation-event-meta">
-                      <span className="pill">{item.tema_classificado ?? "tema livre"}</span>
-                      <span className="pill">{item.sentimento ?? "sem sentimento"}</span>
-                      <span className="pill">{item.intencao_voto ?? "sem intencao"}</span>
-                      <span className="pill">{item.etapa_sugerida ?? "sem etapa sugerida"}</span>
-                      <span className="pill warn">{item.risco_compliance ?? "risco baixo"}</span>
+                      <span className="pill">
+                        {normalizeDisplayValue(item.tema_classificado, "tema livre")}
+                      </span>
+                      <span className="pill">
+                        {normalizeDisplayValue(item.sentimento, "sem sentimento")}
+                      </span>
+                      <span className="pill">
+                        {normalizeDisplayValue(item.intencao_voto, "sem intencao")}
+                      </span>
+                      <span className="pill">
+                        {normalizeDisplayValue(item.etapa_sugerida, "sem etapa sugerida")}
+                      </span>
+                      <span className="pill warn">
+                        {normalizeDisplayValue(item.risco_compliance, "risco baixo")}
+                      </span>
                     </div>
                   </article>
                 ))}
@@ -293,8 +320,8 @@ function renderConversationBodies(item: {
   resposta_eleitor: string | null;
 }) {
   const blocks: Array<{ label: string; content: string; tone: "agent" | "elector" }> = [];
-  const mensagem = String(item.mensagem ?? "").trim();
-  const respostaEleitor = String(item.resposta_eleitor ?? "").trim();
+  const mensagem = normalizeTextContent(item.mensagem);
+  const respostaEleitor = normalizeTextContent(item.resposta_eleitor);
 
   if (item.direcao === "inbound") {
     if (respostaEleitor) {
@@ -343,11 +370,13 @@ function renderConversationBodies(item: {
 }
 
 function labelStage(stage: string | null) {
-  if (!stage) {
+  const normalizedStage = normalizeTextContent(stage);
+
+  if (!normalizedStage) {
     return "nao_classificado";
   }
 
-  return stage.replace(/_/g, " ");
+  return normalizedStage.replace(/_/g, " ");
 }
 
 function buildConversationDetailHref(
@@ -381,4 +410,31 @@ function buildConversationDetailHref(
   params.set("eleitorUid", eleitorUid);
 
   return `/campanhas/${idCandidato}/conversas?${params.toString()}`;
+}
+
+function normalizeTextContent(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  const lower = normalized.toLowerCase();
+
+  if (lower === "undefined" || lower === "null") {
+    return "";
+  }
+
+  return normalized;
+}
+
+function normalizeDisplayValue(
+  value: string | null | undefined,
+  fallback: string
+) {
+  return normalizeTextContent(value) || fallback;
 }

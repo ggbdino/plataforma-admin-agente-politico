@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { authenticateCampaignAnalyticsAction } from "@/lib/actions/campaign-analytics-action";
+import {
+  authenticateCampaignAnalyticsAction,
+  importCampaignElectorBaseAction
+} from "@/lib/actions/campaign-analytics-action";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
 
 export const dynamic = "force-dynamic";
@@ -135,6 +138,44 @@ export default async function CampaignOperationalPage({
             Voltar para implantacao
           </Link>
         </div>
+      </section>
+
+      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+        <div className="section-heading">
+          <div>
+            <h2 className="section-title">Importacao controlada da base de eleitores</h2>
+            <p className="subtitle">
+              Upload administrativo de planilha CSV com <strong>nome</strong>, <strong>telefone</strong> e{" "}
+              <strong>email</strong> para alimentar a base individual desta campanha.
+            </p>
+          </div>
+          <span className="pill">Controle do administrador</span>
+        </div>
+        <form action={importCampaignElectorBaseAction} className="step-form-grid" encType="multipart/form-data">
+          <input name="idCandidato" type="hidden" value={idCandidato} />
+          <input
+            name="redirectTo"
+            type="hidden"
+            value={`/campanhas/${idCandidato}?periodo=${snapshot.periodoSelecionadoDias}`}
+          />
+          <input name="origemCaptacao" type="hidden" value="importacao_admin" />
+          <label className="step-note">
+            <span>Arquivo CSV da base</span>
+            <input accept=".csv,.txt" className="step-input" name="arquivo" type="file" />
+          </label>
+          <label className="step-note">
+            <span>Formato esperado</span>
+            <div className="step-panel-callout">
+              Cabecalho com colunas <span className="mono">nome</span>, <span className="mono">telefone</span> e{" "}
+              <span className="mono">email</span>. Telefones repetidos atualizam o eleitor existente na campanha.
+            </div>
+          </label>
+          <div className="actions" style={{ alignItems: "end" }}>
+            <button className="button" type="submit">
+              Importar base de eleitores
+            </button>
+          </div>
+        </form>
       </section>
 
       <section className="card" style={{ marginBottom: 20 }}>

@@ -29,7 +29,7 @@ export default async function GestorDashboardPage() {
             Voltar para candidatos
           </Link>
           <Link className="button secondary" href="/estatisticas">
-            Ver estatisticas
+            Inteligencia da Campanha
           </Link>
         </div>
       </section>

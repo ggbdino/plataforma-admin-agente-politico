@@ -26,7 +26,7 @@ export default async function CandidatesPage() {
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/estatisticas">
-            Abrir estatisticas
+            Abrir inteligencia da campanha
           </Link>
           <Link className="button secondary" href="/gestor">
             Abrir painel do gestor
