@@ -67,6 +67,9 @@ export default async function CandidateImplantationPage({
           <span className="pill">{progresso}% concluido</span>
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
+          <Link className="button secondary" href={`/campanhas/${idCandidato}`}>
+            Painel da campanha
+          </Link>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}`}>
             Area do Gestor da Campanha
           </Link>

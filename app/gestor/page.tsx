@@ -28,6 +28,9 @@ export default async function GestorDashboardPage() {
           <Link className="button secondary" href="/candidatos">
             Voltar para candidatos
           </Link>
+          <Link className="button secondary" href="/estatisticas">
+            Ver estatisticas
+          </Link>
         </div>
       </section>
 
@@ -100,9 +103,14 @@ export default async function GestorDashboardPage() {
                     )}
                   </td>
                   <td>
-                    <Link className="button secondary" href={`/candidatos/${candidate.id_candidato}`}>
-                      Abrir campanha
-                    </Link>
+                    <div className="actions">
+                      <Link className="button secondary" href={`/candidatos/${candidate.id_candidato}`}>
+                        Implantacao
+                      </Link>
+                      <Link className="button secondary" href={`/campanhas/${candidate.id_candidato}`}>
+                        Campanha
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               );

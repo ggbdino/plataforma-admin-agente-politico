@@ -25,6 +25,9 @@ export default async function CandidatesPage() {
           <span className="pill warn">{withErrors} com alerta operacional</span>
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
+          <Link className="button secondary" href="/estatisticas">
+            Abrir estatisticas
+          </Link>
           <Link className="button secondary" href="/gestor">
             Abrir painel do gestor
           </Link>
@@ -115,7 +118,13 @@ export default async function CandidatesPage() {
                         className="button secondary"
                         href={`/candidatos/${candidate.id_candidato}`}
                       >
-                        Abrir campanha
+                        Implantacao
+                      </Link>
+                      <Link
+                        className="button secondary"
+                        href={`/campanhas/${candidate.id_candidato}`}
+                      >
+                        Campanha
                       </Link>
                     </div>
                   </td>
