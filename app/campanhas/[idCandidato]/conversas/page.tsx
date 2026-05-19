@@ -262,8 +262,8 @@ export default async function CampaignConversationsPage({
                       </span>
                     </div>
                     <div className="muted">{item.canal}</div>
-                    <div style={{ marginTop: 8 }}>
-                      {item.mensagem ?? item.resposta_eleitor ?? "Sem conteudo textual"}
+                    <div className="conversation-message-stack">
+                      {renderConversationBodies(item)}
                     </div>
                     <div className="conversation-event-meta">
                       <span className="pill">{item.tema_classificado ?? "tema livre"}</span>
@@ -285,6 +285,61 @@ export default async function CampaignConversationsPage({
       </section>
     </main>
   );
+}
+
+function renderConversationBodies(item: {
+  direcao: string;
+  mensagem: string | null;
+  resposta_eleitor: string | null;
+}) {
+  const blocks: Array<{ label: string; content: string; tone: "agent" | "elector" }> = [];
+  const mensagem = String(item.mensagem ?? "").trim();
+  const respostaEleitor = String(item.resposta_eleitor ?? "").trim();
+
+  if (item.direcao === "inbound") {
+    if (respostaEleitor) {
+      blocks.push({
+        label: "Mensagem do eleitor",
+        content: respostaEleitor,
+        tone: "elector"
+      });
+    }
+
+    if (mensagem && mensagem !== respostaEleitor) {
+      blocks.push({
+        label: "Resposta do agente",
+        content: mensagem,
+        tone: "agent"
+      });
+    }
+  } else {
+    if (mensagem) {
+      blocks.push({
+        label: "Saida da campanha",
+        content: mensagem,
+        tone: "agent"
+      });
+    }
+
+    if (respostaEleitor && respostaEleitor !== mensagem) {
+      blocks.push({
+        label: "Resposta registrada do eleitor",
+        content: respostaEleitor,
+        tone: "elector"
+      });
+    }
+  }
+
+  if (blocks.length === 0) {
+    return <div>Sem conteudo textual</div>;
+  }
+
+  return blocks.map((block, index) => (
+    <div className={`conversation-message-block ${block.tone}`} key={`${block.label}-${index}`}>
+      <strong>{block.label}</strong>
+      <div>{block.content}</div>
+    </div>
+  ));
 }
 
 function labelStage(stage: string | null) {

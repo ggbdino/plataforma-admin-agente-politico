@@ -786,6 +786,32 @@ button {
   flex-wrap: wrap;
 }
 
+.conversation-message-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.conversation-message-block {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  line-height: 1.55;
+}
+
+.conversation-message-block.agent {
+  border-color: rgba(18, 78, 131, 0.18);
+  background: rgba(243, 249, 255, 0.98);
+}
+
+.conversation-message-block.elector {
+  border-color: rgba(36, 135, 211, 0.24);
+  background: rgba(238, 248, 255, 0.96);
+}
+
 @media (max-width: 720px) {
   .page-shell {
     padding: 16px;

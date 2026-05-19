@@ -305,7 +305,10 @@ export async function getCampaignAnalyticsSnapshot(
         e.ultimo_contato_em::text as ultimo_contato_em,
         ir.canal as canal_ultimo_contato,
         ir.direcao as direcao_ultimo_contato,
-        coalesce(nullif(ir.mensagem, ''), ir.resposta_eleitor) as ultima_mensagem,
+        case
+          when ir.direcao = 'inbound' then coalesce(nullif(ir.resposta_eleitor, ''), nullif(ir.mensagem, ''))
+          else coalesce(nullif(ir.mensagem, ''), nullif(ir.resposta_eleitor, ''))
+        end as ultima_mensagem,
         coalesce(it.total_interacoes, 0) as total_interacoes
       from eleitores e
       left join interaction_rank ir
@@ -434,7 +437,10 @@ export async function getCampaignConversationExplorer(
         e.ultimo_contato_em::text as ultimo_contato_em,
         ir.canal as canal_ultimo_contato,
         ir.direcao as direcao_ultimo_contato,
-        coalesce(nullif(ir.mensagem, ''), ir.resposta_eleitor) as ultima_mensagem,
+        case
+          when ir.direcao = 'inbound' then coalesce(nullif(ir.resposta_eleitor, ''), nullif(ir.mensagem, ''))
+          else coalesce(nullif(ir.mensagem, ''), nullif(ir.resposta_eleitor, ''))
+        end as ultima_mensagem,
         coalesce(it.total_interacoes, 0) as total_interacoes
       from eleitores e
       left join interaction_rank ir
