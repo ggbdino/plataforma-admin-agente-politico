@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Painel administrativo da GAP Consult Tecnologia para operação do agente político"
 };
 
-const APP_VERSION = "V.5.0";
+const APP_VERSION = "V.6.0";
 
 export default function RootLayout({
   children
@@ -44,7 +44,8 @@ export default function RootLayout({
         </div>
         {children}
         <footer className="page-footer">
-          Powered by <strong>GapConsult</strong> <span className="page-footer-version">{APP_VERSION}</span>
+          Powered by <strong>GapConsult</strong>{" "}
+          <span className="page-footer-version">{APP_VERSION}</span>
         </footer>
       </body>
     </html>

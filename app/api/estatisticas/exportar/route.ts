@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { toCsv } from "@/lib/csv";
 import { getAdminCampaignStatsSnapshot } from "@/lib/repositories/campaign-analytics";
+import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
 export async function GET() {
   const snapshot = await getAdminCampaignStatsSnapshot();
@@ -57,6 +58,20 @@ export async function GET() {
   });
 
   const csv = toCsv(rows);
+
+  await recordGovernanceEvent({
+    escopo: "admin",
+    ator: "administrador",
+    categoria: "exportacao",
+    acao: "exportacao_admin_concluida",
+    descricao: "Exportação executiva consolidada do admin concluída com sucesso.",
+    status: "sucesso",
+    origem: "admin-export",
+    detalhes: {
+      campanhas: snapshot.campanhas.length,
+      interacoes_24h: snapshot.totais.interacoes_24h
+    }
+  });
 
   return new NextResponse(csv, {
     status: 200,

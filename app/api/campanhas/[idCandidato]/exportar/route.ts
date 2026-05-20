@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { toCsv } from "@/lib/csv";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
+import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
 type RouteContext = {
   params: Promise<{
@@ -16,9 +17,20 @@ export async function GET(request: Request, context: RouteContext) {
     cookieStore.get(`campaign-analytics-access-${idCandidato}`)?.value === "ok";
 
   if (!hasAccess) {
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: "campanha",
+      ator: "operacao_campanha",
+      categoria: "exportacao",
+      acao: "exportacao_negada",
+      descricao: "Tentativa de exportação executiva bloqueada por acesso operacional ausente.",
+      status: "erro",
+      origem: "campaign-export"
+    });
+
     return NextResponse.json(
       {
-        message: "Acesso operacional nao autorizado para exportacao."
+        message: "Acesso operacional não autorizado para exportação."
       },
       { status: 401 }
     );
@@ -29,9 +41,20 @@ export async function GET(request: Request, context: RouteContext) {
   const snapshot = await getCampaignAnalyticsSnapshot(idCandidato, periodDays);
 
   if (!snapshot) {
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: "campanha",
+      ator: "operacao_campanha",
+      categoria: "exportacao",
+      acao: "exportacao_sem_campanha",
+      descricao: "Exportação executiva abortada porque a campanha não foi encontrada.",
+      status: "erro",
+      origem: "campaign-export"
+    });
+
     return NextResponse.json(
       {
-        message: "Campanha nao encontrada."
+        message: "Campanha não encontrada."
       },
       { status: 404 }
     );
@@ -120,6 +143,21 @@ export async function GET(request: Request, context: RouteContext) {
   });
 
   const csv = toCsv(rows);
+
+  await recordGovernanceEvent({
+    idCandidato,
+    escopo: "campanha",
+    ator: "operacao_campanha",
+    categoria: "exportacao",
+    acao: "exportacao_concluida",
+    descricao: `Exportação executiva da campanha concluída para o recorte de ${periodDays} dias.`,
+    status: "sucesso",
+    origem: "campaign-export",
+    detalhes: {
+      periodo_dias: periodDays,
+      total_conversas: snapshot.conversasRecentes.length
+    }
+  });
 
   return new NextResponse(csv, {
     status: 200,

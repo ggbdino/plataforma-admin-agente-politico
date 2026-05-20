@@ -318,3 +318,54 @@ export type AdminCampaignStatsSnapshot = {
     confiabilidade: AdminRankingItem[];
   };
 };
+
+export type GovernanceAuditItem = {
+  id: string;
+  id_candidato: string | null;
+  nome_urna: string | null;
+  escopo: string;
+  ator: string;
+  categoria: string;
+  acao: string;
+  descricao: string;
+  status: "sucesso" | "erro" | "aviso";
+  origem: string | null;
+  criado_em: string;
+};
+
+export type CampaignGovernanceSnapshot = {
+  totais: {
+    total_acoes: number;
+    acoes_sucesso_7_dias: number;
+    erros_30_dias: number;
+    importacoes_30_dias: number;
+    exportacoes_30_dias: number;
+    recalculos_30_dias: number;
+  };
+  recentes: GovernanceAuditItem[];
+};
+
+export type AdminGovernanceCampaignItem = {
+  id_candidato: string;
+  nome_urna: string;
+  total_acoes: number;
+  erros_30_dias: number;
+  importacoes_30_dias: number;
+  exportacoes_30_dias: number;
+  recalculos_30_dias: number;
+  ultimo_evento_em: string | null;
+  criticidade: "ok" | "warning" | "error";
+};
+
+export type AdminGovernanceSnapshot = {
+  totais: {
+    campanhas_auditadas: number;
+    acoes_7_dias: number;
+    erros_7_dias: number;
+    importacoes_30_dias: number;
+    exportacoes_30_dias: number;
+    recalculos_30_dias: number;
+  };
+  campanhas: AdminGovernanceCampaignItem[];
+  recentes: GovernanceAuditItem[];
+};

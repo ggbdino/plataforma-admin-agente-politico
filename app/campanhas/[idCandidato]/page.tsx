@@ -7,6 +7,7 @@ import {
   recalculateCampaignFunnelCycleAction
 } from "@/lib/actions/campaign-analytics-action";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
+import { getCampaignGovernanceSnapshot } from "@/lib/repositories/governance";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function CampaignOperationalPage({
   const hasAccess =
     cookieStore.get(`campaign-analytics-access-${idCandidato}`)?.value === "ok";
   const snapshot = await getCampaignAnalyticsSnapshot(idCandidato, selectedPeriodDays);
+  const governance = await getCampaignGovernanceSnapshot(idCandidato);
 
   if (!snapshot) {
     notFound();
@@ -758,6 +760,71 @@ export default async function CampaignOperationalPage({
         </div>
       </section>
 
+      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+        <div className="section-heading">
+          <div>
+            <h2 className="section-title">Governança operacional da campanha</h2>
+            <p className="subtitle">
+              Trilha recente das ações críticas desta campanha para acompanhamento administrativo
+              e operacional.
+            </p>
+          </div>
+          <Link className="button secondary" href="/estatisticas/governanca">
+            Ver governança do admin
+          </Link>
+        </div>
+        <div className="grid grid-3" style={{ marginBottom: 16 }}>
+          <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+            <span className="metric-label">Ações registradas</span>
+            <strong className="metric-value">{governance.totais.total_acoes}</strong>
+          </article>
+          <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+            <span className="metric-label">Sucessos em 7 dias</span>
+            <strong className="metric-value">{governance.totais.acoes_sucesso_7_dias}</strong>
+          </article>
+          <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+            <span className="metric-label">Erros em 30 dias</span>
+            <strong className="metric-value">{governance.totais.erros_30_dias}</strong>
+          </article>
+        </div>
+        <div className="table-responsive">
+          <table className="table analytics-table">
+            <thead>
+              <tr>
+                <th>Quando</th>
+                <th>Categoria</th>
+                <th>Ação</th>
+                <th>Status</th>
+                <th>Descrição</th>
+              </tr>
+            </thead>
+            <tbody>
+              {governance.recentes.map((evento) => (
+                <tr key={evento.id}>
+                  <td>{formatDateTime(evento.criado_em)}</td>
+                  <td>{labelGovernance(evento.categoria)}</td>
+                  <td>{labelGovernance(evento.acao)}</td>
+                  <td>
+                    <span
+                      className={`pill ${
+                        evento.status === "erro"
+                          ? "error"
+                          : evento.status === "aviso"
+                            ? "warn"
+                            : "ok"
+                      }`}
+                    >
+                      {evento.status}
+                    </span>
+                  </td>
+                  <td>{evento.descricao}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section className="card">
         <div className="section-heading">
           <div>
@@ -816,6 +883,21 @@ function labelStage(stage: string | null) {
   }
 
   return stage.replace(/_/g, " ");
+}
+
+function labelGovernance(value: string) {
+  return value.replace(/_/g, " ");
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "sem registro";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(new Date(value));
 }
 
 function formatPercent(value: number) {

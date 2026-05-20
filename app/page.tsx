@@ -7,9 +7,8 @@ export default function HomePage() {
         <span className="pill ok">MVP Caminho A</span>
         <h1 className="title">Painel GAP para implantação e operação de campanhas</h1>
         <p className="subtitle">
-          Um ambiente unico para acompanhar candidatos importados, acionar workflows do
-          n8n, validar QR Codes e conduzir a implantação de cada campanha com mais
-          clareza visual.
+          Um ambiente único para acompanhar candidatos importados, acionar workflows do n8n,
+          validar QR Codes e conduzir a implantação de cada campanha com mais clareza visual.
         </p>
         <div className="hero-meta">
           <span className="pill">Tema azul institucional</span>
@@ -27,7 +26,7 @@ export default function HomePage() {
             Painel do gestor
           </Link>
           <Link className="button secondary" href="/gestora">
-            Area da gestora
+            Área da gestora
           </Link>
         </div>
       </section>
