@@ -16,7 +16,7 @@ export async function authenticateCampaignAnalyticsAction(formData: FormData) {
 
   if (!idCandidato || !senha) {
     redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+      `${redirectTo}?operacao=acesso&feedback=erro&mensagem=${encodeURIComponent(
         "Informe a senha de acesso da campanha."
       )}`
     );
@@ -38,7 +38,7 @@ export async function authenticateCampaignAnalyticsAction(formData: FormData) {
     });
 
     redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+      `${redirectTo}?operacao=acesso&feedback=erro&mensagem=${encodeURIComponent(
         "Senha inválida para a área operacional da campanha."
       )}`
     );
@@ -65,7 +65,7 @@ export async function authenticateCampaignAnalyticsAction(formData: FormData) {
   });
 
   redirect(
-    `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
+    `${redirectTo}?operacao=acesso&feedback=sucesso&mensagem=${encodeURIComponent(
       "Acesso operacional da campanha liberado."
     )}`
   );
@@ -93,7 +93,7 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
     });
 
     redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+      `${redirectTo}?operacao=importacao&feedback=erro&mensagem=${encodeURIComponent(
         "Acesso operacional não autorizado para importar a base."
       )}`
     );
@@ -101,7 +101,7 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
 
   if (!(fileEntry instanceof File) || fileEntry.size === 0) {
     redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+      `${redirectTo}?operacao=importacao&feedback=erro&mensagem=${encodeURIComponent(
         "Selecione um arquivo CSV com nome, telefone e email."
       )}`
     );
@@ -124,7 +124,7 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
     });
 
     redirect(
-      `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
+      `${redirectTo}?operacao=importacao&feedback=sucesso&mensagem=${encodeURIComponent(
         `Base importada com sucesso. ${
           result.importados + result.atualizados + result.ignorados
         } registro(s) processado(s): ${result.importados} novo(s), ${result.atualizados} atualizado(s) e ${result.ignorados} ignorado(s).`
@@ -147,7 +147,7 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
       origem: "campaign-import"
     });
 
-    redirect(`${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(message)}`);
+    redirect(`${redirectTo}?operacao=importacao&feedback=erro&mensagem=${encodeURIComponent(message)}`);
   }
 }
 
@@ -171,7 +171,7 @@ export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
     });
 
     redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+      `${redirectTo}?operacao=recalculo&feedback=erro&mensagem=${encodeURIComponent(
         "Acesso operacional não autorizado para recalcular o funil."
       )}`
     );
@@ -193,7 +193,7 @@ export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
     });
 
     redirect(
-      `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
+      `${redirectTo}?operacao=recalculo&feedback=sucesso&mensagem=${encodeURIComponent(
         `Ciclo do funil recalculado com sucesso. ${result.eleitores_processados} eleitor(es) processado(s), ${result.eleitores_atualizados} atualizado(s), ${result.etapa_recalculada} etapa(s), ${result.intencao_recalculada} intenção(ões) e ${result.score_engajamento_recalculado} score(s) de engajamento revisado(s).`
       )}`
     );
@@ -214,7 +214,7 @@ export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
       origem: "campaign-funnel"
     });
 
-    redirect(`${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(message)}`);
+    redirect(`${redirectTo}?operacao=recalculo&feedback=erro&mensagem=${encodeURIComponent(message)}`);
   }
 }
 

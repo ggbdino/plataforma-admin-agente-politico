@@ -16,6 +16,7 @@ type CampaignOperationalPageProps = {
     idCandidato: string;
   }>;
   searchParams?: Promise<{
+    operacao?: string;
     feedback?: string;
     mensagem?: string;
     periodo?: string;
@@ -138,7 +139,7 @@ export default async function CampaignOperationalPage({
             Exportar executivo
           </Link>
           <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
-            Voltar para implantaÃ§Ã£o
+            Voltar para implantação
           </Link>
         </div>
       </section>
@@ -154,6 +155,19 @@ export default async function CampaignOperationalPage({
           </div>
           <span className="pill">Controle do administrador</span>
         </div>
+        {query?.operacao === "importacao" && query?.feedback && query?.mensagem ? (
+          <section
+            className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}
+            style={{ marginBottom: 16 }}
+          >
+            <strong>
+              {query.feedback === "sucesso"
+                ? "Importação processada."
+                : "Falha no processamento da importação."}
+            </strong>
+            <div style={{ marginTop: 6 }}>{query.mensagem}</div>
+          </section>
+        ) : null}
         <form action={importCampaignElectorBaseAction} className="step-form-grid" encType="multipart/form-data">
           <input name="idCandidato" type="hidden" value={idCandidato} />
           <input
@@ -192,6 +206,19 @@ export default async function CampaignOperationalPage({
           </div>
           <span className="pill">Motor operacional</span>
         </div>
+        {query?.operacao === "recalculo" && query?.feedback && query?.mensagem ? (
+          <section
+            className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}
+            style={{ marginBottom: 16 }}
+          >
+            <strong>
+              {query.feedback === "sucesso"
+                ? "Recálculo processado."
+                : "Falha no processamento do recálculo."}
+            </strong>
+            <div style={{ marginTop: 6 }}>{query.mensagem}</div>
+          </section>
+        ) : null}
         <form action={recalculateCampaignFunnelCycleAction} className="step-form-grid">
           <input name="idCandidato" type="hidden" value={idCandidato} />
           <input
@@ -262,13 +289,13 @@ export default async function CampaignOperationalPage({
         <article className="card metric-card">
           <span className="metric-label">Interações nas últimas 24h</span>
           <strong className="metric-value">{snapshot.resumo.interacoes_24h}</strong>
-          <span className="muted">{snapshot.resumo.interacoes_total} interaÃ§Ãµes acumuladas</span>
+          <span className="muted">{snapshot.resumo.interacoes_total} interações acumuladas</span>
         </article>
         <article className="card metric-card">
           <span className="metric-label">Leads no periodo</span>
           <strong className="metric-value">{snapshot.resumoPeriodo.novos_leads_periodo}</strong>
           <span className="muted">
-            {snapshot.resumoPeriodo.interacoes_periodo} interaÃ§Ãµes em {snapshot.periodoSelecionadoDias} dias
+            {snapshot.resumoPeriodo.interacoes_periodo} interações em {snapshot.periodoSelecionadoDias} dias
           </span>
         </article>
         <article className="card metric-card">
@@ -291,7 +318,7 @@ export default async function CampaignOperationalPage({
             {formatPercent(snapshot.qualidade.confiabilidade_percentual)}
           </strong>
           <span className="muted">
-            {snapshot.qualidade.sem_interacoes} registro(s) ainda sem histÃ³rico de conversa
+            {snapshot.qualidade.sem_interacoes} registro(s) ainda sem histórico de conversa
           </span>
         </article>
         <article className="card metric-card">
@@ -299,10 +326,10 @@ export default async function CampaignOperationalPage({
           <strong className="metric-value">
             {snapshot.resumo.apoiadores} / {snapshot.resumo.indecisos}
           </strong>
-          <span className="muted">Saldo de traÃ§Ã£o polÃ­tica real no funil</span>
+          <span className="muted">Saldo de tração política real no funil</span>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Eventos e presenÃ§a</span>
+          <span className="metric-label">Eventos e presença</span>
           <strong className="metric-value">
             {snapshot.resumo.confirmacoes_evento} / {snapshot.resumo.comparecimentos_evento}
           </strong>
@@ -318,7 +345,7 @@ export default async function CampaignOperationalPage({
                 : "Estável"}
           </strong>
           <span className="muted">
-            {snapshot.saudeFunil.leads_parados_total} lead(s) com risco de estagnaÃ§Ã£o
+            {snapshot.saudeFunil.leads_parados_total} lead(s) com risco de estagnação
           </span>
         </article>
       </section>
@@ -402,7 +429,7 @@ export default async function CampaignOperationalPage({
             <div>
               <h2 className="section-title">Meta vs realizado</h2>
               <p className="subtitle">
-                Leitura executiva para saber onde a campanha estÃ¡ acima do ritmo e onde ainda hÃ¡
+                Leitura executiva para saber onde a campanha está acima do ritmo e onde ainda há
                 gap de captação e conversão.
               </p>
             </div>
@@ -595,12 +622,12 @@ export default async function CampaignOperationalPage({
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Registros sem nome</span>
               <strong className="metric-value">{snapshot.qualidade.sem_nome}</strong>
-              <span className="muted">Afeta personalizaÃ§Ã£o e leitura da equipe</span>
+              <span className="muted">Afeta personalização e leitura da equipe</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Registros sem telefone</span>
               <strong className="metric-value">{snapshot.qualidade.sem_telefone}</strong>
-              <span className="muted">Impede acionamento e deduplicaÃ§Ã£o correta</span>
+              <span className="muted">Impede acionamento e deduplicação correta</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">
@@ -743,7 +770,7 @@ export default async function CampaignOperationalPage({
                 <div
                   className="timeline-chart-bar timeline-chart-bar-interactions"
                   style={{ height: `${Math.max((item.interacoes / maxDaily) * 120, 8)}px` }}
-                  title={`${item.interacoes} interacoes`}
+                  title={`${item.interacoes} interações`}
                 />
               </div>
               <div className="timeline-chart-day">
