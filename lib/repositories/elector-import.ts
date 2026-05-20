@@ -27,7 +27,9 @@ export async function importCampaignElectorBase(
   const rows = parseElectorCsv(rawFileContents);
 
   if (rows.length === 0) {
-    throw new Error("A planilha não trouxe linhas válidas para importação.");
+    throw new Error(
+      "Arquivo sem linhas válidas para importação. Revise o conteúdo e confirme se há dados abaixo do cabeçalho."
+    );
   }
 
   const client = await db.connect();
@@ -101,6 +103,12 @@ export async function importCampaignElectorBase(
       importados += 1;
     }
 
+    if (importados === 0 && atualizados === 0) {
+      throw new Error(
+        "Nenhum registro foi aproveitado na importação. O arquivo foi lido, mas todas as linhas foram ignoradas por duplicidade, ausência de telefone/email ou repetição exata da base já cadastrada."
+      );
+    }
+
     await client.query("commit");
 
     return {
@@ -139,7 +147,9 @@ function parseElectorCsv(rawFileContents: string): ParsedElectorRow[] {
   const emailIndex = findHeaderIndex(headers, ["email", "e-mail", "mail"]);
 
   if (nomeIndex < 0 && telefoneIndex < 0 && emailIndex < 0) {
-    throw new Error("Não foi possível identificar colunas de nome, telefone ou email na planilha.");
+    throw new Error(
+      "Estrutura inválida do arquivo. Use um CSV com cabeçalho contendo as colunas nome, telefone e email."
+    );
   }
 
   return lines.slice(1).map((line) => {

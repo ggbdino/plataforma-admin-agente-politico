@@ -102,10 +102,12 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
   if (!(fileEntry instanceof File) || fileEntry.size === 0) {
     redirect(
       `${redirectTo}?operacao=importacao&feedback=erro&mensagem=${encodeURIComponent(
-        "Selecione um arquivo CSV com nome, telefone e email."
+        "Selecione um arquivo CSV válido com colunas nome, telefone e email."
       )}`
     );
   }
+
+  let successMessage = "";
 
   try {
     const text = await fileEntry.text();
@@ -123,13 +125,9 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
       detalhes: result as unknown as Record<string, unknown>
     });
 
-    redirect(
-      `${redirectTo}?operacao=importacao&feedback=sucesso&mensagem=${encodeURIComponent(
-        `Base importada com sucesso. ${
-          result.importados + result.atualizados + result.ignorados
-        } registro(s) processado(s): ${result.importados} novo(s), ${result.atualizados} atualizado(s) e ${result.ignorados} ignorado(s).`
-      )}`
-    );
+    successMessage = `Base importada com sucesso. ${
+      result.importados + result.atualizados + result.ignorados
+    } registro(s) processado(s): ${result.importados} novo(s), ${result.atualizados} atualizado(s) e ${result.ignorados} ignorado(s).`;
   } catch (error) {
     const message =
       error instanceof Error
@@ -149,6 +147,12 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
 
     redirect(`${redirectTo}?operacao=importacao&feedback=erro&mensagem=${encodeURIComponent(message)}`);
   }
+
+  redirect(
+    `${redirectTo}?operacao=importacao&feedback=sucesso&mensagem=${encodeURIComponent(
+      successMessage
+    )}`
+  );
 }
 
 export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
@@ -177,6 +181,8 @@ export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
     );
   }
 
+  let successMessage = "";
+
   try {
     const result = await recalculateCampaignFunnelCycle(idCandidato);
 
@@ -192,11 +198,7 @@ export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
       detalhes: result as unknown as Record<string, unknown>
     });
 
-    redirect(
-      `${redirectTo}?operacao=recalculo&feedback=sucesso&mensagem=${encodeURIComponent(
-        `Ciclo do funil recalculado com sucesso. ${result.eleitores_processados} eleitor(es) processado(s), ${result.eleitores_atualizados} atualizado(s), ${result.etapa_recalculada} etapa(s), ${result.intencao_recalculada} intenção(ões) e ${result.score_engajamento_recalculado} score(s) de engajamento revisado(s).`
-      )}`
-    );
+    successMessage = `Ciclo do funil recalculado com sucesso. ${result.eleitores_processados} eleitor(es) processado(s), ${result.eleitores_atualizados} atualizado(s), ${result.etapa_recalculada} etapa(s), ${result.intencao_recalculada} intenção(ões) e ${result.score_engajamento_recalculado} score(s) de engajamento revisado(s).`;
   } catch (error) {
     const message =
       error instanceof Error
@@ -216,6 +218,12 @@ export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
 
     redirect(`${redirectTo}?operacao=recalculo&feedback=erro&mensagem=${encodeURIComponent(message)}`);
   }
+
+  redirect(
+    `${redirectTo}?operacao=recalculo&feedback=sucesso&mensagem=${encodeURIComponent(
+      successMessage
+    )}`
+  );
 }
 
 function normalizeDigits(value: string) {
