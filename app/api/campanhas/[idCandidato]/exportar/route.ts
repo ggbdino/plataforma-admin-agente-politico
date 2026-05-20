@@ -111,36 +111,32 @@ export async function GET(request: Request, context: RouteContext) {
     rows.push(["temas", item.tema, item.total]);
   });
 
-  rows.push(
-    [],
-    [
-      "conversas",
-      "eleitor_uid",
-      "nome",
-      "telefone",
-      "origem_captacao",
-      "etapa_funil",
-      "intencao_voto",
-      "sentimento",
-      "total_interacoes",
-      "ultima_mensagem"
-    ]
-  );
-
-  snapshot.conversasRecentes.forEach((item) => {
-    rows.push([
-      "conversas",
-      item.eleitor_uid,
-      item.nome,
-      item.telefone,
-      item.origem_captacao,
-      item.etapa_funil,
-      item.intencao_voto,
-      item.sentimento,
-      item.total_interacoes,
-      item.ultima_mensagem
-    ]);
-  });
+  rows.push([], ["conversas_estatisticas", "campo", "valor"]);
+  rows.push(["conversas_estatisticas", "interacoes_total", snapshot.resumo.interacoes_total]);
+  rows.push(["conversas_estatisticas", "interacoes_24h", snapshot.resumo.interacoes_24h]);
+  rows.push(["conversas_estatisticas", "inbound_total", snapshot.resumo.inbound_total]);
+  rows.push(["conversas_estatisticas", "outbound_total", snapshot.resumo.outbound_total]);
+  rows.push([
+    "conversas_estatisticas",
+    "interacoes_periodo",
+    snapshot.resumoPeriodo.interacoes_periodo
+  ]);
+  rows.push([
+    "conversas_estatisticas",
+    "inbound_periodo",
+    snapshot.resumoPeriodo.inbound_periodo
+  ]);
+  rows.push([
+    "conversas_estatisticas",
+    "outbound_periodo",
+    snapshot.resumoPeriodo.outbound_periodo
+  ]);
+  rows.push([
+    "conversas_estatisticas",
+    "temas_monitorados",
+    snapshot.temas.reduce((acc, item) => acc + item.total, 0)
+  ]);
+  rows.push(["conversas_estatisticas", "temas_distintos", snapshot.temas.length]);
 
   const csv = toCsv(rows);
 
@@ -155,7 +151,8 @@ export async function GET(request: Request, context: RouteContext) {
     origem: "campaign-export",
     detalhes: {
       periodo_dias: periodDays,
-      total_conversas: snapshot.conversasRecentes.length
+      total_conversas: snapshot.resumo.interacoes_total,
+      temas_exportados: snapshot.temas.length
     }
   });
 

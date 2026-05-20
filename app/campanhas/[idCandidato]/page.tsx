@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import {
@@ -67,7 +67,7 @@ export default async function CampaignOperationalPage({
               Voltar para candidatos
             </Link>
             <Link className="button secondary" href="/estatisticas">
-              Ver estatísticas do admin
+              Ver Inteligência da Campanha
             </Link>
           </div>
         </section>
@@ -124,7 +124,7 @@ export default async function CampaignOperationalPage({
           <span className="pill">{snapshot.cabecalho.nome_campanha ?? "Campanha sem nome consolidado"}</span>
           <span className="pill">Status {snapshot.cabecalho.status_campanha ?? "em configuração"}</span>
           <span className="pill">
-            Numero oficial {snapshot.cabecalho.numero_agente_oficial ?? "pendente"}
+            Número oficial {snapshot.cabecalho.numero_agente_oficial ?? "pendente"}
           </span>
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
@@ -138,7 +138,7 @@ export default async function CampaignOperationalPage({
             Exportar executivo
           </Link>
           <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
-            Voltar para implantação
+            Voltar para implantaÃ§Ã£o
           </Link>
         </div>
       </section>
@@ -262,13 +262,13 @@ export default async function CampaignOperationalPage({
         <article className="card metric-card">
           <span className="metric-label">Interações nas últimas 24h</span>
           <strong className="metric-value">{snapshot.resumo.interacoes_24h}</strong>
-          <span className="muted">{snapshot.resumo.interacoes_total} interações acumuladas</span>
+          <span className="muted">{snapshot.resumo.interacoes_total} interaÃ§Ãµes acumuladas</span>
         </article>
         <article className="card metric-card">
           <span className="metric-label">Leads no periodo</span>
           <strong className="metric-value">{snapshot.resumoPeriodo.novos_leads_periodo}</strong>
           <span className="muted">
-            {snapshot.resumoPeriodo.interacoes_periodo} interações em {snapshot.periodoSelecionadoDias} dias
+            {snapshot.resumoPeriodo.interacoes_periodo} interaÃ§Ãµes em {snapshot.periodoSelecionadoDias} dias
           </span>
         </article>
         <article className="card metric-card">
@@ -291,7 +291,7 @@ export default async function CampaignOperationalPage({
             {formatPercent(snapshot.qualidade.confiabilidade_percentual)}
           </strong>
           <span className="muted">
-            {snapshot.qualidade.sem_interacoes} registro(s) ainda sem histórico de conversa
+            {snapshot.qualidade.sem_interacoes} registro(s) ainda sem histÃ³rico de conversa
           </span>
         </article>
         <article className="card metric-card">
@@ -299,10 +299,10 @@ export default async function CampaignOperationalPage({
           <strong className="metric-value">
             {snapshot.resumo.apoiadores} / {snapshot.resumo.indecisos}
           </strong>
-          <span className="muted">Saldo de tração política real no funil</span>
+          <span className="muted">Saldo de traÃ§Ã£o polÃ­tica real no funil</span>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Eventos e presença</span>
+          <span className="metric-label">Eventos e presenÃ§a</span>
           <strong className="metric-value">
             {snapshot.resumo.confirmacoes_evento} / {snapshot.resumo.comparecimentos_evento}
           </strong>
@@ -318,7 +318,7 @@ export default async function CampaignOperationalPage({
                 : "Estável"}
           </strong>
           <span className="muted">
-            {snapshot.saudeFunil.leads_parados_total} lead(s) com risco de estagnação
+            {snapshot.saudeFunil.leads_parados_total} lead(s) com risco de estagnaÃ§Ã£o
           </span>
         </article>
       </section>
@@ -402,7 +402,7 @@ export default async function CampaignOperationalPage({
             <div>
               <h2 className="section-title">Meta vs realizado</h2>
               <p className="subtitle">
-                Leitura executiva para saber onde a campanha está acima do ritmo e onde ainda há
+                Leitura executiva para saber onde a campanha estÃ¡ acima do ritmo e onde ainda hÃ¡
                 gap de captação e conversão.
               </p>
             </div>
@@ -453,7 +453,7 @@ export default async function CampaignOperationalPage({
             <div>
               <h2 className="section-title">Funil da campanha</h2>
               <p className="subtitle">
-                Distribuicao atual dos eleitores por etapa para permitir drill-down na maturidade
+                Distribuição atual dos eleitores por etapa para permitir drill-down na maturidade
                 da base.
               </p>
             </div>
@@ -544,13 +544,13 @@ export default async function CampaignOperationalPage({
         <article className="card analytics-panel">
           <div className="section-heading">
             <div>
-              <h2 className="section-title">Ritmo do periodo</h2>
+              <h2 className="section-title">Ritmo do período</h2>
               <p className="subtitle">
                 Separação entre fluxo inbound e outbound para acompanhar a cadência operacional da
                 campanha.
               </p>
             </div>
-            <span className="pill">Monitoramento diario</span>
+            <span className="pill">Monitoramento diário</span>
           </div>
           <div className="grid grid-2">
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
@@ -595,12 +595,12 @@ export default async function CampaignOperationalPage({
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Registros sem nome</span>
               <strong className="metric-value">{snapshot.qualidade.sem_nome}</strong>
-              <span className="muted">Afeta personalização e leitura da equipe</span>
+              <span className="muted">Afeta personalizaÃ§Ã£o e leitura da equipe</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Registros sem telefone</span>
               <strong className="metric-value">{snapshot.qualidade.sem_telefone}</strong>
-              <span className="muted">Impede acionamento e deduplicação correta</span>
+              <span className="muted">Impede acionamento e deduplicaÃ§Ã£o correta</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">
@@ -612,7 +612,7 @@ export default async function CampaignOperationalPage({
               <span className="muted">
                 {snapshot.qualidade.email_disponivel
                   ? "Apoia enriquecimento e contato complementar"
-                  : "Coluna de email nao disponivel nesta base"}
+                  : "Coluna de email não disponível nesta base"}
               </span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
@@ -628,7 +628,7 @@ export default async function CampaignOperationalPage({
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Sem contato em 30 dias</span>
               <strong className="metric-value">{snapshot.qualidade.sem_contato_30_dias}</strong>
-              <span className="muted">Indica estagnação ou perda de cadencia</span>
+              <span className="muted">Indica estagnação ou perda de cadência</span>
             </article>
           </div>
         </article>
@@ -638,16 +638,16 @@ export default async function CampaignOperationalPage({
             <div>
               <h2 className="section-title">Prioridades de saneamento</h2>
               <p className="subtitle">
-                Sequencia sugerida para melhorar a confiabilidade da base antes de escalar
-                automacoes e analises mais sensiveis.
+                Sequência sugerida para melhorar a confiabilidade da base antes de escalar
+                automações e análises mais sensíveis.
               </p>
             </div>
-            <span className="pill">Acao operacional</span>
+            <span className="pill">Ação operacional</span>
           </div>
           <div className="analytics-stack">
             <div className="analytics-bar-row">
               <div className="analytics-bar-label">
-                <strong>Completude minima da base</strong>
+                <strong>Completude mínima da base</strong>
                 <span className="muted">
                   {snapshot.qualidade.sem_nome + snapshot.qualidade.sem_telefone} registro(s) com
                   dados essenciais faltando
@@ -673,7 +673,7 @@ export default async function CampaignOperationalPage({
               <div className="analytics-bar-label">
                 <strong>Relacionamento comprovado</strong>
                 <span className="muted">
-                  {snapshot.qualidade.sem_interacoes} eleitor(es) ainda sem qualquer interacao
+                  {snapshot.qualidade.sem_interacoes} eleitor(es) ainda sem qualquer interação
                 </span>
               </div>
               <div className="analytics-bar-track">
@@ -714,7 +714,7 @@ export default async function CampaignOperationalPage({
             </div>
             <div className="muted">
               Recomendação imediata: saneie importações, consolide telefones duplicados e priorize
-              abordagem dos registros ainda sem interacao para elevar a confiabilidade desta
+              abordagem dos registros ainda sem interação para elevar a confiabilidade desta
               campanha.
             </div>
           </div>
@@ -724,9 +724,9 @@ export default async function CampaignOperationalPage({
       <section className="card analytics-panel" style={{ marginBottom: 20 }}>
         <div className="section-heading">
           <div>
-            <h2 className="section-title">Evolucao recente</h2>
+            <h2 className="section-title">Evolução recente</h2>
             <p className="subtitle">
-              Serie curta para acompanhar novos leads e atividade conversacional nos ultimos dias.
+              Série curta para acompanhar novos leads e atividade conversacional nos últimos dias.
             </p>
           </div>
           <span className="pill">Drill-up temporal</span>
@@ -854,7 +854,7 @@ export default async function CampaignOperationalPage({
               {snapshot.conversasRecentes.map((conversation) => (
                 <tr key={conversation.eleitor_uid}>
                   <td>
-                    <strong>{conversation.nome ?? "Eleitor nao identificado"}</strong>
+                    <strong>{conversation.nome ?? "Eleitor não identificado"}</strong>
                     <div className="mono">{conversation.telefone ?? conversation.eleitor_id}</div>
                   </td>
                   <td>{conversation.origem_captacao ?? "-"}</td>
@@ -879,7 +879,7 @@ export default async function CampaignOperationalPage({
 
 function labelStage(stage: string | null) {
   if (!stage) {
-    return "nao_classificado";
+    return "não classificado";
   }
 
   return stage.replace(/_/g, " ");
@@ -915,3 +915,4 @@ function parsePeriodDays(value?: string) {
 
   return 14;
 }
+

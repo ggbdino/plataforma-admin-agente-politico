@@ -125,7 +125,9 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
 
     redirect(
       `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
-        `Base importada com sucesso. ${result.importados} registro(s) novo(s), ${result.atualizados} atualizado(s) e ${result.ignorados} ignorado(s).`
+        `Base importada com sucesso. ${
+          result.importados + result.atualizados + result.ignorados
+        } registro(s) processado(s): ${result.importados} novo(s), ${result.atualizados} atualizado(s) e ${result.ignorados} ignorado(s).`
       )}`
     );
   } catch (error) {
@@ -192,7 +194,7 @@ export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
 
     redirect(
       `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
-        `Ciclo do funil recalculado. ${result.eleitores_atualizados} eleitor(es) atualizado(s), ${result.etapa_recalculada} etapa(s), ${result.intencao_recalculada} intenção(ões) e ${result.score_engajamento_recalculado} score(s) de engajamento revisado(s).`
+        `Ciclo do funil recalculado com sucesso. ${result.eleitores_processados} eleitor(es) processado(s), ${result.eleitores_atualizados} atualizado(s), ${result.etapa_recalculada} etapa(s), ${result.intencao_recalculada} intenção(ões) e ${result.score_engajamento_recalculado} score(s) de engajamento revisado(s).`
       )}`
     );
   } catch (error) {

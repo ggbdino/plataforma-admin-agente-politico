@@ -116,7 +116,7 @@ export default async function AdminAuditPage() {
                     </td>
                     <td>
                       <div>{campaign.sem_contato_30_dias}</div>
-                      <div className="muted">sem contato ha 30 dias</div>
+                      <div className="muted">sem contato há 30 dias</div>
                     </td>
                     <td>
                       <div className="actions">
@@ -210,14 +210,14 @@ export default async function AdminAuditPage() {
               <span className="muted">Leitura do volume ainda não validado por conversa</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
-              <span className="metric-label">Risco analitico</span>
+              <span className="metric-label">Risco analítico</span>
               <strong className="metric-value">
                 {snapshot.totais.confiabilidade_media_percentual < 80 ? "Elevado" : "Controlado"}
               </strong>
               <span className="muted">Confiança dos comparativos executivos</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
-              <span className="metric-label">Proximo foco</span>
+              <span className="metric-label">Próximo foco</span>
               <strong className="metric-value">Saneamento recorrente</strong>
               <span className="muted">Auditoria periódica antes de escalar automações</span>
             </article>

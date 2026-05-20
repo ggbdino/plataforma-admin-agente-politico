@@ -6,6 +6,13 @@ type ParsedElectorRow = {
   email: string;
 };
 
+type ExistingElectorRow = {
+  eleitor_uid: string;
+  nome: string | null;
+  telefone: string | null;
+  email?: string | null;
+};
+
 type ImportSummary = {
   importados: number;
   atualizados: number;
@@ -20,7 +27,7 @@ export async function importCampaignElectorBase(
   const rows = parseElectorCsv(rawFileContents);
 
   if (rows.length === 0) {
-    throw new Error("A planilha nao trouxe linhas validas para importacao.");
+    throw new Error("A planilha não trouxe linhas válidas para importação.");
   }
 
   const client = await db.connect();
@@ -43,6 +50,7 @@ export async function importCampaignElectorBase(
     let importados = 0;
     let atualizados = 0;
     let ignorados = 0;
+    const seenImportKeys = new Set<string>();
 
     for (const row of rows) {
       if (!row.telefone && !row.email) {
@@ -50,12 +58,28 @@ export async function importCampaignElectorBase(
         continue;
       }
 
-      const lookup = await client.query<{ eleitor_uid: string }>(
+      const importKey = buildImportKey(row.telefone, row.email);
+
+      if (importKey && seenImportKeys.has(importKey)) {
+        ignorados += 1;
+        continue;
+      }
+
+      if (importKey) {
+        seenImportKeys.add(importKey);
+      }
+
+      const lookup = await client.query<ExistingElectorRow>(
         buildLookupQuery(hasEmailColumn, Boolean(row.telefone), Boolean(row.email)),
         buildLookupValues(idCandidato, row.telefone, row.email)
       );
 
       if (lookup.rows[0]?.eleitor_uid) {
+        if (isSameElectorData(lookup.rows[0], row, hasEmailColumn)) {
+          ignorados += 1;
+          continue;
+        }
+
         await client.query(
           buildUpdateQuery(hasEmailColumn),
           buildUpdateValues(
@@ -115,7 +139,7 @@ function parseElectorCsv(rawFileContents: string): ParsedElectorRow[] {
   const emailIndex = findHeaderIndex(headers, ["email", "e-mail", "mail"]);
 
   if (nomeIndex < 0 && telefoneIndex < 0 && emailIndex < 0) {
-    throw new Error("Nao foi possivel identificar colunas de nome, telefone ou email na planilha.");
+    throw new Error("Não foi possível identificar colunas de nome, telefone ou email na planilha.");
   }
 
   return lines.slice(1).map((line) => {
@@ -214,7 +238,7 @@ function buildLookupQuery(hasEmailColumn: boolean, hasPhone: boolean, hasEmail: 
 
   if (conditions.length === 0) {
     return `
-      select eleitor_uid
+      select eleitor_uid, nome, telefone${hasEmailColumn ? ", email" : ""}
       from eleitores
       where id_candidato = $1
         and 1 = 0
@@ -223,7 +247,7 @@ function buildLookupQuery(hasEmailColumn: boolean, hasPhone: boolean, hasEmail: 
   }
 
   return `
-    select eleitor_uid
+    select eleitor_uid, nome, telefone${hasEmailColumn ? ", email" : ""}
     from eleitores
     where id_candidato = $1
       and (${conditions.join(" or ")})
@@ -333,4 +357,35 @@ function buildInsertValues(
   }
 
   return baseValues;
+}
+
+function buildImportKey(telefone: string, email: string) {
+  if (telefone) {
+    return `telefone:${telefone}`;
+  }
+
+  if (email) {
+    return `email:${email}`;
+  }
+
+  return "";
+}
+
+function isSameElectorData(
+  existing: ExistingElectorRow,
+  incoming: ParsedElectorRow,
+  hasEmailColumn: boolean
+) {
+  const sameName = normalizeComparableValue(existing.nome) === normalizeComparableValue(incoming.nome);
+  const samePhone =
+    normalizeComparableValue(existing.telefone) === normalizeComparableValue(incoming.telefone);
+  const sameEmail = hasEmailColumn
+    ? normalizeComparableValue(existing.email) === normalizeComparableValue(incoming.email)
+    : true;
+
+  return sameName && samePhone && sameEmail;
+}
+
+function normalizeComparableValue(value: string | null | undefined) {
+  return String(value ?? "").trim().toLowerCase();
 }

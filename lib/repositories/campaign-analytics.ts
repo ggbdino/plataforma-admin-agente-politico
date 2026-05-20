@@ -193,11 +193,11 @@ export async function getCampaignAnalyticsSnapshot(
         where id_candidato = $1
       )
       select
-        coalesce($2, 0)::int as meta_contatos_whatsapp,
+        coalesce($2::numeric, 0) as meta_contatos_whatsapp,
         coalesce((select count(*)::int from eleitor_base), 0) as base_total_atual,
-        greatest(coalesce($2, 0)::int - coalesce((select count(*)::int from eleitor_base), 0), 0) as gap_contatos,
+        greatest(coalesce($2::numeric, 0) - coalesce((select count(*)::int from eleitor_base), 0), 0) as gap_contatos,
         case
-          when coalesce($2, 0) = 0 then 0
+          when coalesce($2::numeric, 0) = 0 then 0
           else round(
             (
               coalesce((select count(*)::int from eleitor_base), 0)::numeric /
@@ -206,11 +206,15 @@ export async function getCampaignAnalyticsSnapshot(
             2
           )
         end as realizado_contatos_percentual,
-        coalesce($3, 0)::int as meta_conversao_votos,
+        coalesce($3::numeric, 0) as meta_conversao_votos,
         coalesce((select count(*)::int from eleitor_base where intencao_voto = 'apoiador'), 0) as apoiadores_atuais,
-        greatest(coalesce($3, 0)::int - coalesce((select count(*)::int from eleitor_base where intencao_voto = 'apoiador'), 0), 0) as gap_conversao,
+        greatest(
+          coalesce($3::numeric, 0) -
+            coalesce((select count(*)::int from eleitor_base where intencao_voto = 'apoiador'), 0),
+          0
+        ) as gap_conversao,
         case
-          when coalesce($3, 0) = 0 then 0
+          when coalesce($3::numeric, 0) = 0 then 0
           else round(
             (
               coalesce((select count(*)::int from eleitor_base where intencao_voto = 'apoiador'), 0)::numeric /
