@@ -27,6 +27,9 @@ export default async function StatisticsAdminPage() {
           <Link className="button secondary" href="/api/estatisticas/exportar">
             Exportar executivo
           </Link>
+          <Link className="button secondary" href="/estatisticas/auditoria">
+            Auditoria do admin
+          </Link>
           <Link className="button secondary" href="/candidatos">
             Ver implantacao
           </Link>
