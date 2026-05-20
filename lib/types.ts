@@ -172,6 +172,23 @@ export type CampaignDataQualitySummary = {
   email_disponivel: boolean;
 };
 
+export type CampaignFunnelHealthSummary = {
+  leads_sem_contato_7_dias: number;
+  qualificados_sem_contato_7_dias: number;
+  engajados_sem_contato_14_dias: number;
+  apoiadores_sem_contato_21_dias: number;
+  leads_parados_total: number;
+  semaforo_funil: "ok" | "warning" | "error";
+};
+
+export type CampaignOperationalAlert = {
+  codigo: string;
+  titulo: string;
+  descricao: string;
+  criticidade: "ok" | "warning" | "error";
+  total: number;
+};
+
 export type CampaignRecentConversation = {
   eleitor_uid: string;
   eleitor_id: string;
@@ -235,6 +252,8 @@ export type CampaignAnalyticsSnapshot = {
   resumoPeriodo: CampaignPeriodSummary;
   metas: CampaignGoalProgress;
   qualidade: CampaignDataQualitySummary;
+  saudeFunil: CampaignFunnelHealthSummary;
+  alertas: CampaignOperationalAlert[];
   periodoSelecionadoDias: number;
   funil: CampaignStageMetric[];
   origens: CampaignOriginMetric[];

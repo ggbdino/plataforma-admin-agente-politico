@@ -10,10 +10,12 @@ import type {
   CampaignAnalyticsHeader,
   CampaignAnalyticsSnapshot,
   CampaignDataQualitySummary,
+  CampaignFunnelHealthSummary,
   CampaignGoalProgress,
   CampaignPeriodSummary,
   CampaignAnalyticsSummary,
   CampaignDailyMetric,
+  CampaignOperationalAlert,
   CampaignOriginMetric,
   CampaignRecentConversation,
   CampaignStageMetric
@@ -346,6 +348,58 @@ export async function getCampaignAnalyticsSnapshot(
     ]
   );
 
+  const funnelHealthResult = await queryOrDefault<CampaignFunnelHealthSummary>(
+    "campaign-funnel-health",
+    `
+      with eleitor_base as (
+        select *,
+          coalesce(ultimo_contato_em, ultima_resposta_em, atualizado_em, criado_em) as referencia_contato
+        from eleitores
+        where id_candidato = $1
+      )
+      select
+        count(*) filter (
+          where etapa_funil = 'novo_lead'
+            and referencia_contato < now() - interval '7 days'
+        )::int as leads_sem_contato_7_dias,
+        count(*) filter (
+          where etapa_funil in ('qualificado', 'qualificado_quente')
+            and referencia_contato < now() - interval '7 days'
+        )::int as qualificados_sem_contato_7_dias,
+        count(*) filter (
+          where etapa_funil in ('engajado', 'relacionamento', 'nutricao')
+            and referencia_contato < now() - interval '14 days'
+        )::int as engajados_sem_contato_14_dias,
+        count(*) filter (
+          where intencao_voto = 'apoiador'
+            and referencia_contato < now() - interval '21 days'
+        )::int as apoiadores_sem_contato_21_dias,
+        count(*) filter (
+          where (
+            etapa_funil = 'novo_lead' and referencia_contato < now() - interval '7 days'
+          ) or (
+            etapa_funil in ('qualificado', 'qualificado_quente') and referencia_contato < now() - interval '7 days'
+          ) or (
+            etapa_funil in ('engajado', 'relacionamento', 'nutricao') and referencia_contato < now() - interval '14 days'
+          ) or (
+            intencao_voto = 'apoiador' and referencia_contato < now() - interval '21 days'
+          )
+        )::int as leads_parados_total
+      from eleitor_base
+    `,
+    [idCandidato],
+    [
+      {
+        leads_sem_contato_7_dias: 0,
+        qualificados_sem_contato_7_dias: 0,
+        engajados_sem_contato_14_dias: 0,
+        apoiadores_sem_contato_21_dias: 0,
+        leads_parados_total: 0,
+        semaforo_funil: "ok"
+      }
+    ]
+  );
+
   const funilResult = await queryOrDefault<CampaignStageMetric>(
     "campaign-funnel",
     `
@@ -493,12 +547,17 @@ export async function getCampaignAnalyticsSnapshot(
     []
   );
 
+  const saudeFunil = withFunnelHealthSemaphore(funnelHealthResult.rows[0]);
+  const alertas = buildCampaignOperationalAlerts(qualityResult.rows[0], saudeFunil);
+
   return {
     cabecalho,
     resumo: summaryResult.rows[0],
     resumoPeriodo: periodSummaryResult.rows[0],
     metas: goalProgressResult.rows[0],
     qualidade: qualityResult.rows[0],
+    saudeFunil,
+    alertas,
     periodoSelecionadoDias: normalizedPeriodDays,
     funil: funilResult.rows,
     origens: originsResult.rows,
@@ -506,6 +565,82 @@ export async function getCampaignAnalyticsSnapshot(
     evolucaoDiaria: dailyResult.rows,
     conversasRecentes: recentConversationsResult.rows
   };
+}
+
+function withFunnelHealthSemaphore(
+  summary: CampaignFunnelHealthSummary
+): CampaignFunnelHealthSummary {
+  let semaforo: CampaignFunnelHealthSummary["semaforo_funil"] = "ok";
+
+  if (summary.leads_parados_total >= 25 || summary.qualificados_sem_contato_7_dias >= 10) {
+    semaforo = "error";
+  } else if (summary.leads_parados_total >= 10 || summary.engajados_sem_contato_14_dias >= 5) {
+    semaforo = "warning";
+  }
+
+  return {
+    ...summary,
+    semaforo_funil: semaforo
+  };
+}
+
+function buildCampaignOperationalAlerts(
+  qualidade: CampaignDataQualitySummary,
+  saudeFunil: CampaignFunnelHealthSummary
+): CampaignOperationalAlert[] {
+  const alerts: CampaignOperationalAlert[] = [];
+
+  if (saudeFunil.leads_parados_total > 0) {
+    alerts.push({
+      codigo: "funil_estagnado",
+      titulo: "Leads parados no funil",
+      descricao: "Há eleitores sem contato recente nas etapas mais sensíveis do funil.",
+      criticidade: saudeFunil.semaforo_funil,
+      total: saudeFunil.leads_parados_total
+    });
+  }
+
+  if (qualidade.duplicidades_telefone > 0) {
+    alerts.push({
+      codigo: "telefone_duplicado",
+      titulo: "Telefones duplicados",
+      descricao: "Há risco de fragmentação do eleitor e distorção do KPI do funil.",
+      criticidade: qualidade.duplicidades_telefone >= 5 ? "error" : "warning",
+      total: qualidade.duplicidades_telefone
+    });
+  }
+
+  if (qualidade.sem_interacoes > 0) {
+    alerts.push({
+      codigo: "sem_interacoes",
+      titulo: "Base sem interação",
+      descricao: "Parte da base ainda não foi validada por conversa real.",
+      criticidade: qualidade.sem_interacoes >= 20 ? "error" : "warning",
+      total: qualidade.sem_interacoes
+    });
+  }
+
+  if (qualidade.sem_telefone > 0 || qualidade.sem_nome > 0) {
+    alerts.push({
+      codigo: "cadastro_incompleto",
+      titulo: "Cadastro incompleto",
+      descricao: "Há registros sem nome ou telefone, comprometendo acionamento e personalização.",
+      criticidade: qualidade.sem_telefone > 0 ? "error" : "warning",
+      total: qualidade.sem_telefone + qualidade.sem_nome
+    });
+  }
+
+  if (alerts.length === 0) {
+    alerts.push({
+      codigo: "operacao_estavel",
+      titulo: "Operação estável",
+      descricao: "Não há alertas críticos no ciclo do funil neste momento.",
+      criticidade: "ok",
+      total: 0
+    });
+  }
+
+  return alerts;
 }
 
 export async function getCampaignConversationExplorer(

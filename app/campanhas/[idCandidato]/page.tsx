@@ -300,11 +300,97 @@ export default async function CampaignOperationalPage({
           <span className="muted">Saldo de tração política real no funil</span>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Eventos e presenca</span>
+          <span className="metric-label">Eventos e presença</span>
           <strong className="metric-value">
             {snapshot.resumo.confirmacoes_evento} / {snapshot.resumo.comparecimentos_evento}
           </strong>
           <span className="muted">{snapshot.resumo.eventos_ativos} eventos ativos no momento</span>
+        </article>
+        <article className="card metric-card">
+          <span className="metric-label">Semáforo do funil</span>
+          <strong className="metric-value">
+            {snapshot.saudeFunil.semaforo_funil === "error"
+              ? "Crítico"
+              : snapshot.saudeFunil.semaforo_funil === "warning"
+                ? "Atenção"
+                : "Estável"}
+          </strong>
+          <span className="muted">
+            {snapshot.saudeFunil.leads_parados_total} lead(s) com risco de estagnação
+          </span>
+        </article>
+      </section>
+
+      <section className="grid grid-2" style={{ marginBottom: 20 }}>
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Saúde do ciclo do funil</h2>
+              <p className="subtitle">
+                Leitura operacional do funil para identificar eleitores parados e etapas com perda de cadência.
+              </p>
+            </div>
+            <span className={`pill ${snapshot.saudeFunil.semaforo_funil === "error" ? "error" : snapshot.saudeFunil.semaforo_funil === "warning" ? "warn" : "ok"}`}>
+              {snapshot.saudeFunil.semaforo_funil === "error"
+                ? "Crítico"
+                : snapshot.saudeFunil.semaforo_funil === "warning"
+                  ? "Atenção"
+                  : "Estável"}
+            </span>
+          </div>
+          <div className="grid grid-2">
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Novos leads sem contato em 7 dias</span>
+              <strong className="metric-value">{snapshot.saudeFunil.leads_sem_contato_7_dias}</strong>
+              <span className="muted">Entrada fria no topo do funil</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Qualificados sem contato em 7 dias</span>
+              <strong className="metric-value">{snapshot.saudeFunil.qualificados_sem_contato_7_dias}</strong>
+              <span className="muted">Risco de perda de oportunidade</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Engajados sem contato em 14 dias</span>
+              <strong className="metric-value">{snapshot.saudeFunil.engajados_sem_contato_14_dias}</strong>
+              <span className="muted">Base aquecida sem progressão</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Apoiadores sem contato em 21 dias</span>
+              <strong className="metric-value">{snapshot.saudeFunil.apoiadores_sem_contato_21_dias}</strong>
+              <span className="muted">Relacionamento com apoiadores em risco</span>
+            </article>
+          </div>
+        </article>
+
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Alertas operacionais da campanha</h2>
+              <p className="subtitle">
+                Priorização objetiva do que precisa ser saneado ou reativado antes de escalar a operação.
+              </p>
+            </div>
+            <span className="pill">Ação imediata</span>
+          </div>
+          <div className="analytics-stack">
+            {snapshot.alertas.map((alerta) => (
+              <div className="analytics-bar-row" key={alerta.codigo}>
+                <div className="analytics-bar-label">
+                  <strong>{alerta.titulo}</strong>
+                  <span className="muted">{alerta.descricao}</span>
+                  <span className={`pill ${alerta.criticidade === "error" ? "error" : alerta.criticidade === "warning" ? "warn" : "ok"}`}>
+                    {alerta.criticidade === "error" ? "Crítico" : alerta.criticidade === "warning" ? "Atenção" : "OK"}
+                  </span>
+                </div>
+                <div className="analytics-bar-track">
+                  <div
+                    className={`analytics-bar-fill ${alerta.criticidade === "warning" ? "analytics-bar-fill-soft" : ""}`}
+                    style={{ width: `${Math.max(Math.min(alerta.total * 4, 100), 6)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </article>
       </section>
 
