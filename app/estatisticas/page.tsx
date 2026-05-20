@@ -14,15 +14,15 @@ export default async function StatisticsAdminPage() {
   return (
     <main className="page-shell">
       <section className="hero-card">
-        <span className="pill">Estatisticas do admin</span>
-        <h1 className="title">Visao consolidada de operacao e conversao</h1>
+        <span className="pill">Inteligência da Campanha</span>
+        <h1 className="title">Visão consolidada de operação e conversão</h1>
         <p className="subtitle">
-          Entrada executiva para a administracao acompanhar a tracao de cada campanha sem misturar
-          a camada de implantacao com a camada de inteligencia operacional.
+          Entrada executiva para a administração acompanhar a tração de cada campanha sem misturar
+          a camada de implantação com a camada de inteligência operacional.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/">
-            Voltar ao inicio
+            Voltar ao início
           </Link>
           <Link className="button secondary" href="/api/estatisticas/exportar">
             Exportar executivo
@@ -31,7 +31,7 @@ export default async function StatisticsAdminPage() {
             Auditoria do admin
           </Link>
           <Link className="button secondary" href="/candidatos">
-            Ver implantacao
+            Ver implantação
           </Link>
         </div>
       </section>
@@ -46,11 +46,11 @@ export default async function StatisticsAdminPage() {
           <strong className="metric-value">{snapshot.totais.eleitores}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Interacoes em 24h</span>
+          <span className="metric-label">Interações em 24h</span>
           <strong className="metric-value">{snapshot.totais.interacoes_24h}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Interacoes acumuladas</span>
+          <span className="metric-label">Interações acumuladas</span>
           <strong className="metric-value">{snapshot.totais.interacoes}</strong>
         </article>
         <article className="card metric-card">
@@ -58,7 +58,7 @@ export default async function StatisticsAdminPage() {
           <strong className="metric-value">{snapshot.totais.apoiadores}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Media de eleitores por campanha</span>
+          <span className="metric-label">Média de eleitores por campanha</span>
           <strong className="metric-value">
             {snapshot.totais.campanhas === 0
               ? 0
@@ -66,11 +66,11 @@ export default async function StatisticsAdminPage() {
           </strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Confiabilidade media</span>
+          <span className="metric-label">Confiabilidade média</span>
           <strong className="metric-value">
             {snapshot.totais.confiabilidade_media_percentual.toFixed(2)}%
           </strong>
-          <span className="muted">Prontidao media da base consolidada</span>
+          <span className="muted">Prontidão média da base consolidada</span>
         </article>
         <article className="card metric-card">
           <span className="metric-label">Sem telefone</span>
@@ -78,9 +78,9 @@ export default async function StatisticsAdminPage() {
           <span className="muted">Registros sem chave principal de contato</span>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Sem interacoes</span>
+          <span className="metric-label">Sem interações</span>
           <strong className="metric-value">{snapshot.totais.registros_sem_interacoes}</strong>
-          <span className="muted">Base sem validacao conversacional</span>
+          <span className="muted">Base sem validação conversacional</span>
         </article>
       </section>
 
@@ -89,7 +89,7 @@ export default async function StatisticsAdminPage() {
           <div>
             <h2 className="section-title">Densidade da base por campanha</h2>
             <p className="subtitle">
-              Comparativo consolidado para priorizar onde aprofundar a operacao.
+              Comparativo consolidado para priorizar onde aprofundar a operação.
             </p>
           </div>
           <span className="pill">Drill-down por candidato</span>
@@ -100,7 +100,7 @@ export default async function StatisticsAdminPage() {
               <div className="analytics-bar-label">
                 <strong>{campaign.nome_urna}</strong>
                 <span className="muted">
-                  {campaign.total_eleitores} eleitores | {campaign.interacoes_24h} interacoes 24h
+                  {campaign.total_eleitores} eleitores | {campaign.interacoes_24h} interações 24h
                 </span>
               </div>
               <div className="analytics-bar-track">
@@ -120,7 +120,7 @@ export default async function StatisticsAdminPage() {
             <div>
               <h2 className="section-title">Cobertura da meta de contatos</h2>
               <p className="subtitle">
-                Comparativo executivo do quanto cada campanha ja conseguiu transformar a meta de
+                Comparativo executivo do quanto cada campanha já conseguiu transformar a meta de
                 contatos em base real.
               </p>
             </div>
@@ -156,14 +156,14 @@ export default async function StatisticsAdminPage() {
             <div>
               <h2 className="section-title">Rankings executivos</h2>
               <p className="subtitle">
-                Top campanhas por conversao, atividade recente e cobertura de meta.
+                Top campanhas por conversão, atividade recente e cobertura de meta.
               </p>
             </div>
-            <span className="pill">Drill-up de priorizacao</span>
+            <span className="pill">Drill-up de priorização</span>
           </div>
           <div className="grid grid-3">
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
-              <span className="metric-label">Melhor conversao</span>
+              <span className="metric-label">Melhor conversão</span>
               <strong className="metric-value">
                 {snapshot.rankings.conversao[0]?.nome_urna ?? "sem dados"}
               </strong>
@@ -180,7 +180,7 @@ export default async function StatisticsAdminPage() {
               </strong>
               <span className="muted">
                 {snapshot.rankings.atividade_24h[0]
-                  ? `${snapshot.rankings.atividade_24h[0].valor.toFixed(0)} interacoes`
+                  ? `${snapshot.rankings.atividade_24h[0].valor.toFixed(0)} interações`
                   : "aguardando atividade"}
               </span>
             </article>
@@ -205,24 +205,24 @@ export default async function StatisticsAdminPage() {
             <div>
               <h2 className="section-title">Confiabilidade consolidada do dado</h2>
               <p className="subtitle">
-                Panorama do quanto a base atual sustenta leitura de conversao, automacoes e
+                Panorama do quanto a base atual sustenta leitura de conversão, automações e
                 comparativos entre campanhas.
               </p>
             </div>
             <span className="pill">
-              Score medio {snapshot.totais.confiabilidade_media_percentual.toFixed(2)}%
+              Score médio {snapshot.totais.confiabilidade_media_percentual.toFixed(2)}%
             </span>
           </div>
           <div className="grid grid-2">
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Registros sem nome</span>
               <strong className="metric-value">{snapshot.totais.registros_sem_nome}</strong>
-              <span className="muted">Afetam leitura humana e personalizacao</span>
+              <span className="muted">Afetam leitura humana e personalização</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Registros sem telefone</span>
               <strong className="metric-value">{snapshot.totais.registros_sem_telefone}</strong>
-              <span className="muted">Bloqueiam contato e deduplicacao</span>
+              <span className="muted">Bloqueiam contato e deduplicação</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">
@@ -234,7 +234,7 @@ export default async function StatisticsAdminPage() {
               <span className="muted">
                 {snapshot.totais.email_disponivel
                   ? "Campo adicional para enriquecimento e outreach"
-                  : "Coluna de email indisponivel no schema atual"}
+                  : "Coluna de email indisponível no schema atual"}
               </span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
@@ -243,7 +243,7 @@ export default async function StatisticsAdminPage() {
               <span className="muted">Risco de inflar a leitura do funil</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
-              <span className="metric-label">Sem interacoes</span>
+              <span className="metric-label">Sem interações</span>
               <strong className="metric-value">{snapshot.totais.registros_sem_interacoes}</strong>
               <span className="muted">Base ainda sem resposta do campo</span>
             </article>
@@ -252,7 +252,7 @@ export default async function StatisticsAdminPage() {
               <strong className="metric-value">
                 {snapshot.totais.registros_sem_contato_30_dias}
               </strong>
-              <span className="muted">Indicio de estagnacao operacional</span>
+              <span className="muted">Indício de estagnação operacional</span>
             </article>
           </div>
         </article>
@@ -262,11 +262,11 @@ export default async function StatisticsAdminPage() {
             <div>
               <h2 className="section-title">Ranking de confiabilidade</h2>
               <p className="subtitle">
-                Identifica quais campanhas ja estao maduras para leitura executiva mais sensivel e
+                Identifica quais campanhas já estão maduras para leitura executiva mais sensível e
                 quais ainda precisam de saneamento.
               </p>
             </div>
-            <span className="pill">Drill-up de prontidao</span>
+            <span className="pill">Drill-up de prontidão</span>
           </div>
           <div className="analytics-stack">
             {snapshot.rankings.confiabilidade.map((item) => (
@@ -298,11 +298,11 @@ export default async function StatisticsAdminPage() {
                 <th>Eleitores</th>
                 <th>Engajados</th>
                 <th>Apoiadores</th>
-                <th>Interacoes</th>
-                <th>Conversao</th>
+                <th>Interações</th>
+                <th>Conversão</th>
                 <th>Meta</th>
                 <th>Confiabilidade</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -332,7 +332,7 @@ export default async function StatisticsAdminPage() {
                   <td>
                     <div>{Number(campaign.confiabilidade_percentual).toFixed(2)}%</div>
                     <div className="muted">
-                      {campaign.sem_telefone} sem telefone | {campaign.sem_interacoes} sem interacao
+                      {campaign.sem_telefone} sem telefone | {campaign.sem_interacoes} sem interação
                     </div>
                   </td>
                   <td>

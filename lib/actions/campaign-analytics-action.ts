@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { importCampaignElectorBase } from "@/lib/repositories/elector-import";
+import { recalculateCampaignFunnelCycle } from "@/lib/repositories/funnel-cycle";
 import { getManagerAccessData } from "@/lib/repositories/implantation";
 
 const MANAGER_MASTER_PASSWORD = "654321";
@@ -26,7 +27,7 @@ export async function authenticateCampaignAnalyticsAction(formData: FormData) {
   if (senha !== MANAGER_MASTER_PASSWORD && normalizeDigits(senha) !== normalizedPhone) {
     redirect(
       `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
-        "Senha invalida para a area operacional da campanha."
+        "Senha inválida para a área operacional da campanha."
       )}`
     );
   }
@@ -60,7 +61,7 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
   if (!hasAccess) {
     redirect(
       `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
-        "Acesso operacional nao autorizado para importar a base."
+        "Acesso operacional não autorizado para importar a base."
       )}`
     );
   }
@@ -86,11 +87,45 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
     const message =
       error instanceof Error
         ? error.message
-        : "Nao foi possivel processar a planilha da base de eleitores.";
+        : "Não foi possível processar a planilha da base de eleitores.";
 
     redirect(
       `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(message)}`
     );
+  }
+}
+
+export async function recalculateCampaignFunnelCycleAction(formData: FormData) {
+  const idCandidato = String(formData.get("idCandidato") ?? "").trim();
+  const redirectTo =
+    String(formData.get("redirectTo") ?? "").trim() || `/campanhas/${idCandidato}`;
+  const cookieStore = await cookies();
+  const hasAccess =
+    cookieStore.get(`campaign-analytics-access-${idCandidato}`)?.value === "ok";
+
+  if (!hasAccess) {
+    redirect(
+      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+        "Acesso operacional não autorizado para recalcular o funil."
+      )}`
+    );
+  }
+
+  try {
+    const result = await recalculateCampaignFunnelCycle(idCandidato);
+
+    redirect(
+      `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
+        `Ciclo do funil recalculado. ${result.eleitores_atualizados} eleitor(es) atualizado(s), ${result.etapa_recalculada} etapa(s), ${result.intencao_recalculada} intenção(ões) e ${result.score_engajamento_recalculado} score(s) de engajamento revisado(s).`
+      )}`
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Não foi possível recalcular o ciclo do funil da campanha.";
+
+    redirect(`${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(message)}`);
   }
 }
 

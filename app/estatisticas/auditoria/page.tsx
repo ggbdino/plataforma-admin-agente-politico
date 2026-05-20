@@ -13,38 +13,38 @@ export default async function AdminAuditPage() {
         <h1 className="title">Auditoria consolidada da base operacional</h1>
         <p className="subtitle">
           Leitura administrativa da confiabilidade do dado com rastreio por campanha, para separar
-          risco de estrutura, inconsistencias cadastrais e maturidade operacional da base.
+          risco de estrutura, inconsistências cadastrais e maturidade operacional da base.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/estatisticas">
-            Voltar para inteligencia
+            Voltar para Inteligência da Campanha
           </Link>
           <Link className="button secondary" href="/api/estatisticas/exportar">
             Exportar executivo
           </Link>
           <Link className="button secondary" href="/candidatos">
-            Ver implantacao
+            Ver implantação
           </Link>
         </div>
       </section>
 
       <section className="grid grid-3" style={{ marginBottom: 20 }}>
         <article className="card metric-card">
-          <span className="metric-label">Confiabilidade media</span>
+          <span className="metric-label">Confiabilidade média</span>
           <strong className="metric-value">
             {snapshot.totais.confiabilidade_media_percentual.toFixed(2)}%
           </strong>
-          <span className="muted">Panorama consolidado da prontidao analitica</span>
+          <span className="muted">Panorama consolidado da prontidão analítica</span>
         </article>
         <article className="card metric-card">
           <span className="metric-label">Duplicidades de telefone</span>
           <strong className="metric-value">{snapshot.totais.duplicidades_telefone}</strong>
-          <span className="muted">Risco de fragmentacao ou inflacao do funil</span>
+          <span className="muted">Risco de fragmentação ou inflação do funil</span>
         </article>
         <article className="card metric-card">
           <span className="metric-label">Registros sem contato recente</span>
           <strong className="metric-value">{snapshot.totais.registros_sem_contato_30_dias}</strong>
-          <span className="muted">Indica perda de cadencia em toda a operacao</span>
+          <span className="muted">Indica perda de cadência em toda a operação</span>
         </article>
       </section>
 
@@ -68,9 +68,9 @@ export default async function AdminAuditPage() {
                 <th>Confiabilidade</th>
                 <th>Cadastro incompleto</th>
                 <th>Duplicidades</th>
-                <th>Interacao</th>
+                <th>Interação</th>
                 <th>Contato 30d</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +112,7 @@ export default async function AdminAuditPage() {
                     </td>
                     <td>
                       <div>{campaign.sem_interacoes}</div>
-                      <div className="muted">sem historico de conversa</div>
+                      <div className="muted">sem histórico de conversa</div>
                     </td>
                     <td>
                       <div>{campaign.sem_contato_30_dias}</div>
@@ -145,10 +145,10 @@ export default async function AdminAuditPage() {
             <div>
               <h2 className="section-title">Alertas administrativos</h2>
               <p className="subtitle">
-                Sintese para tomada de decisao rapida da administracao sobre onde agir primeiro.
+                Síntese para tomada de decisão rápida da administração sobre onde agir primeiro.
               </p>
             </div>
-            <span className="pill">Semaforo executivo</span>
+            <span className="pill">Semáforo executivo</span>
           </div>
           <div className="analytics-stack">
             <div className="analytics-bar-row">
@@ -169,7 +169,7 @@ export default async function AdminAuditPage() {
             </div>
             <div className="analytics-bar-row">
               <div className="analytics-bar-label">
-                <strong>Campanhas com base sem interacao</strong>
+                <strong>Campanhas com base sem interação</strong>
                 <span className="muted">
                   {snapshot.campanhas.filter((campaign) => campaign.sem_interacoes > 0).length} campanha(s)
                 </span>
@@ -177,8 +177,8 @@ export default async function AdminAuditPage() {
             </div>
             <div className="muted">
               Prioridade recomendada: saneie primeiro as campanhas com menor confiabilidade,
-              telefones duplicados e maior volume de registros sem interacao antes de comparar
-              performance politica entre candidatos.
+              telefones duplicados e maior volume de registros sem interação antes de comparar
+              performance política entre candidatos.
             </div>
           </div>
         </article>
@@ -188,11 +188,11 @@ export default async function AdminAuditPage() {
             <div>
               <h2 className="section-title">Leitura do administrador</h2>
               <p className="subtitle">
-                Interpretacao orientada da auditoria para manter KPI, funil e exploracao
+                Interpretação orientada da auditoria para manter KPI, funil e exploração
                 inteligente alinhados com a realidade da base.
               </p>
             </div>
-            <span className="pill">Governanca do dado</span>
+            <span className="pill">Governança do dado</span>
           </div>
           <div className="grid grid-2">
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
@@ -200,26 +200,26 @@ export default async function AdminAuditPage() {
               <strong className="metric-value">
                 {snapshot.totais.duplicidades_telefone > 0 ? "Deduplicar" : "Base mais limpa"}
               </strong>
-              <span className="muted">Primeira acao para proteger funil e conversao</span>
+              <span className="muted">Primeira ação para proteger funil e conversão</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Risco operacional</span>
               <strong className="metric-value">
                 {snapshot.totais.registros_sem_interacoes > 0 ? "Base fria" : "Base ativa"}
               </strong>
-              <span className="muted">Leitura do volume ainda nao validado por conversa</span>
+              <span className="muted">Leitura do volume ainda não validado por conversa</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Risco analitico</span>
               <strong className="metric-value">
                 {snapshot.totais.confiabilidade_media_percentual < 80 ? "Elevado" : "Controlado"}
               </strong>
-              <span className="muted">Confianca dos comparativos executivos</span>
+              <span className="muted">Confiança dos comparativos executivos</span>
             </article>
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
               <span className="metric-label">Proximo foco</span>
               <strong className="metric-value">Saneamento recorrente</strong>
-              <span className="muted">Auditoria periodica antes de escalar automacoes</span>
+              <span className="muted">Auditoria periódica antes de escalar automações</span>
             </article>
           </div>
         </article>
@@ -234,7 +234,7 @@ function getAuditSeverity(score: number) {
   }
 
   if (score < 85) {
-    return { label: "Media", className: "warning" };
+    return { label: "Média", className: "warning" };
   }
 
   return { label: "Baixa", className: "ok" };

@@ -51,8 +51,8 @@ export default async function CampaignConversationsPage({
           >
             <strong>
               {query.feedback === "sucesso"
-                ? "Operacao concluida."
-                : "Acesso ao console de conversas nao liberado."}
+                ? "Operação concluída."
+                : "Acesso ao console de conversas não liberado."}
             </strong>
             <div style={{ marginTop: 6 }}>{query.mensagem}</div>
           </section>
@@ -60,9 +60,9 @@ export default async function CampaignConversationsPage({
 
         <section className="hero-card">
           <span className="pill">Console de conversas</span>
-          <h1 className="title">Acesso protegido ao historico conversacional</h1>
+          <h1 className="title">Acesso protegido ao histórico conversacional</h1>
           <p className="subtitle">
-            Esta area permite consultar eleitores, sinais politicos e volume de interacao da campanha.
+            Esta área permite consultar eleitores, sinais políticos e volume de interação da campanha.
           </p>
         </section>
 
@@ -96,15 +96,15 @@ export default async function CampaignConversationsPage({
           Conversas da campanha de {explorer.cabecalho.nome_urna}
         </h1>
         <p className="subtitle">
-          Consulta individualizada dos eleitores com filtros, leitura de historico, etapa do funil,
-          sentimento, intencao de voto e densidade de contato.
+          Consulta individualizada dos eleitores com filtros, leitura de histórico, etapa do funil,
+          sentimento, intenção de voto e densidade de contato.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/campanhas/${idCandidato}`}>
             Voltar ao painel da campanha
           </Link>
           <Link className="button secondary" href="/estatisticas">
-            Estatisticas do admin
+            Inteligência da Campanha
           </Link>
         </div>
       </section>
@@ -112,7 +112,7 @@ export default async function CampaignConversationsPage({
       <section className="card analytics-panel" style={{ marginBottom: 20 }}>
         <div className="section-heading">
           <div>
-            <h2 className="section-title">Exploracao inteligente da base</h2>
+            <h2 className="section-title">Exploração inteligente da base</h2>
             <p className="subtitle">
               Filtre a leitura por etapa, origem, sentimento ou eleitor para navegar entre o agregado e o detalhe.
             </p>
@@ -141,7 +141,7 @@ export default async function CampaignConversationsPage({
             </select>
           </label>
           <label className="step-note">
-            <span>Origem de captacao</span>
+            <span>Origem de captação</span>
             <select className="step-input" defaultValue={explorer.filtros.origem} name="origem">
               <option value="">Todas</option>
               {explorer.opcoes.origens.map((origem) => (
@@ -187,16 +187,16 @@ export default async function CampaignConversationsPage({
                   <th>Eleitor</th>
                   <th>Origem</th>
                   <th>Etapa</th>
-                  <th>Sinal politico</th>
-                  <th>Interacoes</th>
-                  <th>Acoes</th>
+                  <th>Sinal político</th>
+                  <th>Interações</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {explorer.conversas.map((conversation) => (
                   <tr key={conversation.eleitor_uid}>
                     <td>
-                      <strong>{normalizeDisplayValue(conversation.nome, "Eleitor nao identificado")}</strong>
+                      <strong>{normalizeDisplayValue(conversation.nome, "Eleitor não identificado")}</strong>
                       <div className="mono">
                         {normalizeDisplayValue(
                           conversation.telefone,
@@ -218,7 +218,7 @@ export default async function CampaignConversationsPage({
                         className="button secondary"
                         href={buildConversationDetailHref(idCandidato, explorer.filtros, conversation.eleitor_uid)}
                       >
-                        Abrir historico
+                        Abrir histórico
                       </Link>
                     </td>
                   </tr>
@@ -231,13 +231,13 @@ export default async function CampaignConversationsPage({
         <section className="card analytics-panel">
           <div className="section-heading">
             <div>
-              <h2 className="section-title">Historico do eleitor</h2>
+              <h2 className="section-title">Histórico do eleitor</h2>
               <p className="subtitle">
                 Drill-down do eleitor selecionado com leitura temporal da conversa.
               </p>
             </div>
             {explorer.conversaSelecionada ? (
-              <span className="pill ok">{explorer.conversaSelecionada.resumo.total_interacoes} interacoes</span>
+              <span className="pill ok">{explorer.conversaSelecionada.resumo.total_interacoes} interações</span>
             ) : null}
           </div>
           {explorer.conversaSelecionada ? (
@@ -246,7 +246,7 @@ export default async function CampaignConversationsPage({
                 <strong>
                   {normalizeDisplayValue(
                     explorer.conversaSelecionada.resumo.nome,
-                    "Eleitor nao identificado"
+                    "Eleitor não identificado"
                   )}
                 </strong>
                 <div className="mono">
@@ -259,7 +259,7 @@ export default async function CampaignConversationsPage({
                   {labelStage(explorer.conversaSelecionada.resumo.etapa_funil)} |{" "}
                   {normalizeDisplayValue(
                     explorer.conversaSelecionada.resumo.intencao_voto,
-                    "sem leitura de intencao"
+                    "sem leitura de intenção"
                   )}
                 </div>
               </div>
@@ -270,7 +270,7 @@ export default async function CampaignConversationsPage({
                     key={item.id}
                   >
                     <div className="conversation-event-head">
-                      <strong>{item.direcao === "outbound" ? "Saida da campanha" : "Entrada do eleitor"}</strong>
+                      <strong>{item.direcao === "outbound" ? "Saída da campanha" : "Entrada do eleitor"}</strong>
                       <span className="muted">
                         {new Intl.DateTimeFormat("pt-BR", {
                           dateStyle: "short",
@@ -290,7 +290,7 @@ export default async function CampaignConversationsPage({
                         {normalizeDisplayValue(item.sentimento, "sem sentimento")}
                       </span>
                       <span className="pill">
-                        {normalizeDisplayValue(item.intencao_voto, "sem intencao")}
+                        {normalizeDisplayValue(item.intencao_voto, "sem intenção")}
                       </span>
                       <span className="pill">
                         {normalizeDisplayValue(item.etapa_sugerida, "sem etapa sugerida")}
@@ -305,7 +305,7 @@ export default async function CampaignConversationsPage({
             </>
           ) : (
             <div className="step-panel-callout">
-              Selecione um eleitor na tabela ao lado para abrir o historico detalhado.
+              Selecione um eleitor na tabela ao lado para abrir o histórico detalhado.
             </div>
           )}
         </section>
@@ -358,7 +358,7 @@ function renderConversationBodies(item: {
   }
 
   if (blocks.length === 0) {
-    return <div>Sem conteudo textual</div>;
+    return <div>Sem conteúdo textual</div>;
   }
 
   return blocks.map((block, index) => (
@@ -373,7 +373,7 @@ function labelStage(stage: string | null) {
   const normalizedStage = normalizeTextContent(stage);
 
   if (!normalizedStage) {
-    return "nao_classificado";
+    return "não_classificado";
   }
 
   return normalizedStage.replace(/_/g, " ");

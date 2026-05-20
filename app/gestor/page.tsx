@@ -19,17 +19,17 @@ export default async function GestorDashboardPage() {
     <main className="page-shell">
       <section className="hero-card">
         <span className="pill">Painel do gestor</span>
-        <h1 className="title">Situacao consolidada das campanhas</h1>
+        <h1 className="title">Situação consolidada das campanhas</h1>
         <p className="subtitle">
-          Visao executiva para acompanhamento rapido dos candidatos, da progressao de
-          implantacao e das pendencias que exigem atuacao operacional.
+          Visão executiva para acompanhamento rápido dos candidatos, da progressão de
+          implantação e das pendências que exigem atuação operacional.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/candidatos">
             Voltar para candidatos
           </Link>
           <Link className="button secondary" href="/estatisticas">
-            Inteligencia da Campanha
+            Inteligência da Campanha
           </Link>
         </div>
       </section>
@@ -40,7 +40,7 @@ export default async function GestorDashboardPage() {
           <strong className="metric-value">{total}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Em preparacao</span>
+          <span className="metric-label">Em preparação</span>
           <strong className="metric-value">{emPreparacao}</strong>
         </article>
         <article className="card metric-card">
@@ -48,7 +48,7 @@ export default async function GestorDashboardPage() {
           <strong className="metric-value">{ativos}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">QR Code disponivel</span>
+          <span className="metric-label">QR Code disponível</span>
           <strong className="metric-value">{qrDisponivel}</strong>
         </article>
         <article className="card metric-card">
@@ -58,7 +58,7 @@ export default async function GestorDashboardPage() {
       </section>
 
       <section className="card">
-        <h2 className="section-title">Situacao por candidato</h2>
+        <h2 className="section-title">Situação por candidato</h2>
         <div className="table-responsive">
         <table className="table">
           <thead>
@@ -67,9 +67,9 @@ export default async function GestorDashboardPage() {
               <th>Nome de urna</th>
               <th>Status</th>
               <th>Progresso</th>
-              <th>Proxima etapa</th>
+              <th>Próxima etapa</th>
               <th>Incidentes</th>
-              <th>Acoes</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -94,7 +94,7 @@ export default async function GestorDashboardPage() {
                       <span>{progress}%</span>
                     </div>
                   </td>
-                  <td>{candidate.proxima_etapa ?? "Implantacao concluida"}</td>
+                  <td>{candidate.proxima_etapa ?? "Implantação concluída"}</td>
                   <td>
                     {candidate.etapas_com_erro > 0 ? (
                       <span className="pill warn">{candidate.etapas_com_erro} etapa(s) com erro</span>
@@ -105,7 +105,7 @@ export default async function GestorDashboardPage() {
                   <td>
                     <div className="actions">
                       <Link className="button secondary" href={`/candidatos/${candidate.id_candidato}`}>
-                        Implantacao
+                        Implantação
                       </Link>
                       <Link className="button secondary" href={`/campanhas/${candidate.id_candidato}`}>
                         Campanha

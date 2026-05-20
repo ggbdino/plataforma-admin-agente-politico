@@ -40,22 +40,22 @@ export default async function CampaignManagerPage({
         <section
           className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}
         >
-          <strong>{query.feedback === "sucesso" ? "Operacao concluida." : "Acesso ou registro falhou."}</strong>
+          <strong>{query.feedback === "sucesso" ? "Operação concluída." : "Acesso ou registro falhou."}</strong>
           <div style={{ marginTop: 6 }}>{query.mensagem}</div>
         </section>
       ) : null}
 
       <section className="hero-card">
         <span className="pill">Gestor da campanha</span>
-        <h1 className="title">Canal oficial e divulgacao da campanha</h1>
+        <h1 className="title">Canal oficial e divulgação da campanha</h1>
         <p className="subtitle">
-          Area reservada para o Gestor da Campanha revisar dados vindos do formulario de
-          entrada, ajustar o canal oficial do Agente Politico e registrar os canais de
-          divulgacao que apontam para esse WhatsApp.
+          Área reservada para o Gestor da Campanha revisar dados vindos do formulário de
+          entrada, ajustar o canal oficial do Agente Político e registrar os canais de
+          divulgação que apontam para esse WhatsApp.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
-            Voltar para implantacao
+            Voltar para implantação
           </Link>
         </div>
       </section>
@@ -64,7 +64,7 @@ export default async function CampaignManagerPage({
         <section className="card manager-auth-card">
           <h2 className="section-title">Liberar acesso do Gestor da Campanha</h2>
           <p className="subtitle">
-            Informe o numero do gestor da campanha ou a senha mestra <span className="mono">654321</span>.
+            Informe o número do gestor da campanha ou a senha mestra <span className="mono">654321</span>.
           </p>
           <form action={authenticateCampaignManagerAction} className="manager-auth-form">
             <input name="idCandidato" type="hidden" value={idCandidato} />
@@ -81,11 +81,11 @@ export default async function CampaignManagerPage({
         <>
           <section className="grid grid-2" style={{ marginBottom: 20 }}>
             <article className="card manager-info-card">
-              <h2 className="section-title">Dados importados do formulario</h2>
+              <h2 className="section-title">Dados importados do formulário</h2>
               <div className="step-panel-callout">{data.observacao_padrao}</div>
               <div className="key-value" style={{ marginTop: 14 }}>
                 <div>
-                  <strong>Gestor responsavel</strong>
+                  <strong>Gestor responsável</strong>
                   <div>{data.responsavel_preenchimento ?? "-"}</div>
                 </div>
                 <div>
@@ -97,7 +97,7 @@ export default async function CampaignManagerPage({
                   <div>{data.email_responsavel ?? "-"}</div>
                 </div>
                 <div>
-                  <strong>Numero oficial da campanha</strong>
+                  <strong>Número oficial da campanha</strong>
                   <div className="mono">{data.numero_agente_oficial ?? "-"}</div>
                 </div>
                 <div>
@@ -105,7 +105,7 @@ export default async function CampaignManagerPage({
                   <div className="mono mono-wrap">{data.url_canal_oficial ?? "-"}</div>
                 </div>
                 <div>
-                  <strong>Origem dos canais de divulgacao</strong>
+                  <strong>Origem dos canais de divulgação</strong>
                   <div>{data.canais_divulgacao_origem ?? "-"}</div>
                 </div>
               </div>
@@ -115,7 +115,7 @@ export default async function CampaignManagerPage({
               <h2 className="section-title">Leitura operacional</h2>
               <div className="step-panel-callout">
                 O QR Code exibido na tela do candidato deve ser configurado no telefone oficial da
-                campanha para associar o numero ao Agente Politico. Todo eleitor captado por
+                campanha para associar o número ao Agente Político. Todo eleitor captado por
                 qualquer canal deve ser direcionado para esse contato no WhatsApp.
               </div>
               {data.qr_code_url ? (
@@ -132,21 +132,21 @@ export default async function CampaignManagerPage({
                   <div className="muted">
                     Este mesmo QR Code pode ser reutilizado se a gestora trocar o aparelho da
                     campanha, desde que a leitura seja feita no telefone oficial vinculado ao
-                    Agente Politico.
+                    Agente Político.
                   </div>
                 </div>
               ) : null}
               <ul className="manager-checklist">
-                <li>Numero oficial da campanha validado no nosso produto</li>
-                <li>QR Code pronto para eventos, site e material grafico</li>
-                <li>Canais de divulgacao apontando para o WhatsApp oficial</li>
-                <li>Gestor da campanha responsavel pelas alteracoes e aprovacoes</li>
+                <li>Número oficial da campanha validado no nosso produto</li>
+                <li>QR Code pronto para eventos, site e material gráfico</li>
+                <li>Canais de divulgação apontando para o WhatsApp oficial</li>
+                <li>Gestor da campanha responsável pelas alterações e aprovações</li>
               </ul>
             </article>
           </section>
 
           <section className="card">
-            <h2 className="section-title">Configurar canal oficial e divulgacao</h2>
+            <h2 className="section-title">Configurar canal oficial e divulgação</h2>
             <form action={registerCampaignChannelAction} className="manager-auth-form">
               <input name="idCandidato" type="hidden" value={idCandidato} />
               <input name="tipo_canal" type="hidden" value="whatsapp_agente" />
@@ -161,7 +161,7 @@ export default async function CampaignManagerPage({
                   />
                 </label>
                 <label className="step-note">
-                  <span>Numero oficial da campanha</span>
+                  <span>Número oficial da campanha</span>
                   <input
                     className="step-input"
                     defaultValue={data.numero_agente_oficial ?? ""}
@@ -181,10 +181,10 @@ export default async function CampaignManagerPage({
               </div>
 
               <div className="manager-channel-box">
-                <strong>Canais de divulgacao</strong>
+                <strong>Canais de divulgação</strong>
                 <p className="muted">
-                  Marque os canais que serao utilizados para divulgar o QR Code e o numero oficial
-                  do Agente Politico.
+                  Marque os canais que serão utilizados para divulgar o QR Code e o número oficial
+                  do Agente Político.
                 </p>
                 <div className="manager-channel-options">
                   {data.canais_divulgacao.map((channel) => (
@@ -211,7 +211,7 @@ export default async function CampaignManagerPage({
               </div>
 
               <div className="manager-channel-box">
-                <strong>Canais ja registrados na campanha</strong>
+                <strong>Canais já registrados na campanha</strong>
                 <p className="muted">
                   Esta lista consolida os canais atualmente conhecidos pela plataforma, sem repetir
                   site ou rede social quando o conteudo for o mesmo.
@@ -234,17 +234,17 @@ export default async function CampaignManagerPage({
               </div>
 
               <label className="step-note">
-                <span>Sugerir novos canais de divulgacao</span>
+                <span>Sugerir novos canais de divulgação</span>
                 <textarea
                   className="step-textarea"
                   name="canais_divulgacao_extra"
-                  placeholder="Ex.: comites regionais, influenciadores locais, carro de som, panfletagem com QR Code, novos perfis sociais ou parceiros de divulgacao."
+                  placeholder="Ex.: comitês regionais, influenciadores locais, carro de som, panfletagem com QR Code, novos perfis sociais ou parceiros de divulgação."
                   rows={3}
                 />
               </label>
 
               <label className="step-note">
-                <span>Observacao do gestor</span>
+                <span>Observação do gestor</span>
                 <textarea
                   className="step-textarea"
                   defaultValue={data.observacao_padrao}
