@@ -243,6 +243,15 @@ export default async function CampaignOperationalPage({
           <span className="muted">{snapshot.resumo.leads_novos} ainda em novo_lead</span>
         </article>
         <article className="card metric-card">
+          <span className="metric-label">Confiabilidade da base</span>
+          <strong className="metric-value">
+            {formatPercent(snapshot.qualidade.confiabilidade_percentual)}
+          </strong>
+          <span className="muted">
+            {snapshot.qualidade.sem_interacoes} registro(s) ainda sem historico de conversa
+          </span>
+        </article>
+        <article className="card metric-card">
           <span className="metric-label">Apoiadores e indecisos</span>
           <strong className="metric-value">
             {snapshot.resumo.apoiadores} / {snapshot.resumo.indecisos}
@@ -435,6 +444,150 @@ export default async function CampaignOperationalPage({
               <strong className="metric-value">{snapshot.resumo.score_propensao_medio}</strong>
               <span className="muted">Media acumulada da intencao</span>
             </article>
+          </div>
+        </article>
+      </section>
+
+      <section className="grid grid-2" style={{ marginBottom: 20 }}>
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Confiabilidade do dado</h2>
+              <p className="subtitle">
+                Medicao executiva da prontidao da base para sustentar indicadores, automacoes e
+                leitura inteligente da campanha.
+              </p>
+            </div>
+            <span className="pill">
+              Score {formatPercent(snapshot.qualidade.confiabilidade_percentual)}
+            </span>
+          </div>
+          <div className="grid grid-2">
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Registros sem nome</span>
+              <strong className="metric-value">{snapshot.qualidade.sem_nome}</strong>
+              <span className="muted">Afeta personalizacao e leitura da equipe</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Registros sem telefone</span>
+              <strong className="metric-value">{snapshot.qualidade.sem_telefone}</strong>
+              <span className="muted">Impede acionamento e deduplicacao correta</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">
+                {snapshot.qualidade.email_disponivel ? "Registros sem email" : "Email na estrutura"}
+              </span>
+              <strong className="metric-value">
+                {snapshot.qualidade.email_disponivel ? snapshot.qualidade.sem_email : "n/d"}
+              </strong>
+              <span className="muted">
+                {snapshot.qualidade.email_disponivel
+                  ? "Apoia enriquecimento e contato complementar"
+                  : "Coluna de email nao disponivel nesta base"}
+              </span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Telefones duplicados</span>
+              <strong className="metric-value">{snapshot.qualidade.duplicidades_telefone}</strong>
+              <span className="muted">Risco de KPI inflado ou eleitor fragmentado</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Sem interacoes</span>
+              <strong className="metric-value">{snapshot.qualidade.sem_interacoes}</strong>
+              <span className="muted">Base fria sem validacao conversacional</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Sem contato em 30 dias</span>
+              <strong className="metric-value">{snapshot.qualidade.sem_contato_30_dias}</strong>
+              <span className="muted">Indica estagnação ou perda de cadencia</span>
+            </article>
+          </div>
+        </article>
+
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Prioridades de saneamento</h2>
+              <p className="subtitle">
+                Sequencia sugerida para melhorar a confiabilidade da base antes de escalar
+                automacoes e analises mais sensiveis.
+              </p>
+            </div>
+            <span className="pill">Acao operacional</span>
+          </div>
+          <div className="analytics-stack">
+            <div className="analytics-bar-row">
+              <div className="analytics-bar-label">
+                <strong>Completude minima da base</strong>
+                <span className="muted">
+                  {snapshot.qualidade.sem_nome + snapshot.qualidade.sem_telefone} registro(s) com
+                  dados essenciais faltando
+                </span>
+              </div>
+              <div className="analytics-bar-track">
+                <div
+                  className="analytics-bar-fill"
+                  style={{
+                    width: `${Math.max(
+                      (
+                        (snapshot.qualidade.sem_nome + snapshot.qualidade.sem_telefone) /
+                        Math.max(snapshot.qualidade.total_registros || 1, 1)
+                      ) *
+                        100,
+                      6
+                    )}%`
+                  }}
+                />
+              </div>
+            </div>
+            <div className="analytics-bar-row">
+              <div className="analytics-bar-label">
+                <strong>Relacionamento comprovado</strong>
+                <span className="muted">
+                  {snapshot.qualidade.sem_interacoes} eleitor(es) ainda sem qualquer interacao
+                </span>
+              </div>
+              <div className="analytics-bar-track">
+                <div
+                  className="analytics-bar-fill analytics-bar-fill-soft"
+                  style={{
+                    width: `${Math.max(
+                      (snapshot.qualidade.sem_interacoes / Math.max(snapshot.qualidade.total_registros || 1, 1)) *
+                        100,
+                      6
+                    )}%`
+                  }}
+                />
+              </div>
+            </div>
+            <div className="analytics-bar-row">
+              <div className="analytics-bar-label">
+                <strong>Unicidade do cadastro</strong>
+                <span className="muted">
+                  {snapshot.qualidade.duplicidades_telefone} ocorrencia(s) com telefone repetido
+                </span>
+              </div>
+              <div className="analytics-bar-track">
+                <div
+                  className="analytics-bar-fill"
+                  style={{
+                    width: `${Math.max(
+                      (
+                        snapshot.qualidade.duplicidades_telefone /
+                        Math.max(snapshot.qualidade.total_registros || 1, 1)
+                      ) *
+                        100,
+                      6
+                    )}%`
+                  }}
+                />
+              </div>
+            </div>
+            <div className="muted">
+              Recomendacao imediata: saneie importacoes, consolide telefones duplicados e priorize
+              abordagem dos registros ainda sem interacao para elevar a confiabilidade desta
+              campanha.
+            </div>
           </div>
         </article>
       </section>

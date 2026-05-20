@@ -62,6 +62,23 @@ export default async function StatisticsAdminPage() {
               : Math.round(snapshot.totais.eleitores / snapshot.totais.campanhas)}
           </strong>
         </article>
+        <article className="card metric-card">
+          <span className="metric-label">Confiabilidade media</span>
+          <strong className="metric-value">
+            {snapshot.totais.confiabilidade_media_percentual.toFixed(2)}%
+          </strong>
+          <span className="muted">Prontidao media da base consolidada</span>
+        </article>
+        <article className="card metric-card">
+          <span className="metric-label">Sem telefone</span>
+          <strong className="metric-value">{snapshot.totais.registros_sem_telefone}</strong>
+          <span className="muted">Registros sem chave principal de contato</span>
+        </article>
+        <article className="card metric-card">
+          <span className="metric-label">Sem interacoes</span>
+          <strong className="metric-value">{snapshot.totais.registros_sem_interacoes}</strong>
+          <span className="muted">Base sem validacao conversacional</span>
+        </article>
       </section>
 
       <section className="card analytics-panel" style={{ marginBottom: 20 }}>
@@ -179,6 +196,94 @@ export default async function StatisticsAdminPage() {
         </article>
       </section>
 
+      <section className="grid grid-2" style={{ marginBottom: 20 }}>
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Confiabilidade consolidada do dado</h2>
+              <p className="subtitle">
+                Panorama do quanto a base atual sustenta leitura de conversao, automacoes e
+                comparativos entre campanhas.
+              </p>
+            </div>
+            <span className="pill">
+              Score medio {snapshot.totais.confiabilidade_media_percentual.toFixed(2)}%
+            </span>
+          </div>
+          <div className="grid grid-2">
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Registros sem nome</span>
+              <strong className="metric-value">{snapshot.totais.registros_sem_nome}</strong>
+              <span className="muted">Afetam leitura humana e personalizacao</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Registros sem telefone</span>
+              <strong className="metric-value">{snapshot.totais.registros_sem_telefone}</strong>
+              <span className="muted">Bloqueiam contato e deduplicacao</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">
+                {snapshot.totais.email_disponivel ? "Registros sem email" : "Email na estrutura"}
+              </span>
+              <strong className="metric-value">
+                {snapshot.totais.email_disponivel ? snapshot.totais.registros_sem_email : "n/d"}
+              </strong>
+              <span className="muted">
+                {snapshot.totais.email_disponivel
+                  ? "Campo adicional para enriquecimento e outreach"
+                  : "Coluna de email indisponivel no schema atual"}
+              </span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Telefones duplicados</span>
+              <strong className="metric-value">{snapshot.totais.duplicidades_telefone}</strong>
+              <span className="muted">Risco de inflar a leitura do funil</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Sem interacoes</span>
+              <strong className="metric-value">{snapshot.totais.registros_sem_interacoes}</strong>
+              <span className="muted">Base ainda sem resposta do campo</span>
+            </article>
+            <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
+              <span className="metric-label">Sem contato em 30 dias</span>
+              <strong className="metric-value">
+                {snapshot.totais.registros_sem_contato_30_dias}
+              </strong>
+              <span className="muted">Indicio de estagnacao operacional</span>
+            </article>
+          </div>
+        </article>
+
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Ranking de confiabilidade</h2>
+              <p className="subtitle">
+                Identifica quais campanhas ja estao maduras para leitura executiva mais sensivel e
+                quais ainda precisam de saneamento.
+              </p>
+            </div>
+            <span className="pill">Drill-up de prontidao</span>
+          </div>
+          <div className="analytics-stack">
+            {snapshot.rankings.confiabilidade.map((item) => (
+              <div className="analytics-bar-row" key={item.id_candidato}>
+                <div className="analytics-bar-label">
+                  <strong>{item.nome_urna}</strong>
+                  <span className="muted">{item.valor.toFixed(2)}% de confiabilidade</span>
+                </div>
+                <div className="analytics-bar-track">
+                  <div
+                    className="analytics-bar-fill analytics-bar-fill-soft"
+                    style={{ width: `${Math.max(item.valor, 6)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
       <section className="card">
         <h2 className="section-title">Campanhas com indicadores</h2>
         <div className="table-responsive">
@@ -193,6 +298,7 @@ export default async function StatisticsAdminPage() {
                 <th>Interacoes</th>
                 <th>Conversao</th>
                 <th>Meta</th>
+                <th>Confiabilidade</th>
                 <th>Acoes</th>
               </tr>
             </thead>
@@ -218,6 +324,12 @@ export default async function StatisticsAdminPage() {
                     <div>{Number(campaign.meta_contatos_percentual).toFixed(2)}% contatos</div>
                     <div className="muted">
                       {Number(campaign.meta_conversao_percentual).toFixed(2)}% apoiadores
+                    </div>
+                  </td>
+                  <td>
+                    <div>{Number(campaign.confiabilidade_percentual).toFixed(2)}%</div>
+                    <div className="muted">
+                      {campaign.sem_telefone} sem telefone | {campaign.sem_interacoes} sem interacao
                     </div>
                   </td>
                   <td>

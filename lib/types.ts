@@ -159,6 +159,19 @@ export type CampaignThemeMetric = {
   total: number;
 };
 
+export type CampaignDataQualitySummary = {
+  total_registros: number;
+  sem_nome: number;
+  sem_telefone: number;
+  sem_email: number;
+  duplicidades_telefone: number;
+  sem_interacoes: number;
+  sem_contato_30_dias: number;
+  opt_outs: number;
+  confiabilidade_percentual: number;
+  email_disponivel: boolean;
+};
+
 export type CampaignRecentConversation = {
   eleitor_uid: string;
   eleitor_id: string;
@@ -221,6 +234,7 @@ export type CampaignAnalyticsSnapshot = {
   resumo: CampaignAnalyticsSummary;
   resumoPeriodo: CampaignPeriodSummary;
   metas: CampaignGoalProgress;
+  qualidade: CampaignDataQualitySummary;
   periodoSelecionadoDias: number;
   funil: CampaignStageMetric[];
   origens: CampaignOriginMetric[];
@@ -245,6 +259,13 @@ export type AdminCampaignStatItem = {
   meta_conversao_votos: number | null;
   meta_contatos_percentual: number;
   meta_conversao_percentual: number;
+  sem_nome: number;
+  sem_telefone: number;
+  sem_email: number;
+  duplicidades_telefone: number;
+  sem_interacoes: number;
+  sem_contato_30_dias: number;
+  confiabilidade_percentual: number;
 };
 
 export type AdminRankingItem = {
@@ -261,11 +282,20 @@ export type AdminCampaignStatsSnapshot = {
     interacoes: number;
     apoiadores: number;
     interacoes_24h: number;
+    registros_sem_nome: number;
+    registros_sem_telefone: number;
+    registros_sem_email: number;
+    duplicidades_telefone: number;
+    registros_sem_interacoes: number;
+    registros_sem_contato_30_dias: number;
+    confiabilidade_media_percentual: number;
+    email_disponivel: boolean;
   };
   campanhas: AdminCampaignStatItem[];
   rankings: {
     conversao: AdminRankingItem[];
     atividade_24h: AdminRankingItem[];
     cobertura_meta: AdminRankingItem[];
+    confiabilidade: AdminRankingItem[];
   };
 };

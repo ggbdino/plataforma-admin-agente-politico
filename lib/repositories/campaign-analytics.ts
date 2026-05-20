@@ -9,6 +9,7 @@ import type {
   CampaignConversationTimelineItem,
   CampaignAnalyticsHeader,
   CampaignAnalyticsSnapshot,
+  CampaignDataQualitySummary,
   CampaignGoalProgress,
   CampaignPeriodSummary,
   CampaignAnalyticsSummary,
@@ -23,6 +24,7 @@ export async function getCampaignAnalyticsSnapshot(
   periodDays = 14
 ): Promise<CampaignAnalyticsSnapshot | null> {
   const normalizedPeriodDays = normalizePeriodDays(periodDays);
+  const hasElectorEmailColumn = await hasTableColumn("eleitores", "email");
   const headerResult = await db.query<CampaignAnalyticsHeader>(
     `
       select
@@ -235,6 +237,115 @@ export async function getCampaignAnalyticsSnapshot(
     ]
   );
 
+  const qualityResult = await queryOrDefault<CampaignDataQualitySummary>(
+    "campaign-data-quality",
+    `
+      with eleitor_base as (
+        select *
+        from eleitores
+        where id_candidato = $1
+      ),
+      duplicados_telefone as (
+        select
+          coalesce(sum(group_total), 0)::int as total
+        from (
+          select count(*)::int as group_total
+          from eleitor_base
+          where nullif(trim(coalesce(telefone, '')), '') is not null
+          group by telefone
+          having count(*) > 1
+        ) grouped
+      ),
+      com_interacoes as (
+        select count(distinct eleitor_uid)::int as total
+        from interacoes
+        where id_candidato = $1
+      )
+      select
+        coalesce((select count(*)::int from eleitor_base), 0) as total_registros,
+        coalesce((select count(*)::int from eleitor_base where nullif(trim(coalesce(nome, '')), '') is null), 0) as sem_nome,
+        coalesce((select count(*)::int from eleitor_base where nullif(trim(coalesce(telefone, '')), '') is null), 0) as sem_telefone,
+        ${
+          hasElectorEmailColumn
+            ? "coalesce((select count(*)::int from eleitor_base where nullif(trim(coalesce(email, '')), '') is null), 0)"
+            : "0"
+        } as sem_email,
+        coalesce((select total from duplicados_telefone), 0) as duplicidades_telefone,
+        greatest(
+          coalesce((select count(*)::int from eleitor_base), 0) -
+          coalesce((select total from com_interacoes), 0),
+          0
+        ) as sem_interacoes,
+        coalesce((
+          select count(*)::int
+          from eleitor_base
+          where coalesce(ultimo_contato_em, ultima_resposta_em, atualizado_em, criado_em) < now() - interval '30 days'
+        ), 0) as sem_contato_30_dias,
+        coalesce((select count(*)::int from eleitor_base where opt_out = true), 0) as opt_outs,
+        case
+          when coalesce((select count(*) from eleitor_base), 0) = 0 then 100
+          else round(
+            (
+              (
+                greatest(
+                  (
+                    coalesce((select count(*)::int from eleitor_base), 0) -
+                    coalesce((select count(*)::int from eleitor_base where nullif(trim(coalesce(nome, '')), '') is null), 0)
+                  )::numeric /
+                  greatest((select count(*)::int from eleitor_base), 1)::numeric,
+                  0
+                )
+              ) +
+              (
+                greatest(
+                  (
+                    coalesce((select count(*)::int from eleitor_base), 0) -
+                    coalesce((select count(*)::int from eleitor_base where nullif(trim(coalesce(telefone, '')), '') is null), 0)
+                  )::numeric /
+                  greatest((select count(*)::int from eleitor_base), 1)::numeric,
+                  0
+                )
+              ) +
+              (
+                greatest(
+                  (
+                    coalesce((select count(*)::int from eleitor_base), 0) -
+                    coalesce((select total from duplicados_telefone), 0)
+                  )::numeric /
+                  greatest((select count(*)::int from eleitor_base), 1)::numeric,
+                  0
+                )
+              ) +
+              (
+                greatest(
+                  coalesce((select total from com_interacoes), 0)::numeric /
+                  greatest((select count(*)::int from eleitor_base), 1)::numeric,
+                  0
+                )
+              )
+            ) / 4 * 100,
+            2
+          )
+        end as confiabilidade_percentual,
+        ${hasElectorEmailColumn ? "true" : "false"} as email_disponivel
+    `,
+    [idCandidato],
+    [
+      {
+        total_registros: 0,
+        sem_nome: 0,
+        sem_telefone: 0,
+        sem_email: 0,
+        duplicidades_telefone: 0,
+        sem_interacoes: 0,
+        sem_contato_30_dias: 0,
+        opt_outs: 0,
+        confiabilidade_percentual: 100,
+        email_disponivel: hasElectorEmailColumn
+      }
+    ]
+  );
+
   const funilResult = await queryOrDefault<CampaignStageMetric>(
     "campaign-funnel",
     `
@@ -387,6 +498,7 @@ export async function getCampaignAnalyticsSnapshot(
     resumo: summaryResult.rows[0],
     resumoPeriodo: periodSummaryResult.rows[0],
     metas: goalProgressResult.rows[0],
+    qualidade: qualityResult.rows[0],
     periodoSelecionadoDias: normalizedPeriodDays,
     funil: funilResult.rows,
     origens: originsResult.rows,
@@ -605,6 +717,7 @@ export async function getCampaignConversationExplorer(
 }
 
 export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStatsSnapshot> {
+  const hasElectorEmailColumn = await hasTableColumn("eleitores", "email");
   const campaignRows = await db.query<AdminCampaignStatItem>(
     `
       with eleitor_stats as (
@@ -613,15 +726,42 @@ export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStat
           count(*)::int as total_eleitores,
           count(*) filter (where etapa_funil in ('engajado', 'relacionamento', 'nutricao'))::int as leads_engajados,
           count(*) filter (where intencao_voto = 'apoiador')::int as apoiadores,
+          count(*) filter (where nullif(trim(coalesce(nome, '')), '') is null)::int as sem_nome,
+          count(*) filter (where nullif(trim(coalesce(telefone, '')), '') is null)::int as sem_telefone,
+          ${
+            hasElectorEmailColumn
+              ? "count(*) filter (where nullif(trim(coalesce(email, '')), '') is null)::int"
+              : "0::int"
+          } as sem_email,
+          count(*) filter (
+            where coalesce(ultimo_contato_em, ultima_resposta_em, atualizado_em, criado_em) < now() - interval '30 days'
+          )::int as sem_contato_30_dias,
           coalesce(round(avg(score_engajamento)::numeric, 2), 0) as score_engajamento_medio
         from eleitores
+        group by id_candidato
+      ),
+      telefone_duplicates as (
+        select
+          id_candidato,
+          coalesce(sum(group_total), 0)::int as duplicidades_telefone
+        from (
+          select
+            id_candidato,
+            telefone,
+            count(*)::int as group_total
+          from eleitores
+          where nullif(trim(coalesce(telefone, '')), '') is not null
+          group by id_candidato, telefone
+          having count(*) > 1
+        ) grouped
         group by id_candidato
       ),
       interaction_stats as (
         select
           id_candidato,
           count(*)::int as interacoes_total,
-          count(*) filter (where criado_em >= now() - interval '24 hours')::int as interacoes_24h
+          count(*) filter (where criado_em >= now() - interval '24 hours')::int as interacoes_24h,
+          count(distinct eleitor_uid)::int as eleitores_com_interacao
         from interacoes
         group by id_candidato
       )
@@ -661,12 +801,40 @@ export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStat
             2
           )
         end as meta_conversao_percentual,
-        coalesce(es.score_engajamento_medio, 0) as score_engajamento_medio
+        coalesce(es.score_engajamento_medio, 0) as score_engajamento_medio,
+        coalesce(es.sem_nome, 0) as sem_nome,
+        coalesce(es.sem_telefone, 0) as sem_telefone,
+        coalesce(es.sem_email, 0) as sem_email,
+        coalesce(td.duplicidades_telefone, 0) as duplicidades_telefone,
+        greatest(coalesce(es.total_eleitores, 0) - coalesce(is2.eleitores_com_interacao, 0), 0) as sem_interacoes,
+        coalesce(es.sem_contato_30_dias, 0) as sem_contato_30_dias,
+        case
+          when coalesce(es.total_eleitores, 0) = 0 then 100
+          else round(
+            (
+              (
+                greatest((coalesce(es.total_eleitores, 0) - coalesce(es.sem_nome, 0))::numeric / greatest(es.total_eleitores, 1)::numeric, 0)
+              ) +
+              (
+                greatest((coalesce(es.total_eleitores, 0) - coalesce(es.sem_telefone, 0))::numeric / greatest(es.total_eleitores, 1)::numeric, 0)
+              ) +
+              (
+                greatest((coalesce(es.total_eleitores, 0) - coalesce(td.duplicidades_telefone, 0))::numeric / greatest(es.total_eleitores, 1)::numeric, 0)
+              ) +
+              (
+                greatest(coalesce(is2.eleitores_com_interacao, 0)::numeric / greatest(es.total_eleitores, 1)::numeric, 0)
+              )
+            ) / 4 * 100,
+            2
+          )
+        end as confiabilidade_percentual
       from candidatos c
       left join campanhas camp
         on camp.id_candidato = c.id_candidato
       left join eleitor_stats es
         on es.id_candidato = c.id_candidato
+      left join telefone_duplicates td
+        on td.id_candidato = c.id_candidato
       left join interaction_stats is2
         on is2.id_candidato = c.id_candidato
       where c.nome_urna is not null
@@ -683,6 +851,13 @@ export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStat
       acc.interacoes += campaign.interacoes_total;
       acc.apoiadores += campaign.apoiadores;
       acc.interacoes_24h += campaign.interacoes_24h;
+      acc.registros_sem_nome += campaign.sem_nome;
+      acc.registros_sem_telefone += campaign.sem_telefone;
+      acc.registros_sem_email += campaign.sem_email;
+      acc.duplicidades_telefone += campaign.duplicidades_telefone;
+      acc.registros_sem_interacoes += campaign.sem_interacoes;
+      acc.registros_sem_contato_30_dias += campaign.sem_contato_30_dias;
+      acc.confiabilidade_soma += Number(campaign.confiabilidade_percentual);
       return acc;
     },
     {
@@ -690,18 +865,41 @@ export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStat
       eleitores: 0,
       interacoes: 0,
       apoiadores: 0,
-      interacoes_24h: 0
+      interacoes_24h: 0,
+      registros_sem_nome: 0,
+      registros_sem_telefone: 0,
+      registros_sem_email: 0,
+      duplicidades_telefone: 0,
+      registros_sem_interacoes: 0,
+      registros_sem_contato_30_dias: 0,
+      confiabilidade_soma: 0
     }
   );
 
   const rankings = {
     conversao: buildRanking(campaignRows.rows, "taxa_conversao_percentual", "conversao"),
     atividade_24h: buildRanking(campaignRows.rows, "interacoes_24h", "interacoes em 24h"),
-    cobertura_meta: buildRanking(campaignRows.rows, "meta_contatos_percentual", "cobertura da meta")
+    cobertura_meta: buildRanking(campaignRows.rows, "meta_contatos_percentual", "cobertura da meta"),
+    confiabilidade: buildRanking(campaignRows.rows, "confiabilidade_percentual", "confiabilidade")
   };
 
   return {
-    totais: totals,
+    totais: {
+      campanhas: totals.campanhas,
+      eleitores: totals.eleitores,
+      interacoes: totals.interacoes,
+      apoiadores: totals.apoiadores,
+      interacoes_24h: totals.interacoes_24h,
+      registros_sem_nome: totals.registros_sem_nome,
+      registros_sem_telefone: totals.registros_sem_telefone,
+      registros_sem_email: totals.registros_sem_email,
+      duplicidades_telefone: totals.duplicidades_telefone,
+      registros_sem_interacoes: totals.registros_sem_interacoes,
+      registros_sem_contato_30_dias: totals.registros_sem_contato_30_dias,
+      confiabilidade_media_percentual:
+        totals.campanhas === 0 ? 100 : Number((totals.confiabilidade_soma / totals.campanhas).toFixed(2)),
+      email_disponivel: hasElectorEmailColumn
+    },
     campanhas: campaignRows.rows,
     rankings
   };
@@ -755,7 +953,11 @@ function buildEmptyDailySeries(): CampaignDailyMetric[] {
 
 function buildRanking(
   campaigns: AdminCampaignStatItem[],
-  field: "taxa_conversao_percentual" | "interacoes_24h" | "meta_contatos_percentual",
+  field:
+    | "taxa_conversao_percentual"
+    | "interacoes_24h"
+    | "meta_contatos_percentual"
+    | "confiabilidade_percentual",
   rotulo: string
 ): AdminRankingItem[] {
   return [...campaigns]
@@ -767,4 +969,26 @@ function buildRanking(
       valor: Number(campaign[field]),
       rotulo
     }));
+}
+
+async function hasTableColumn(tableName: string, columnName: string) {
+  try {
+    const result = await db.query<{ exists: boolean }>(
+      `
+        select exists(
+          select 1
+          from information_schema.columns
+          where table_schema = 'public'
+            and table_name = $1
+            and column_name = $2
+        ) as exists
+      `,
+      [tableName, columnName]
+    );
+
+    return result.rows[0]?.exists ?? false;
+  } catch (error) {
+    console.error("[campaign-analytics:has-column]", error);
+    return false;
+  }
 }
