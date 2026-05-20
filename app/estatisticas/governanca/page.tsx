@@ -9,11 +9,11 @@ export default async function GovernanceAdminPage() {
   return (
     <main className="page-shell">
       <section className="hero-card">
-        <span className="pill">Governança do Admin</span>
+        <span className="pill">Governança do admin</span>
         <h1 className="title">Trilha administrativa e operacional da plataforma</h1>
         <p className="subtitle">
-          Visão consolidada das ações críticas do produto para acompanhar importações,
-          exportações, liberações de acesso e recálculos do funil por campanha.
+          Visão consolidada das ações críticas do produto para acompanhar importações, exportações,
+          liberações de acesso, recálculos do funil e disparos de workflow.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/estatisticas">
@@ -22,8 +22,11 @@ export default async function GovernanceAdminPage() {
           <Link className="button secondary" href="/estatisticas/auditoria">
             Ver auditoria da base
           </Link>
-          <Link className="button secondary" href="/api/estatisticas/exportar">
-            Exportar executivo
+          <Link className="button secondary" href="/estatisticas/governanca/workflows">
+            Central de workflows
+          </Link>
+          <Link className="button secondary" href="/admin/usuarios">
+            Usuários e perfis
           </Link>
         </div>
       </section>
@@ -72,7 +75,7 @@ export default async function GovernanceAdminPage() {
               <tr>
                 <th>Campanha</th>
                 <th>Ações</th>
-                <th>Erros 30 dias</th>
+                <th>Erros em 30 dias</th>
                 <th>Importações</th>
                 <th>Exportações</th>
                 <th>Recálculos</th>
@@ -122,8 +125,7 @@ export default async function GovernanceAdminPage() {
           <div>
             <h2 className="section-title">Eventos recentes de governança</h2>
             <p className="subtitle">
-              Sequência das últimas ações administrativas e operacionais registradas na
-              plataforma.
+              Sequência das últimas ações administrativas e operacionais registradas na plataforma.
             </p>
           </div>
           <span className="pill">Trilha transacional</span>

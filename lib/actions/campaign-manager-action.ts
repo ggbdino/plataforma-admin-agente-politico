@@ -1,52 +1,11 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getManagerAccessData } from "@/lib/repositories/implantation";
+import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { executeImplantationStep } from "@/lib/services/implantation-service";
+import { recordGovernanceEvent } from "@/lib/repositories/governance";
 import type { CampaignChannelOption } from "@/lib/types";
-
-const MANAGER_MASTER_PASSWORD = "654321";
-
-export async function authenticateCampaignManagerAction(formData: FormData) {
-  const idCandidato = String(formData.get("idCandidato") ?? "").trim();
-  const senha = String(formData.get("senha") ?? "").trim();
-
-  if (!idCandidato || !senha) {
-    redirect(
-      `/gestor/candidato/${idCandidato}?feedback=erro&mensagem=${encodeURIComponent(
-        "Informe a senha de acesso do Gestor da Campanha."
-      )}`
-    );
-  }
-
-  const accessData = await getManagerAccessData(idCandidato);
-  const normalizedPhone = normalizeDigits(accessData?.telefone_responsavel ?? "");
-
-  if (senha !== MANAGER_MASTER_PASSWORD && normalizeDigits(senha) !== normalizedPhone) {
-    redirect(
-      `/gestor/candidato/${idCandidato}?feedback=erro&mensagem=${encodeURIComponent(
-        "Senha invalida para a area do Gestor da Campanha."
-      )}`
-    );
-  }
-
-  const cookieStore = await cookies();
-  cookieStore.set(`manager-access-${idCandidato}`, "ok", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: true,
-    path: `/gestor/candidato/${idCandidato}`,
-    maxAge: 60 * 60 * 8
-  });
-
-  redirect(
-    `/gestor/candidato/${idCandidato}?feedback=sucesso&mensagem=${encodeURIComponent(
-      "Acesso do Gestor da Campanha liberado."
-    )}`
-  );
-}
 
 export async function registerCampaignChannelAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
@@ -63,16 +22,26 @@ export async function registerCampaignChannelAction(formData: FormData) {
     .split(/\r?\n|[|;]/)
     .map((item) => item.trim())
     .filter(Boolean);
+  const session = await getCurrentPlatformSession();
+  const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_implantar");
+
+  if (!hasAccess) {
+    redirect(
+      `/gestor/candidato/${idCandidato}?feedback=erro&mensagem=${encodeURIComponent(
+        "Seu usuário não possui permissão para alterar o canal oficial desta campanha."
+      )}`
+    );
+  }
 
   if (!idCandidato) {
-    throw new Error("Candidato nao identificado para o registro do canal oficial.");
+    throw new Error("Candidato não identificado para o registro do canal oficial.");
   }
 
   try {
     await executeImplantationStep({
       idCandidato,
       codigoEtapa: "configurar_canais",
-      executedBy: "gestor-campanha@plataforma.local",
+      executedBy: session?.email ?? "gestor-campanha@plataforma.local",
       source: "gestor_campanha",
       payload: {
         nome_canal: nomeCanal,
@@ -85,9 +54,31 @@ export async function registerCampaignChannelAction(formData: FormData) {
         canais_divulgacao_extra: canaisDivulgacaoExtras
       }
     });
+
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: "campanha",
+      ator: session?.email ?? "gestor_campanha",
+      categoria: "canal_oficial",
+      acao: "canal_oficial_atualizado",
+      descricao: "Canal oficial e canais de divulgação registrados a partir da área da gestora.",
+      status: "sucesso",
+      origem: "gestora-campanha"
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Falha ao registrar o canal oficial da campanha.";
+
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: "campanha",
+      ator: session?.email ?? "gestor_campanha",
+      categoria: "canal_oficial",
+      acao: "canal_oficial_com_erro",
+      descricao: message,
+      status: "erro",
+      origem: "gestora-campanha"
+    });
 
     revalidatePath(`/gestor/candidato/${idCandidato}`);
     revalidatePath(`/candidatos/${idCandidato}`);
@@ -106,13 +97,9 @@ export async function registerCampaignChannelAction(formData: FormData) {
 
   redirect(
     `/gestor/candidato/${idCandidato}?feedback=sucesso&mensagem=${encodeURIComponent(
-      "Canal oficial e canais de divulgacao registrados com sucesso."
+      "Canal oficial e canais de divulgação registrados com sucesso."
     )}`
   );
-}
-
-function normalizeDigits(value: string) {
-  return value.replace(/\D/g, "");
 }
 
 function parseChannelOptionValue(value: FormDataEntryValue): CampaignChannelOption | null {

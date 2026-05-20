@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { authenticateCampaignAnalyticsAction } from "@/lib/actions/campaign-analytics-action";
+import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
+import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignConversationExplorer } from "@/lib/repositories/campaign-analytics";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +27,8 @@ export default async function CampaignConversationsPage({
 }: CampaignConversationsPageProps) {
   const { idCandidato } = await params;
   const query = searchParams ? await searchParams : undefined;
-  const cookieStore = await cookies();
-  const hasAccess =
-    cookieStore.get(`campaign-analytics-access-${idCandidato}`)?.value === "ok";
+  const session = await getCurrentPlatformSession();
+  const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_ver_kpis");
   const explorer = await getCampaignConversationExplorer(idCandidato, {
     busca: query?.busca,
     etapa: query?.etapa,
@@ -46,9 +45,7 @@ export default async function CampaignConversationsPage({
     return (
       <main className="page-shell">
         {query?.feedback && query?.mensagem ? (
-          <section
-            className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}
-          >
+          <section className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}>
             <strong>
               {query.feedback === "sucesso"
                 ? "Operação concluída."
@@ -62,21 +59,23 @@ export default async function CampaignConversationsPage({
           <span className="pill">Console de conversas</span>
           <h1 className="title">Acesso protegido ao histórico conversacional</h1>
           <p className="subtitle">
-            Esta área permite consultar eleitores, sinais políticos e volume de interação da campanha.
+            Esta área permite consultar eleitores, sinais políticos e volume de interação da
+            campanha.
           </p>
         </section>
 
         <section className="card manager-auth-card">
           <h2 className="section-title">Liberar acesso ao console</h2>
-          <form action={authenticateCampaignAnalyticsAction} className="manager-auth-form">
+          <form action={authenticatePlatformAreaAction} className="manager-auth-form">
             <input name="idCandidato" type="hidden" value={idCandidato} />
-            <input
-              name="redirectTo"
-              type="hidden"
-              value={`/campanhas/${idCandidato}/conversas`}
-            />
+            <input name="redirectTo" type="hidden" value={`/campanhas/${idCandidato}/conversas`} />
+            <input name="contexto" type="hidden" value="conversas" />
             <label className="step-note">
-              <span>Senha de acesso</span>
+              <span>E-mail do usuário</span>
+              <input className="step-input" name="email" type="email" />
+            </label>
+            <label className="step-note">
+              <span>Senha do usuário</span>
               <input className="step-input" name="senha" type="password" />
             </label>
             <button className="button" type="submit">
@@ -92,12 +91,10 @@ export default async function CampaignConversationsPage({
     <main className="page-shell">
       <section className="hero-card">
         <span className="pill">Console de conversas</span>
-        <h1 className="title">
-          Conversas da campanha de {explorer.cabecalho.nome_urna}
-        </h1>
+        <h1 className="title">Conversas da campanha de {explorer.cabecalho.nome_urna}</h1>
         <p className="subtitle">
-          Consulta individualizada dos eleitores com filtros, leitura de histórico, etapa do funil,
-          sentimento, intenção de voto e densidade de contato.
+          Consulta individualizada dos eleitores com filtros, leitura de histórico, etapa do
+          funil, sentimento, intenção de voto e densidade de contato.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/campanhas/${idCandidato}`}>
@@ -114,7 +111,8 @@ export default async function CampaignConversationsPage({
           <div>
             <h2 className="section-title">Exploração inteligente da base</h2>
             <p className="subtitle">
-              Filtre a leitura por etapa, origem, sentimento ou eleitor para navegar entre o agregado e o detalhe.
+              Filtre a leitura por etapa, origem, sentimento ou eleitor para navegar entre o
+              agregado e o detalhe.
             </p>
           </div>
           <span className="pill ok">Drill-down e drill-up ativos</span>
@@ -122,12 +120,7 @@ export default async function CampaignConversationsPage({
         <form className="step-form-grid" method="get">
           <label className="step-note">
             <span>Busca por nome, telefone ou identificador</span>
-            <input
-              className="step-input"
-              defaultValue={explorer.filtros.busca}
-              name="busca"
-              type="text"
-            />
+            <input className="step-input" defaultValue={explorer.filtros.busca} name="busca" type="text" />
           </label>
           <label className="step-note">
             <span>Etapa do funil</span>
@@ -153,11 +146,7 @@ export default async function CampaignConversationsPage({
           </label>
           <label className="step-note">
             <span>Sentimento</span>
-            <select
-              className="step-input"
-              defaultValue={explorer.filtros.sentimento}
-              name="sentimento"
-            >
+            <select className="step-input" defaultValue={explorer.filtros.sentimento} name="sentimento">
               <option value="">Todos</option>
               {explorer.opcoes.sentimentos.map((sentimento) => (
                 <option key={sentimento} value={sentimento}>
@@ -237,17 +226,16 @@ export default async function CampaignConversationsPage({
               </p>
             </div>
             {explorer.conversaSelecionada ? (
-              <span className="pill ok">{explorer.conversaSelecionada.resumo.total_interacoes} interações</span>
+              <span className="pill ok">
+                {explorer.conversaSelecionada.resumo.total_interacoes} interações
+              </span>
             ) : null}
           </div>
           {explorer.conversaSelecionada ? (
             <>
               <div className="manager-channel-box">
                 <strong>
-                  {normalizeDisplayValue(
-                    explorer.conversaSelecionada.resumo.nome,
-                    "Eleitor não identificado"
-                  )}
+                  {normalizeDisplayValue(explorer.conversaSelecionada.resumo.nome, "Eleitor não identificado")}
                 </strong>
                 <div className="mono">
                   {normalizeDisplayValue(
@@ -279,25 +267,13 @@ export default async function CampaignConversationsPage({
                       </span>
                     </div>
                     <div className="muted">{item.canal}</div>
-                    <div className="conversation-message-stack">
-                      {renderConversationBodies(item)}
-                    </div>
+                    <div className="conversation-message-stack">{renderConversationBodies(item)}</div>
                     <div className="conversation-event-meta">
-                      <span className="pill">
-                        {normalizeDisplayValue(item.tema_classificado, "tema livre")}
-                      </span>
-                      <span className="pill">
-                        {normalizeDisplayValue(item.sentimento, "sem sentimento")}
-                      </span>
-                      <span className="pill">
-                        {normalizeDisplayValue(item.intencao_voto, "sem intenção")}
-                      </span>
-                      <span className="pill">
-                        {normalizeDisplayValue(item.etapa_sugerida, "sem etapa sugerida")}
-                      </span>
-                      <span className="pill warn">
-                        {normalizeDisplayValue(item.risco_compliance, "risco baixo")}
-                      </span>
+                      <span className="pill">{normalizeDisplayValue(item.tema_classificado, "tema livre")}</span>
+                      <span className="pill">{normalizeDisplayValue(item.sentimento, "sem sentimento")}</span>
+                      <span className="pill">{normalizeDisplayValue(item.intencao_voto, "sem intenção")}</span>
+                      <span className="pill">{normalizeDisplayValue(item.etapa_sugerida, "sem etapa sugerida")}</span>
+                      <span className="pill warn">{normalizeDisplayValue(item.risco_compliance, "risco baixo")}</span>
                     </div>
                   </article>
                 ))}
@@ -342,7 +318,7 @@ function renderConversationBodies(item: {
   } else {
     if (mensagem) {
       blocks.push({
-        label: "Saida da campanha",
+        label: "Saída da campanha",
         content: mensagem,
         tone: "agent"
       });
@@ -373,7 +349,7 @@ function labelStage(stage: string | null) {
   const normalizedStage = normalizeTextContent(stage);
 
   if (!normalizedStage) {
-    return "não_classificado";
+    return "não classificado";
   }
 
   return normalizedStage.replace(/_/g, " ");
@@ -432,9 +408,6 @@ function normalizeTextContent(value: string | null | undefined) {
   return normalized;
 }
 
-function normalizeDisplayValue(
-  value: string | null | undefined,
-  fallback: string
-) {
+function normalizeDisplayValue(value: string | null | undefined, fallback: string) {
   return normalizeTextContent(value) || fallback;
 }

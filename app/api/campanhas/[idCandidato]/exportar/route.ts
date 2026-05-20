@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { toCsv } from "@/lib/csv";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
@@ -12,15 +12,14 @@ type RouteContext = {
 
 export async function GET(request: Request, context: RouteContext) {
   const { idCandidato } = await context.params;
-  const cookieStore = await cookies();
-  const hasAccess =
-    cookieStore.get(`campaign-analytics-access-${idCandidato}`)?.value === "ok";
+  const session = await getCurrentPlatformSession();
+  const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_ver_kpis");
 
   if (!hasAccess) {
     await recordGovernanceEvent({
       idCandidato,
       escopo: "campanha",
-      ator: "operacao_campanha",
+      ator: session?.email ?? "operacao_campanha",
       categoria: "exportacao",
       acao: "exportacao_negada",
       descricao: "Tentativa de exportação executiva bloqueada por acesso operacional ausente.",
@@ -44,7 +43,7 @@ export async function GET(request: Request, context: RouteContext) {
     await recordGovernanceEvent({
       idCandidato,
       escopo: "campanha",
-      ator: "operacao_campanha",
+      ator: session?.email ?? "operacao_campanha",
       categoria: "exportacao",
       acao: "exportacao_sem_campanha",
       descricao: "Exportação executiva abortada porque a campanha não foi encontrada.",
@@ -116,21 +115,9 @@ export async function GET(request: Request, context: RouteContext) {
   rows.push(["conversas_estatisticas", "interacoes_24h", snapshot.resumo.interacoes_24h]);
   rows.push(["conversas_estatisticas", "inbound_total", snapshot.resumo.inbound_total]);
   rows.push(["conversas_estatisticas", "outbound_total", snapshot.resumo.outbound_total]);
-  rows.push([
-    "conversas_estatisticas",
-    "interacoes_periodo",
-    snapshot.resumoPeriodo.interacoes_periodo
-  ]);
-  rows.push([
-    "conversas_estatisticas",
-    "inbound_periodo",
-    snapshot.resumoPeriodo.inbound_periodo
-  ]);
-  rows.push([
-    "conversas_estatisticas",
-    "outbound_periodo",
-    snapshot.resumoPeriodo.outbound_periodo
-  ]);
+  rows.push(["conversas_estatisticas", "interacoes_periodo", snapshot.resumoPeriodo.interacoes_periodo]);
+  rows.push(["conversas_estatisticas", "inbound_periodo", snapshot.resumoPeriodo.inbound_periodo]);
+  rows.push(["conversas_estatisticas", "outbound_periodo", snapshot.resumoPeriodo.outbound_periodo]);
   rows.push([
     "conversas_estatisticas",
     "temas_monitorados",
@@ -143,7 +130,7 @@ export async function GET(request: Request, context: RouteContext) {
   await recordGovernanceEvent({
     idCandidato,
     escopo: "campanha",
-    ator: "operacao_campanha",
+    ator: session?.email ?? "operacao_campanha",
     categoria: "exportacao",
     acao: "exportacao_concluida",
     descricao: `Exportação executiva da campanha concluída para o recorte de ${periodDays} dias.`,

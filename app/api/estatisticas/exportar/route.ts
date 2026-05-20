@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
+import { getCurrentPlatformSession } from "@/lib/auth";
 import { toCsv } from "@/lib/csv";
 import { getAdminCampaignStatsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
 export async function GET() {
+  const session = await getCurrentPlatformSession();
+
+  if (!session || session.perfil !== "administrador") {
+    return NextResponse.json(
+      {
+        message: "Apenas administradores podem exportar a visão consolidada."
+      },
+      { status: 401 }
+    );
+  }
+
   const snapshot = await getAdminCampaignStatsSnapshot();
 
   const rows: Array<Array<string | number | null | undefined>> = [
@@ -61,7 +73,7 @@ export async function GET() {
 
   await recordGovernanceEvent({
     escopo: "admin",
-    ator: "administrador",
+    ator: session.email,
     categoria: "exportacao",
     acao: "exportacao_admin_concluida",
     descricao: "Exportação executiva consolidada do admin concluída com sucesso.",

@@ -21,8 +21,7 @@ export default async function GestorDashboardPage() {
         <span className="pill">Painel do gestor</span>
         <h1 className="title">Situação consolidada das campanhas</h1>
         <p className="subtitle">
-          Visão executiva para acompanhamento rápido dos candidatos, da progressão de
-          implantação e das pendências que exigem atuação operacional.
+          Visão executiva para acompanhar candidatos, progresso de implantação e o caminho para a operação de cada campanha.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/candidatos">
@@ -60,63 +59,63 @@ export default async function GestorDashboardPage() {
       <section className="card">
         <h2 className="section-title">Situação por candidato</h2>
         <div className="table-responsive">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nome de urna</th>
-              <th>Status</th>
-              <th>Progresso</th>
-              <th>Próxima etapa</th>
-              <th>Incidentes</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map((candidate) => {
-              const progress =
-                candidate.total_etapas > 0
-                  ? Math.round((candidate.etapas_concluidas / candidate.total_etapas) * 100)
-                  : 0;
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome de urna</th>
+                <th>Status</th>
+                <th>Progresso</th>
+                <th>Próxima etapa</th>
+                <th>Incidentes</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map((candidate) => {
+                const progress =
+                  candidate.total_etapas > 0
+                    ? Math.round((candidate.etapas_concluidas / candidate.total_etapas) * 100)
+                    : 0;
 
-              return (
-                <tr key={candidate.id_candidato}>
-                  <td className="mono">{candidate.id_candidato}</td>
-                  <td>{candidate.nome_urna}</td>
-                  <td>
-                    <ImplantationStatusPill status={candidate.status_implantacao} />
-                  </td>
-                  <td>
-                    <div className="progress-inline">
-                      <div className="progress-track">
-                        <div className="progress-bar" style={{ width: `${progress}%` }} />
+                return (
+                  <tr key={candidate.id_candidato}>
+                    <td className="mono">{candidate.id_candidato}</td>
+                    <td>{candidate.nome_urna}</td>
+                    <td>
+                      <ImplantationStatusPill status={candidate.status_implantacao} />
+                    </td>
+                    <td>
+                      <div className="progress-inline">
+                        <div className="progress-track">
+                          <div className="progress-bar" style={{ width: `${progress}%` }} />
+                        </div>
+                        <span>{progress}%</span>
                       </div>
-                      <span>{progress}%</span>
-                    </div>
-                  </td>
-                  <td>{candidate.proxima_etapa ?? "Implantação concluída"}</td>
-                  <td>
-                    {candidate.etapas_com_erro > 0 ? (
-                      <span className="pill warn">{candidate.etapas_com_erro} etapa(s) com erro</span>
-                    ) : (
-                      <span className="pill ok">Sem incidentes</span>
-                    )}
-                  </td>
-                  <td>
-                    <div className="actions">
-                      <Link className="button secondary" href={`/candidatos/${candidate.id_candidato}`}>
-                        Implantação
-                      </Link>
-                      <Link className="button secondary" href={`/campanhas/${candidate.id_candidato}`}>
-                        Campanha
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td>{candidate.proxima_etapa ?? "Implantação concluída"}</td>
+                    <td>
+                      {candidate.etapas_com_erro > 0 ? (
+                        <span className="pill warn">{candidate.etapas_com_erro} etapa(s) com erro</span>
+                      ) : (
+                        <span className="pill ok">Sem incidentes</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="actions">
+                        <Link className="button secondary" href={`/candidatos/${candidate.id_candidato}`}>
+                          Implantação
+                        </Link>
+                        <Link className="button secondary" href={`/campanhas/${candidate.id_candidato}`}>
+                          Campanha
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </section>
     </main>

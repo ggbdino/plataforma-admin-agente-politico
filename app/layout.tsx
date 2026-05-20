@@ -5,10 +5,11 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "GAP Consult Tecnologia | Plataforma Administrativa",
-  description: "Painel administrativo da GAP Consult Tecnologia para operação do agente político"
+  description:
+    "Painel administrativo da GAP Consult Tecnologia para operação do agente político"
 };
 
-const APP_VERSION = "V.6.1.0";
+const APP_VERSION = "V.7.0.0";
 
 export default function RootLayout({
   children
@@ -30,13 +31,14 @@ export default function RootLayout({
                 width={271}
               />
               <div>
-                <span className="brand-kicker">Gap Consult Tecnologia</span>
+                <span className="brand-kicker">GAP Consult Tecnologia</span>
                 <div className="brand-title-row">
                   <h1 className="brand-title">Plataforma Administrativa</h1>
                   <span className="version-badge">{APP_VERSION}</span>
                 </div>
                 <p className="brand-subtitle">
-                  Gestão operacional do agente político e implantação de campanhas
+                  Gestão operacional do agente político, implantação de campanhas e governança da
+                  automação
                 </p>
               </div>
             </Link>

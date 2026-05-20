@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getCurrentPlatformSession } from "@/lib/auth";
 import { executeImplantationStep } from "@/lib/services/implantation-service";
 
 export async function executeStepAction(formData: FormData) {
@@ -23,11 +24,13 @@ export async function executeStepAction(formData: FormData) {
     throw new Error("Dados insuficientes para executar a etapa.");
   }
 
+  const session = await getCurrentPlatformSession();
+
   try {
     await executeImplantationStep({
       idCandidato,
       codigoEtapa,
-      executedBy: "operador@plataforma.local",
+      executedBy: session?.email ?? "operador@plataforma.local",
       source: "frontend_admin",
       payload: {
         ...(observacao ? { observacao } : {}),

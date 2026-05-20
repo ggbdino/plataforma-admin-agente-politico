@@ -1,11 +1,11 @@
 ﻿import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import {
-  authenticateCampaignAnalyticsAction,
   importCampaignElectorBaseAction,
   recalculateCampaignFunnelCycleAction
 } from "@/lib/actions/campaign-analytics-action";
+import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
+import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { getCampaignGovernanceSnapshot } from "@/lib/repositories/governance";
 
@@ -30,9 +30,8 @@ export default async function CampaignOperationalPage({
   const { idCandidato } = await params;
   const query = searchParams ? await searchParams : undefined;
   const selectedPeriodDays = parsePeriodDays(query?.periodo);
-  const cookieStore = await cookies();
-  const hasAccess =
-    cookieStore.get(`campaign-analytics-access-${idCandidato}`)?.value === "ok";
+  const session = await getCurrentPlatformSession();
+  const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_ver_kpis");
   const snapshot = await getCampaignAnalyticsSnapshot(idCandidato, selectedPeriodDays);
   const governance = await getCampaignGovernanceSnapshot(idCandidato);
 
@@ -76,13 +75,18 @@ export default async function CampaignOperationalPage({
         <section className="card manager-auth-card">
           <h2 className="section-title">Liberar acesso operacional da campanha</h2>
           <p className="subtitle">
-            Informe o número do gestor da campanha ou a senha mestra <span className="mono">654321</span>.
+            Informe o e-mail e a senha de um usuário cadastrado com permissão para visualizar os indicadores e operar o funil desta campanha.
           </p>
-          <form action={authenticateCampaignAnalyticsAction} className="manager-auth-form">
+          <form action={authenticatePlatformAreaAction} className="manager-auth-form">
             <input name="idCandidato" type="hidden" value={idCandidato} />
             <input name="redirectTo" type="hidden" value={`/campanhas/${idCandidato}`} />
+            <input name="contexto" type="hidden" value="campanha" />
             <label className="step-note">
-              <span>Senha de acesso</span>
+              <span>E-mail do usuário</span>
+              <input className="step-input" name="email" type="email" />
+            </label>
+            <label className="step-note">
+              <span>Senha do usuário</span>
               <input className="step-input" name="senha" type="password" />
             </label>
             <button className="button" type="submit">
@@ -127,6 +131,7 @@ export default async function CampaignOperationalPage({
           <span className="pill">
             Número oficial {snapshot.cabecalho.numero_agente_oficial ?? "pendente"}
           </span>
+          {session ? <span className="pill">Usuário {session.nome}</span> : null}
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/campanhas/${idCandidato}/conversas`}>

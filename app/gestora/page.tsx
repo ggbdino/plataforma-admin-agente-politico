@@ -10,22 +10,20 @@ export default async function GestoraDashboardPage() {
   return (
     <main className="page-shell">
       <section className="hero-card">
-        <span className="pill">Area da gestora</span>
+        <span className="pill">Área da gestora</span>
         <h1 className="title">Acompanhamento da gestora de campanha</h1>
         <p className="subtitle">
-          Entrada dedicada para a Gestora da Campanha revisar dados importados, ajustar o
-          canal oficial, consolidar canais de divulgacao e acompanhar o que ja foi registrado
-          para cada candidato.
+          Entrada dedicada para revisar dados importados, ajustar o canal oficial, consolidar canais de divulgação e acompanhar o que já foi registrado para cada candidato.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/">
-            Voltar para inicio
+            Voltar para início
           </Link>
         </div>
       </section>
 
       <section className="card">
-        <h2 className="section-title">Campanhas disponiveis para gestao</h2>
+        <h2 className="section-title">Campanhas disponíveis para gestão</h2>
         <div className="manager-candidate-grid">
           {candidates.map((candidate) => {
             const progress =
@@ -44,7 +42,7 @@ export default async function GestoraDashboardPage() {
                 </div>
                 <div className="muted">{candidate.cargo_disputado}</div>
                 <div className="manager-candidate-progress">
-                  <span>Progresso da implantacao</span>
+                  <span>Progresso da implantação</span>
                   <div className="progress-inline">
                     <div className="progress-track">
                       <div className="progress-bar" style={{ width: `${progress}%` }} />
@@ -53,26 +51,26 @@ export default async function GestoraDashboardPage() {
                   </div>
                 </div>
                 <div className="muted">
-                  <strong>Proxima etapa:</strong> {candidate.proxima_etapa ?? "Implantacao concluida"}
+                  <strong>Próxima etapa:</strong> {candidate.proxima_etapa ?? "Implantação concluída"}
                 </div>
                 <div className="muted">
-                  <strong>Numero oficial:</strong> {candidate.numero_agente_oficial ?? "-"}
+                  <strong>Número oficial:</strong> {candidate.numero_agente_oficial ?? "-"}
                 </div>
                 <div className="muted">
-                  <strong>Ultima atualizacao da gestora:</strong>{" "}
+                  <strong>Última atualização da gestora:</strong>{" "}
                   {candidate.ultima_atualizacao_gestora_em
                     ? new Intl.DateTimeFormat("pt-BR", {
                         dateStyle: "short",
                         timeStyle: "short"
                       }).format(new Date(candidate.ultima_atualizacao_gestora_em))
-                    : "ainda nao registrada"}
+                    : "ainda não registrada"}
                 </div>
                 <div className="actions" style={{ marginTop: 12 }}>
                   <Link className="button secondary" href={`/gestor/candidato/${candidate.id_candidato}`}>
-                    Abrir area da gestora
+                    Abrir área da gestora
                   </Link>
                   <Link className="button secondary" href={`/candidatos/${candidate.id_candidato}`}>
-                    Ver implantacao
+                    Ver implantação
                   </Link>
                 </div>
               </article>

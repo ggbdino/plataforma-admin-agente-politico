@@ -2,6 +2,7 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL,
   n8nBaseUrl: process.env.N8N_BASE_URL,
   n8nApiKey: process.env.N8N_API_KEY ?? "",
+  adminBootstrapCode: process.env.ADMIN_BOOTSTRAP_CODE ?? "",
   n8nWebhookCandidateSync:
     process.env.N8N_WEBHOOK_CANDIDATO_SYNC ?? "/webhook/candidato-sync",
   n8nWebhookGovernancaBrunex:
