@@ -2,32 +2,33 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentPlatformSession } from "@/lib/auth";
+import { env } from "@/lib/env";
 import { triggerN8nWebhook } from "@/lib/n8n";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
 const WORKFLOW_MAP = {
   candidato_sync: {
-    path: "/webhook/candidato-sync",
-    method: "POST" as const,
+    path: env.n8nWebhookCandidateSync,
+    method: "GET" as const,
     descricao: "Sincronização do cadastro-base do candidato."
   },
   qrcode_canais: {
-    path: "/webhook/agente-politico/0001/qrcode/canais",
+    path: env.n8nWebhookQrCodeBrunex,
     method: "GET" as const,
     descricao: "Geração ou atualização do QR Code e dos canais do agente."
   },
   governanca: {
-    path: "/webhook/agente-politico/0001/governanca",
+    path: env.n8nWebhookGovernancaBrunex,
     method: "POST" as const,
     descricao: "Workflow de governança operacional do candidato."
   },
   entrada_eleitor: {
-    path: "/webhook/agente-politico/0001/entrada-eleitor",
+    path: env.n8nWebhookFunilBrunex,
     method: "POST" as const,
     descricao: "Entrada de eleitor no funil conversacional."
   },
   cadencia: {
-    path: "/webhook/agente-politico/0001/cadencia",
+    path: env.n8nWebhookCadenciaBrunex,
     method: "POST" as const,
     descricao: "Workflow de cadência e reativação."
   }
@@ -36,7 +37,8 @@ const WORKFLOW_MAP = {
 export async function triggerGovernanceWorkflowAction(formData: FormData) {
   const workflow = String(formData.get("workflow") ?? "").trim() as keyof typeof WORKFLOW_MAP;
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
-  const redirectTo = String(formData.get("redirectTo") ?? "/estatisticas/governanca/workflows").trim();
+  const redirectTo =
+    String(formData.get("redirectTo") ?? "/estatisticas/governanca/workflows").trim();
   const telefone = String(formData.get("telefone") ?? "").trim();
   const nome = String(formData.get("nome") ?? "").trim();
   const mensagem = String(formData.get("mensagem") ?? "").trim();
@@ -87,7 +89,12 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       detalhes: response as Record<string, unknown>
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Falha ao iniciar o workflow do n8n.";
+    const rawMessage =
+      error instanceof Error ? error.message : "Falha ao iniciar o workflow do n8n.";
+    const message =
+      workflow === "candidato_sync" && rawMessage.includes("requested webhook")
+        ? "O workflow de sincronização de candidatos ainda não expõe uma URL de produção compatível com a plataforma. Confirme se o nó Webhook está ativo, publicado e com o mesmo path configurado em N8N_WEBHOOK_CANDIDATO_SYNC."
+        : rawMessage;
 
     await recordGovernanceEvent({
       idCandidato: idCandidato || null,
