@@ -77,6 +77,11 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       payload
     });
 
+    const successMessage =
+      workflow === "candidato_sync"
+        ? formatCandidateSyncMessage(response)
+        : "Workflow iniciado com sucesso a partir da plataforma.";
+
     await recordGovernanceEvent({
       idCandidato: idCandidato || null,
       escopo: "admin",
@@ -88,6 +93,8 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       origem: "workflow-center",
       detalhes: response as Record<string, unknown>
     });
+
+    redirect(`${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`);
   } catch (error) {
     const rawMessage =
       error instanceof Error ? error.message : "Falha ao iniciar o workflow do n8n.";
@@ -115,4 +122,29 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       "Workflow iniciado com sucesso a partir da plataforma."
     )}`
   );
+}
+
+function formatCandidateSyncMessage(response: unknown) {
+  if (!response) {
+    return "Sincronização de candidatos concluída.";
+  }
+
+  if (typeof response === "object" && response !== null) {
+    const payload = response as Record<string, unknown>;
+
+    if (typeof payload.message === "string" && payload.message.trim()) {
+      return payload.message.trim();
+    }
+
+    const total = Number(payload.total_processados ?? 0);
+    const novos = Number(payload.novos ?? 0);
+    const atualizados = Number(payload.atualizados ?? 0);
+    const ignorados = Number(payload.ignorados ?? 0);
+
+    if (total > 0) {
+      return `Sincronização de candidatos concluída. ${total} registro(s) processado(s): ${novos} novo(s), ${atualizados} atualizado(s) e ${ignorados} sem alteração.`;
+    }
+  }
+
+  return "Sincronização de candidatos concluída.";
 }
