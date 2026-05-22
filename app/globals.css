@@ -655,6 +655,67 @@ button {
   gap: 14px;
 }
 
+.workflow-guidance {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.workflow-guidance-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(36, 135, 211, 0.18);
+  background: rgba(244, 251, 255, 0.92);
+  color: var(--accent-deep);
+  line-height: 1.55;
+}
+
+.workflow-candidate-panel {
+  margin-bottom: 16px;
+}
+
+.workflow-candidate-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  align-items: start;
+}
+
+.workflow-status-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.workflow-status-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(36, 135, 211, 0.16);
+  background: rgba(244, 251, 255, 0.9);
+}
+
+.workflow-card-head {
+  display: grid;
+  gap: 4px;
+}
+
+.workflow-order {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workflow-card-title {
+  margin-bottom: 0;
+}
+
 .analytics-stack {
   display: grid;
   gap: 12px;
@@ -845,5 +906,9 @@ button {
   .analytics-bar-label {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .workflow-candidate-grid {
+    grid-template-columns: 1fr;
   }
 }
