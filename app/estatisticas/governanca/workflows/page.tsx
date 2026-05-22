@@ -9,6 +9,39 @@ type WorkflowCenterPageProps = {
   }>;
 };
 
+const WORKFLOWS = [
+  {
+    ordem: "1",
+    workflow: "candidato_sync",
+    title: "Sincronizar candidato",
+    description: "Atualiza o cadastro-base do candidato no ecossistema do n8n."
+  },
+  {
+    ordem: "2",
+    workflow: "qrcode_canais",
+    title: "Gerar QR Code e canais",
+    description: "Dispara o workflow de QR Code e atualização de canais."
+  },
+  {
+    ordem: "3",
+    workflow: "governanca",
+    title: "Executar governança",
+    description: "Aciona o workflow de governança operacional do candidato."
+  },
+  {
+    ordem: "4",
+    workflow: "entrada_eleitor",
+    title: "Simular entrada de eleitor",
+    description: "Aciona o workflow de entrada no funil com nome, telefone e mensagem."
+  },
+  {
+    ordem: "5",
+    workflow: "cadencia",
+    title: "Acionar cadência",
+    description: "Inicia o workflow de cadência e reativação controlada."
+  }
+] as const;
+
 export const dynamic = "force-dynamic";
 
 export default async function WorkflowCenterPage({ searchParams }: WorkflowCenterPageProps) {
@@ -45,15 +78,12 @@ export default async function WorkflowCenterPage({ searchParams }: WorkflowCente
       </section>
 
       <section className="grid grid-2">
-        {[
-          ["candidato_sync", "Sincronizar candidato", "Atualiza o cadastro-base do candidato no ecossistema do n8n."],
-          ["qrcode_canais", "Gerar QR Code e canais", "Dispara o workflow de QR Code e atualização de canais."],
-          ["governanca", "Executar governança", "Aciona o workflow de governança operacional do candidato."],
-          ["entrada_eleitor", "Simular entrada de eleitor", "Aciona o workflow de entrada no funil com nome, telefone e mensagem."],
-          ["cadencia", "Acionar cadência", "Inicia o workflow de cadência e reativação controlada."]
-        ].map(([workflow, title, description]) => (
+        {WORKFLOWS.map(({ ordem, workflow, title, description }) => (
           <article className="card analytics-panel" key={workflow}>
-            <h2 className="section-title">{title}</h2>
+            <span className="pill">Workflow {ordem}</span>
+            <h2 className="section-title">
+              {ordem}. {title}
+            </h2>
             <p className="subtitle">{description}</p>
             <form action={triggerGovernanceWorkflowAction} className="manager-auth-form">
               <input name="workflow" type="hidden" value={workflow} />
@@ -62,6 +92,49 @@ export default async function WorkflowCenterPage({ searchParams }: WorkflowCente
                 <span>ID do candidato</span>
                 <input className="step-input" defaultValue="0001" name="idCandidato" type="text" />
               </label>
+              {workflow === "governanca" ? (
+                <>
+                  <label className="step-note">
+                    <span>ID do líder</span>
+                    <input
+                      className="step-input"
+                      defaultValue="d4ee483c-282c-428b-8ce2-188001d783d0"
+                      name="liderId"
+                      type="text"
+                    />
+                  </label>
+                  <label className="step-note">
+                    <span>Recurso</span>
+                    <input className="step-input" defaultValue="agenda" name="recurso" type="text" />
+                  </label>
+                  <label className="step-note">
+                    <span>Ação</span>
+                    <input className="step-input" defaultValue="upsert" name="acao" type="text" />
+                  </label>
+                  <label className="step-note">
+                    <span>Referência</span>
+                    <input className="step-input" name="referenciaId" type="text" />
+                  </label>
+                  <label className="step-note">
+                    <span>Observação</span>
+                    <input
+                      className="step-input"
+                      defaultValue="Teste de governança acionado pela plataforma."
+                      name="observacao"
+                      type="text"
+                    />
+                  </label>
+                  <label className="step-note">
+                    <span>Payload JSON</span>
+                    <textarea
+                      className="step-textarea"
+                      defaultValue={'{"titulo":"Agenda Teste Brunex","descricao":"Evento de teste","data_inicio":"2026-07-30T14:00:00-03:00","data_fim":"2026-07-30T18:00:00-03:00","local_nome":"Taguatinga","endereco":"A confirmar","cidade":"Taguatinga","uf":"DF","canal_confirmacao":"https://sympla.com.br","status":"planejado","metadata":{"origem_interface":"plataforma_admin"}}'}
+                      name="payloadJson"
+                      rows={5}
+                    />
+                  </label>
+                </>
+              ) : null}
               {workflow === "entrada_eleitor" || workflow === "cadencia" ? (
                 <>
                   <label className="step-note">

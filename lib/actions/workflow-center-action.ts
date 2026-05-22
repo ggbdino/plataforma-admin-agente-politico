@@ -19,7 +19,7 @@ const WORKFLOW_MAP = {
   },
   governanca: {
     path: env.n8nWebhookGovernancaBrunex,
-    method: "POST" as const,
+    method: "GET" as const,
     descricao: "Workflow de governança operacional do candidato."
   },
   entrada_eleitor: {
@@ -42,6 +42,12 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   const telefone = String(formData.get("telefone") ?? "").trim();
   const nome = String(formData.get("nome") ?? "").trim();
   const mensagem = String(formData.get("mensagem") ?? "").trim();
+  const liderId = String(formData.get("liderId") ?? "").trim();
+  const recurso = String(formData.get("recurso") ?? "").trim();
+  const acao = String(formData.get("acao") ?? "").trim();
+  const referenciaId = String(formData.get("referenciaId") ?? "").trim();
+  const observacao = String(formData.get("observacao") ?? "").trim();
+  const payloadJson = String(formData.get("payloadJson") ?? "").trim();
   const session = await getCurrentPlatformSession();
 
   if (!session || session.perfil !== "administrador") {
@@ -70,6 +76,27 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   if (nome) payload.nome = nome;
   if (mensagem) payload.mensagem = mensagem;
 
+  if (workflow === "governanca") {
+    payload.lider_id = liderId;
+    payload.recurso = recurso;
+    payload.acao = acao || "upsert";
+    payload.referencia_id = referenciaId;
+    payload.observacao = observacao;
+
+    if (payloadJson) {
+      try {
+        const parsed = JSON.parse(payloadJson) as Record<string, unknown>;
+        payload.payload_json = JSON.stringify(parsed);
+      } catch {
+        redirect(
+          `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+            "Payload JSON inválido para o workflow de governança."
+          )}`
+        );
+      }
+    }
+  }
+
   let successMessage = "Workflow iniciado com sucesso a partir da plataforma.";
 
   try {
@@ -79,10 +106,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       payload
     });
 
-    successMessage =
-      workflow === "candidato_sync"
-        ? formatCandidateSyncMessage(response)
-        : "Workflow iniciado com sucesso a partir da plataforma.";
+    successMessage = formatWorkflowSuccessMessage(workflow, response, idCandidato || "0001");
 
     await recordGovernanceEvent({
       idCandidato: idCandidato || null,
@@ -117,9 +141,27 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
     redirect(`${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(message)}`);
   }
 
-  redirect(
-    `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`
-  );
+  redirect(`${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`);
+}
+
+function formatWorkflowSuccessMessage(
+  workflow: keyof typeof WORKFLOW_MAP,
+  response: unknown,
+  idCandidato: string
+) {
+  if (workflow === "candidato_sync") {
+    return formatCandidateSyncMessage(response);
+  }
+
+  if (workflow === "qrcode_canais") {
+    return formatQrCodeMessage(response, idCandidato);
+  }
+
+  if (workflow === "governanca") {
+    return formatGovernanceMessage(response);
+  }
+
+  return "Workflow iniciado com sucesso a partir da plataforma.";
 }
 
 function formatCandidateSyncMessage(response: unknown) {
@@ -145,4 +187,48 @@ function formatCandidateSyncMessage(response: unknown) {
   }
 
   return "Sincronização de candidatos concluída.";
+}
+
+function formatQrCodeMessage(response: unknown, idCandidato: string) {
+  if (!response) {
+    return `QR Code e canais gerados para o candidato ${idCandidato}.`;
+  }
+
+  if (typeof response === "object" && response !== null) {
+    const payload = response as Record<string, unknown>;
+
+    if (typeof payload.message === "string" && payload.message.trim()) {
+      return payload.message.trim();
+    }
+
+    if (payload.base64 || payload.code || payload.pairingCode) {
+      const count = Number(payload.count ?? 1);
+      return `QR Code gerado para o candidato ${idCandidato}. ${count} material(is) de conexão disponível(is).`;
+    }
+  }
+
+  return `QR Code e canais gerados para o candidato ${idCandidato}.`;
+}
+
+function formatGovernanceMessage(response: unknown) {
+  if (!response) {
+    return "Workflow de governança concluído.";
+  }
+
+  if (typeof response === "object" && response !== null) {
+    const payload = response as Record<string, unknown>;
+
+    if (typeof payload.message === "string" && payload.message.trim()) {
+      return payload.message.trim();
+    }
+
+    const recurso = String(payload.recurso ?? "").trim();
+    const referenciaId = String(payload.referencia_id ?? "").trim();
+
+    if (recurso) {
+      return `Governança concluída para o recurso ${recurso}${referenciaId ? `. Referência: ${referenciaId}.` : "."}`;
+    }
+  }
+
+  return "Workflow de governança concluído.";
 }
