@@ -93,7 +93,12 @@ export default async function GestorDashboardPage() {
                         <span>{progress}%</span>
                       </div>
                     </td>
-                    <td>{candidate.proxima_etapa ?? "Implantação concluída"}</td>
+                    <td>
+                      {candidate.proxima_etapa ??
+                        (candidate.total_etapas > 0
+                          ? "Implantação concluída"
+                          : "Implantação não iniciada")}
+                    </td>
                     <td>
                       {candidate.etapas_com_erro > 0 ? (
                         <span className="pill warn">{candidate.etapas_com_erro} etapa(s) com erro</span>

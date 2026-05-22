@@ -94,7 +94,10 @@ export default async function CandidatesPage() {
                       <span>{progress}%</span>
                     </div>
                   </td>
-                  <td>{candidate.proxima_etapa ?? "Implantacao concluida"}</td>
+                  <td>
+                    {candidate.proxima_etapa ??
+                      (candidate.total_etapas > 0 ? "Implantacao concluida" : "Implantacao nao iniciada")}
+                  </td>
                   <td className="mono">{candidate.numero_agente_oficial ?? "-"}</td>
                   <td>{candidate.qr_code_url ? "QR disponivel" : "QR pendente"}</td>
                   <td>

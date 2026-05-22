@@ -7,7 +7,67 @@ import type {
   ManagerUpdateSummary
 } from "@/lib/types";
 
+const DEFAULT_IMPLANTATION_STEPS: Array<{
+  codigo_etapa: string;
+  nome_etapa: string;
+  ordem: number;
+  workflow_nome: string | null;
+  webhook_path: string | null;
+}> = [
+  {
+    codigo_etapa: "cadastro_candidato",
+    nome_etapa: "Cadastrar candidato",
+    ordem: 1,
+    workflow_nome: "n8n_sync_candidato_v2_governanca",
+    webhook_path: "/webhook/candidato-sync"
+  },
+  {
+    codigo_etapa: "configurar_canais",
+    nome_etapa: "Configurar canais da campanha",
+    ordem: 2,
+    workflow_nome: null,
+    webhook_path: null
+  },
+  {
+    codigo_etapa: "gerar_qrcode",
+    nome_etapa: "Gerar QR Code e canais",
+    ordem: 3,
+    workflow_nome: "n8n_qrcode_canais_v1",
+    webhook_path: "/webhook/agente-politico/[id_candidato]/qrcode/canais"
+  },
+  {
+    codigo_etapa: "configurar_evolution",
+    nome_etapa: "Configurar Evolution API",
+    ordem: 4,
+    workflow_nome: null,
+    webhook_path: null
+  },
+  {
+    codigo_etapa: "validar_inbound",
+    nome_etapa: "Validar inbound do eleitor",
+    ordem: 5,
+    workflow_nome: "n8n_funil_entrada_v1",
+    webhook_path: "/webhook/agente-politico/[id_candidato]/entrada-eleitor"
+  },
+  {
+    codigo_etapa: "validar_outbound",
+    nome_etapa: "Validar outbound e cadencia",
+    ordem: 6,
+    workflow_nome: null,
+    webhook_path: null
+  },
+  {
+    codigo_etapa: "ativar_campanha",
+    nome_etapa: "Ativar campanha",
+    ordem: 7,
+    workflow_nome: null,
+    webhook_path: null
+  }
+];
+
 export async function getCandidateImplantation(idCandidato: string) {
+  await ensureCandidateImplantationSkeleton(idCandidato);
+
   const headerResult = await db.query<ImplantationHeader>(
     `
       select
@@ -203,6 +263,97 @@ export async function getManagerAccessData(idCandidato: string) {
   );
 
   return result.rows[0] ?? null;
+}
+
+async function ensureCandidateImplantationSkeleton(idCandidato: string) {
+  const client = await db.connect();
+
+  try {
+    await client.query("begin");
+
+    const candidateResult = await client.query<{
+      id_candidato: string;
+    }>(
+      `
+        select id_candidato
+        from candidatos
+        where id_candidato = $1
+      `,
+      [idCandidato]
+    );
+
+    if (!candidateResult.rows[0]) {
+      await client.query("rollback");
+      return;
+    }
+
+    await client.query(
+      `
+        insert into implantacoes_candidato (
+          id_candidato,
+          status_implantacao,
+          ambiente,
+          observacoes,
+          atualizado_em
+        )
+        values (
+          $1,
+          'em_preparacao',
+          'producao',
+          'Registro inicial de implantacao criado automaticamente pela plataforma.',
+          now()
+        )
+        on conflict (id_candidato) do nothing
+      `,
+      [idCandidato]
+    );
+
+    for (const step of DEFAULT_IMPLANTATION_STEPS) {
+      await client.query(
+        `
+          insert into implantacao_etapas_candidato (
+            implantacao_id,
+            id_candidato,
+            codigo_etapa,
+            nome_etapa,
+            ordem,
+            status_etapa,
+            workflow_nome,
+            webhook_path,
+            atualizado_em
+          )
+          select
+            ic.id,
+            $1,
+            $2,
+            $3,
+            $4,
+            'nao_iniciado',
+            $5,
+            $6,
+            now()
+          from implantacoes_candidato ic
+          where ic.id_candidato = $1
+          on conflict do nothing
+        `,
+        [
+          idCandidato,
+          step.codigo_etapa,
+          step.nome_etapa,
+          step.ordem,
+          step.workflow_nome,
+          step.webhook_path
+        ]
+      );
+    }
+
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 function buildChannelOptions(
