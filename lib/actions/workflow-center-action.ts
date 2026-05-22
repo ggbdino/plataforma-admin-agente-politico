@@ -70,6 +70,8 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   if (nome) payload.nome = nome;
   if (mensagem) payload.mensagem = mensagem;
 
+  let successMessage = "Workflow iniciado com sucesso a partir da plataforma.";
+
   try {
     const response = await triggerN8nWebhook({
       path: config.path,
@@ -77,7 +79,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       payload
     });
 
-    const successMessage =
+    successMessage =
       workflow === "candidato_sync"
         ? formatCandidateSyncMessage(response)
         : "Workflow iniciado com sucesso a partir da plataforma.";
@@ -93,8 +95,6 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       origem: "workflow-center",
       detalhes: response as Record<string, unknown>
     });
-
-    redirect(`${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`);
   } catch (error) {
     const rawMessage =
       error instanceof Error ? error.message : "Falha ao iniciar o workflow do n8n.";
@@ -118,9 +118,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   }
 
   redirect(
-    `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
-      "Workflow iniciado com sucesso a partir da plataforma."
-    )}`
+    `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`
   );
 }
 
