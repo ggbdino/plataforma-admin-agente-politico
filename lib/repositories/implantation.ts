@@ -95,7 +95,64 @@ export async function getCandidateImplantation(idCandidato: string) {
   );
 
   if (!headerResult.rows[0]) {
-    return null;
+    const candidateFallback = await db.query<{
+      id_candidato: string;
+      nome_urna: string;
+      nome_completo: string;
+      partido: string | null;
+      cargo_disputado: string | null;
+      estado: string | null;
+    }>(
+      `
+        select
+          id_candidato,
+          nome_urna,
+          nome_completo,
+          partido,
+          cargo_disputado,
+          estado
+        from candidatos
+        where id_candidato = $1
+      `,
+      [idCandidato]
+    );
+
+    const candidate = candidateFallback.rows[0];
+
+    if (!candidate) {
+      return null;
+    }
+
+    const fallbackHeader: ImplantationHeader = {
+      id_candidato: candidate.id_candidato,
+      nome_urna: candidate.nome_urna,
+      nome_completo: candidate.nome_completo,
+      partido: candidate.partido,
+      cargo_disputado: candidate.cargo_disputado,
+      estado: candidate.estado,
+      status_implantacao: "em_preparacao",
+      ambiente: "producao",
+      instancia_evolution: null,
+      numero_agente_oficial: null,
+      webhook_inbound_url: null,
+      webhook_outbound_url: null,
+      qr_code_url: null,
+      observacoes: "Implantação inicial ainda não consolidada no ambiente.",
+      atualizado_em: null
+    };
+
+    return {
+      cabecalho: fallbackHeader,
+      etapas: DEFAULT_IMPLANTATION_STEPS.map((step) => ({
+        ...step,
+        status_etapa: "nao_iniciado",
+        executado_em: null,
+        finalizado_em: null,
+        mensagem_status: null,
+        detalhes: null
+      })),
+      atualizacaoGestora: null
+    };
   }
 
   const stepsResult = await db.query<ImplantationStep>(

@@ -2,8 +2,8 @@ export type CandidateListItem = {
   id_candidato: string;
   nome_urna: string;
   nome_completo: string;
-  partido: string;
-  cargo_disputado: string;
+  partido: string | null;
+  cargo_disputado: string | null;
   estado: string | null;
   status_implantacao: string | null;
   instancia_evolution: string | null;
@@ -22,8 +22,8 @@ export type ImplantationHeader = {
   id_candidato: string;
   nome_urna: string;
   nome_completo: string;
-  partido: string;
-  cargo_disputado: string;
+  partido: string | null;
+  cargo_disputado: string | null;
   estado: string | null;
   status_implantacao: string;
   ambiente: string | null;
@@ -88,6 +88,7 @@ export type CampaignAnalyticsHeader = {
   nome_urna: string;
   nome_campanha: string | null;
   status_campanha: string | null;
+  status_implantacao: string | null;
   cargo_disputado: string | null;
   partido: string | null;
   uf: string | null;

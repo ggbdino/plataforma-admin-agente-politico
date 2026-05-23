@@ -104,6 +104,14 @@ export default async function CampaignOperationalPage({
     ...snapshot.evolucaoDiaria.flatMap((item) => [item.novos_leads, item.interacoes]),
     1
   );
+  const campaignStatusLabel =
+    snapshot.cabecalho.status_implantacao === "ativo" &&
+    snapshot.cabecalho.status_campanha === "ativa"
+      ? "ativa"
+      : snapshot.cabecalho.status_implantacao === "em_preparacao" ||
+          !snapshot.cabecalho.numero_agente_oficial
+        ? "em preparação"
+        : snapshot.cabecalho.status_campanha ?? "em configuração";
 
   return (
     <main className="page-shell">
@@ -127,7 +135,7 @@ export default async function CampaignOperationalPage({
         </p>
         <div className="hero-meta">
           <span className="pill">{snapshot.cabecalho.nome_campanha ?? "Campanha sem nome consolidado"}</span>
-          <span className="pill">Status {snapshot.cabecalho.status_campanha ?? "em configuração"}</span>
+          <span className="pill">Status {campaignStatusLabel}</span>
           <span className="pill">
             Número oficial {snapshot.cabecalho.numero_agente_oficial ?? "pendente"}
           </span>
