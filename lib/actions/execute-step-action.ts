@@ -26,8 +26,10 @@ export async function executeStepAction(formData: FormData) {
 
   const session = await getCurrentPlatformSession();
 
+  let successMessage = "Etapa executada com sucesso.";
+
   try {
-    await executeImplantationStep({
+    const result = await executeImplantationStep({
       idCandidato,
       codigoEtapa,
       executedBy: session?.email ?? "operador@plataforma.local",
@@ -46,6 +48,8 @@ export async function executeStepAction(formData: FormData) {
         ...(origemCaptacao ? { origem_captacao: origemCaptacao } : {})
       }
     });
+
+    successMessage = result.mensagem;
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Falha inesperada ao executar a etapa.";
@@ -63,7 +67,7 @@ export async function executeStepAction(formData: FormData) {
 
   redirect(
     `/candidatos/${idCandidato}?feedback=sucesso&mensagem=${encodeURIComponent(
-      "Etapa executada com sucesso."
+      successMessage
     )}`
   );
 }

@@ -2,6 +2,9 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL,
   n8nBaseUrl: process.env.N8N_BASE_URL,
   n8nApiKey: process.env.N8N_API_KEY ?? "",
+  evolutionApiBaseUrl: process.env.EVOLUTION_API_BASE_URL ?? "",
+  evolutionApiKey: process.env.EVOLUTION_API_KEY ?? "",
+  evolutionInstancePrefix: process.env.EVOLUTION_INSTANCE_PREFIX ?? "",
   adminBootstrapCode: process.env.ADMIN_BOOTSTRAP_CODE ?? "",
   n8nWebhookCandidateSync:
     process.env.N8N_WEBHOOK_CANDIDATO_SYNC ??

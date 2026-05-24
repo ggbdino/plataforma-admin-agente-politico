@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { createOrConnectEvolutionInstance } from "@/lib/evolution";
 import { triggerN8nWebhook } from "@/lib/n8n";
 import type { CampaignChannelOption, StepExecutionMode } from "@/lib/types";
 
@@ -135,6 +136,27 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     if (!webhookConfig) {
       if (input.codigoEtapa === "configurar_canais") {
         await upsertCandidateChannel(input.idCandidato, input.payload);
+      }
+
+      if (input.codigoEtapa === "configurar_evolution") {
+        const evolutionResult = await configureEvolutionInstance(input.idCandidato);
+        const evolutionMessage = `Instância Evolution ${evolutionResult.instanceName} preparada com QR Code ${evolutionResult.qrCodeUrl ? "disponível" : "pendente"} para o candidato.`;
+
+        await markExecutionFinished({
+          executionId,
+          idCandidato: input.idCandidato,
+          codigoEtapa: input.codigoEtapa,
+          status: "concluida",
+          message: evolutionMessage,
+          responsePayload: evolutionResult
+        });
+
+        return {
+          status: "concluido",
+          codigo_etapa: input.codigoEtapa,
+          mensagem: evolutionMessage,
+          detalhes: evolutionResult
+        };
       }
 
       const manualMessage = getManualStepMessage(input.codigoEtapa, input.payload);
@@ -420,7 +442,91 @@ async function upsertCandidateChannel(
     [...canaisDivulgacaoItens, ...canaisDivulgacaoExtras]
   );
 
+  await db.query(
+    `
+      update implantacoes_candidato
+      set
+        numero_agente_oficial = $2,
+        webhook_inbound_url = coalesce(
+          webhook_inbound_url,
+          $3
+        ),
+        webhook_outbound_url = coalesce(
+          webhook_outbound_url,
+          $4
+        ),
+        atualizado_em = now()
+      where id_candidato = $1
+    `,
+    [
+      idCandidato,
+      normalizedPhone,
+      `/webhook/agente-politico/${idCandidato}/entrada-eleitor`,
+      `/webhook/agente-politico/${idCandidato}/cadencia`
+    ]
+  );
+
   return officialChannelId;
+}
+
+async function configureEvolutionInstance(idCandidato: string) {
+  const candidateResult = await db.query<{
+    nome_urna: string;
+    numero_agente_oficial: string | null;
+  }>(
+    `
+      select
+        c.nome_urna,
+        ic.numero_agente_oficial
+      from candidatos c
+      left join implantacoes_candidato ic
+        on ic.id_candidato = c.id_candidato
+      where c.id_candidato = $1
+    `,
+    [idCandidato]
+  );
+
+  const candidate = candidateResult.rows[0];
+
+  if (!candidate) {
+    throw new Error("Candidato não localizado para configurar a Evolution.");
+  }
+
+  if (!candidate.numero_agente_oficial) {
+    throw new Error(
+      "Registre antes o número oficial da campanha na Área do Gestor para criar a instância Evolution."
+    );
+  }
+
+  const evolutionResult = await createOrConnectEvolutionInstance({
+    idCandidato,
+    nomeUrna: candidate.nome_urna,
+    numeroOficial: candidate.numero_agente_oficial
+  });
+
+  await db.query(
+    `
+      update implantacoes_candidato
+      set
+        instancia_evolution = $2,
+        numero_agente_oficial = $3,
+        webhook_inbound_url = $4,
+        webhook_outbound_url = $5,
+        qr_code_url = $6,
+        atualizado_em = now()
+      where id_candidato = $1
+    `,
+    [
+      idCandidato,
+      evolutionResult.instanceName,
+      evolutionResult.numeroOficial,
+      evolutionResult.webhookInboundUrl,
+      evolutionResult.webhookOutboundUrl,
+      evolutionResult.qrCodeUrl
+    ]
+  );
+
+  return evolutionResult;
 }
 
 function normalizeCampaignPhone(value: string | null) {

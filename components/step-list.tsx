@@ -139,6 +139,15 @@ export function StepList({ idCandidato, candidateName, officialNumber, steps }: 
                 </label>
               </div>
             ) : null}
+            {step.codigo_etapa === "configurar_evolution" ? (
+              <div className="step-channel-panel">
+                <div className="step-panel-callout">
+                  Esta etapa cria ou reconecta a instância dedicada da Evolution para o candidato,
+                  registra os webhooks da campanha e tenta trazer o QR Code automaticamente para a
+                  tela de implantação.
+                </div>
+              </div>
+            ) : null}
             {getStepMode(step.codigo_etapa) === "manual" ? (
               <label className="step-note">
                 <span>Observacao do gestor</span>
@@ -178,7 +187,6 @@ export function StepList({ idCandidato, candidateName, officialNumber, steps }: 
 function getStepMode(codigoEtapa: string) {
   if (
     codigoEtapa === "configurar_canais" ||
-    codigoEtapa === "configurar_evolution" ||
     codigoEtapa === "validar_outbound" ||
     codigoEtapa === "ativar_campanha"
   ) {
