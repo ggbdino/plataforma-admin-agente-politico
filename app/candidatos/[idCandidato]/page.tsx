@@ -204,7 +204,6 @@ export default async function CandidateImplantationPage({
                 materiais graficos para centralizar o relacionamento no WhatsApp do Agente
                 Politico.
               </div>
-              <div className="mono mono-wrap">{data.cabecalho.qr_code_url}</div>
             </>
           ) : (
             <p className="muted">QR Code ainda nao gerado.</p>
