@@ -354,7 +354,7 @@ async function ensureCandidateImplantationSkeleton(idCandidato: string) {
           atualizado_em
         )
         values (
-          $1,
+          $1::varchar,
           'em_preparacao',
           'producao',
           'Registro inicial de implantacao criado automaticamente pela plataforma.',
@@ -381,16 +381,16 @@ async function ensureCandidateImplantationSkeleton(idCandidato: string) {
           )
           select
             ic.id,
-            $1,
-            $2,
-            $3,
-            $4,
+            $1::varchar,
+            $2::text,
+            $3::text,
+            $4::int,
             'nao_iniciado',
-            $5,
-            $6,
+            $5::text,
+            $6::text,
             now()
           from implantacoes_candidato ic
-          where ic.id_candidato = $1
+          where ic.id_candidato = $1::varchar
           on conflict do nothing
         `,
         [

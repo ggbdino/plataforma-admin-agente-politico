@@ -24,7 +24,7 @@ export default function HomePage() {
             Inteligência da Campanha
           </Link>
           <Link className="button secondary" href="/gestor">
-            Painel do gestor
+            Painel do admin
           </Link>
           <Link className="button secondary" href="/gestora">
             Área da gestora

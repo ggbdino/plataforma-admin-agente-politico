@@ -13,7 +13,8 @@ export default async function GestoraDashboardPage() {
         <span className="pill">Área da gestora</span>
         <h1 className="title">Acompanhamento da gestora de campanha</h1>
         <p className="subtitle">
-          Entrada dedicada para revisar dados importados, ajustar o canal oficial, consolidar canais de divulgação e acompanhar o que já foi registrado para cada candidato.
+          Entrada dedicada para revisar dados importados, ajustar o canal oficial, consolidar
+          canais de divulgação e acompanhar o que já foi registrado para cada candidato.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/">
@@ -51,7 +52,11 @@ export default async function GestoraDashboardPage() {
                   </div>
                 </div>
                 <div className="muted">
-                  <strong>Próxima etapa:</strong> {candidate.proxima_etapa ?? "Implantação concluída"}
+                  <strong>Próxima etapa:</strong>{" "}
+                  {candidate.proxima_etapa ??
+                    (candidate.total_etapas > 0
+                      ? "Implantação concluída"
+                      : "Implantação não iniciada")}
                 </div>
                 <div className="muted">
                   <strong>Número oficial:</strong> {candidate.numero_agente_oficial ?? "-"}
