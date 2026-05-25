@@ -39,7 +39,7 @@ const CANDIDATE_WORKFLOWS = [
     workflow: "governanca",
     title: "Governança da agenda",
     description:
-      "Aciona o workflow de governança da agenda para registrar compromissos e atualizações operacionais do candidato selecionado."
+      "Aciona o workflow de governança para registrar agenda, eventos, reuniões e canais do candidato selecionado."
   },
   {
     ordem: "4",
@@ -269,23 +269,30 @@ export function WorkflowCenterPanel({
                   {workflow === "governanca" ? (
                     <>
                       <div className="step-panel-callout">
-                        Registre aqui apenas os dados operacionais da agenda. O candidato
-                        selecionado já vem da base oficial da plataforma e os campos técnicos
-                        ficam protegidos pela plataforma para evitar erro humano.
+                        Registre aqui apenas os dados operacionais do item que será governado. O
+                        candidato selecionado já vem da base oficial da plataforma e os campos
+                        técnicos ficam protegidos para evitar erro humano.
                       </div>
                       <input
                         name="liderId"
                         type="hidden"
                         value="d4ee483c-282c-428b-8ce2-188001d783d0"
                       />
-                      <input name="recurso" type="hidden" value="agenda" />
                       <input name="acao" type="hidden" value="upsert" />
                       <label className="step-note">
-                        <span>Título da agenda</span>
+                        <span>Tipo de registro</span>
+                        <select className="step-input" defaultValue="agenda" name="recurso">
+                          <option value="agenda">Agenda</option>
+                          <option value="evento">Evento ou reunião</option>
+                          <option value="canal">Canal</option>
+                        </select>
+                      </label>
+                      <label className="step-note">
+                        <span>Nome ou título</span>
                         <input
                           className="step-input"
                           defaultValue="Agenda de campanha"
-                          name="agendaTitulo"
+                          name="governanceNome"
                           type="text"
                         />
                       </label>
@@ -294,7 +301,7 @@ export function WorkflowCenterPanel({
                         <textarea
                           className="step-textarea"
                           defaultValue="Evento gerado pela plataforma para organização da agenda de campanha."
-                          name="agendaDescricao"
+                          name="governanceDescricao"
                           rows={3}
                         />
                       </label>
@@ -303,37 +310,37 @@ export function WorkflowCenterPanel({
                           <span>Data de início</span>
                           <input
                             className="step-input"
-                            defaultValue="2026-07-30T14:00:00-03:00"
-                            name="agendaDataInicio"
-                            type="text"
+                            defaultValue="2026-07-30T14:00"
+                            name="governanceDataInicio"
+                            type="datetime-local"
                           />
                         </label>
                         <label className="step-note">
                           <span>Data de fim</span>
                           <input
                             className="step-input"
-                            defaultValue="2026-07-30T18:00:00-03:00"
-                            name="agendaDataFim"
-                            type="text"
+                            defaultValue="2026-07-30T18:00"
+                            name="governanceDataFim"
+                            type="datetime-local"
                           />
                         </label>
                       </div>
                       <div className="step-form-grid">
                         <label className="step-note">
-                          <span>Local</span>
+                          <span>Local ou identificador</span>
                           <input
                             className="step-input"
                             defaultValue="A definir"
-                            name="agendaLocalNome"
+                            name="governanceLocalNome"
                             type="text"
                           />
                         </label>
                         <label className="step-note">
-                          <span>Endereço</span>
+                          <span>Endereço ou URL</span>
                           <input
                             className="step-input"
                             defaultValue="A confirmar"
-                            name="agendaEndereco"
+                            name="governanceEnderecoOuUrl"
                             type="text"
                           />
                         </label>
@@ -344,7 +351,7 @@ export function WorkflowCenterPanel({
                           <input
                             className="step-input"
                             defaultValue="Brasília"
-                            name="agendaCidade"
+                            name="governanceCidade"
                             type="text"
                           />
                         </label>
@@ -353,7 +360,29 @@ export function WorkflowCenterPanel({
                           <input
                             className="step-input"
                             defaultValue="DF"
-                            name="agendaUf"
+                            name="governanceUf"
+                            type="text"
+                          />
+                        </label>
+                      </div>
+                      <div className="step-form-grid">
+                        <label className="step-note">
+                          <span>Tipo complementar</span>
+                          <input
+                            className="step-input"
+                            defaultValue="reuniao"
+                            name="governanceTipo"
+                            placeholder="Exemplo: reuniao, whatsapp, instagram"
+                            type="text"
+                          />
+                        </label>
+                        <label className="step-note">
+                          <span>Status</span>
+                          <input
+                            className="step-input"
+                            defaultValue="planejado"
+                            name="governanceStatus"
+                            placeholder="Exemplo: planejado, ativo"
                             type="text"
                           />
                         </label>
@@ -363,8 +392,17 @@ export function WorkflowCenterPanel({
                         <input
                           className="step-input"
                           defaultValue="https://sympla.com.br"
-                          name="agendaCanalConfirmacao"
+                          name="governanceCanalConfirmacao"
                           type="text"
+                        />
+                      </label>
+                      <label className="step-note">
+                        <span>Capacidade estimada</span>
+                        <input
+                          className="step-input"
+                          defaultValue="0"
+                          name="governanceCapacidade"
+                          type="number"
                         />
                       </label>
                       <label className="step-note">

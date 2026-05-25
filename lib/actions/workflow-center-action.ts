@@ -38,20 +38,23 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   const nome = String(formData.get("nome") ?? "").trim();
   const mensagem = String(formData.get("mensagem") ?? "").trim();
   const liderId = String(formData.get("liderId") ?? "").trim();
-  const recurso = String(formData.get("recurso") ?? "").trim();
+  const recurso = String(formData.get("recurso") ?? "agenda").trim();
   const acao = String(formData.get("acao") ?? "").trim();
   const referenciaId = String(formData.get("referenciaId") ?? "").trim();
   const observacao = String(formData.get("observacao") ?? "").trim();
   const payloadJson = String(formData.get("payloadJson") ?? "").trim();
-  const agendaTitulo = String(formData.get("agendaTitulo") ?? "").trim();
-  const agendaDescricao = String(formData.get("agendaDescricao") ?? "").trim();
-  const agendaDataInicio = String(formData.get("agendaDataInicio") ?? "").trim();
-  const agendaDataFim = String(formData.get("agendaDataFim") ?? "").trim();
-  const agendaLocalNome = String(formData.get("agendaLocalNome") ?? "").trim();
-  const agendaEndereco = String(formData.get("agendaEndereco") ?? "").trim();
-  const agendaCidade = String(formData.get("agendaCidade") ?? "").trim();
-  const agendaUf = String(formData.get("agendaUf") ?? "").trim();
-  const agendaCanalConfirmacao = String(formData.get("agendaCanalConfirmacao") ?? "").trim();
+  const governanceNome = String(formData.get("governanceNome") ?? "").trim();
+  const governanceDescricao = String(formData.get("governanceDescricao") ?? "").trim();
+  const governanceDataInicio = String(formData.get("governanceDataInicio") ?? "").trim();
+  const governanceDataFim = String(formData.get("governanceDataFim") ?? "").trim();
+  const governanceLocalNome = String(formData.get("governanceLocalNome") ?? "").trim();
+  const governanceEnderecoOuUrl = String(formData.get("governanceEnderecoOuUrl") ?? "").trim();
+  const governanceCidade = String(formData.get("governanceCidade") ?? "").trim();
+  const governanceUf = String(formData.get("governanceUf") ?? "").trim();
+  const governanceCanalConfirmacao = String(formData.get("governanceCanalConfirmacao") ?? "").trim();
+  const governanceTipo = String(formData.get("governanceTipo") ?? "").trim();
+  const governanceStatus = String(formData.get("governanceStatus") ?? "").trim();
+  const governanceCapacidade = String(formData.get("governanceCapacidade") ?? "").trim();
   const session = await getCurrentPlatformSession();
 
   if (!session || session.perfil !== "administrador") {
@@ -88,33 +91,35 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
     payload.observacao = observacao;
 
     if (
-      agendaTitulo ||
-      agendaDescricao ||
-      agendaDataInicio ||
-      agendaDataFim ||
-      agendaLocalNome ||
-      agendaEndereco ||
-      agendaCidade ||
-      agendaUf ||
-      agendaCanalConfirmacao
+      governanceNome ||
+      governanceDescricao ||
+      governanceDataInicio ||
+      governanceDataFim ||
+      governanceLocalNome ||
+      governanceEnderecoOuUrl ||
+      governanceCidade ||
+      governanceUf ||
+      governanceCanalConfirmacao ||
+      governanceTipo ||
+      governanceStatus ||
+      governanceCapacidade
     ) {
-      payload.payload_json = JSON.stringify({
-        titulo: agendaTitulo || "Agenda de campanha",
-        descricao:
-          agendaDescricao || "Evento gerado pela plataforma para organização da agenda.",
-        data_inicio: agendaDataInicio,
-        data_fim: agendaDataFim,
-        local_nome: agendaLocalNome,
-        endereco: agendaEndereco,
-        cidade: agendaCidade,
-        uf: agendaUf,
-        canal_confirmacao: agendaCanalConfirmacao,
-        status: "planejado",
-        metadata: {
-          origem_interface: "plataforma_admin",
-          operador: session.email
-        }
-      });
+      payload.payload_json = JSON.stringify(buildGovernancePayload({
+        recurso,
+        nome: governanceNome,
+        descricao: governanceDescricao,
+        dataInicio: governanceDataInicio,
+        dataFim: governanceDataFim,
+        localNome: governanceLocalNome,
+        enderecoOuUrl: governanceEnderecoOuUrl,
+        cidade: governanceCidade,
+        uf: governanceUf,
+        canalConfirmacao: governanceCanalConfirmacao,
+        tipo: governanceTipo,
+        status: governanceStatus,
+        capacidade: governanceCapacidade,
+        operador: session.email
+      }));
     } else if (payloadJson) {
       try {
         const parsed = JSON.parse(payloadJson) as Record<string, unknown>;
@@ -197,7 +202,10 @@ function resolveWorkflowConfig(
     case "governanca":
       return {
         ...metadata,
-        path: env.n8nWebhookGovernancaBrunex
+        path:
+          normalizedCandidateId === "0001"
+            ? env.n8nWebhookGovernancaBrunex
+            : `/webhook/agente-politico/${normalizedCandidateId}/governanca`
       };
     case "entrada_eleitor":
       return {
@@ -227,7 +235,7 @@ function buildWorkflowErrorMessage(
   }
 
   if (workflow === "governanca" && rawMessage.includes("requested webhook")) {
-    return "O workflow de governança ainda não está publicado no path de produção esperado pela plataforma. Confirme se o fluxo está ativo no n8n e se o webhook usa o caminho /webhook/agente-politico/governanca/atualizacao ou o valor configurado em N8N_WEBHOOK_GOVERNANCA_BRUNEX.";
+    return "O workflow de governança ainda não está publicado no path de produção esperado pela plataforma. Confirme se o fluxo do candidato está ativo no n8n e se o webhook usa o caminho /webhook/agente-politico/{id_candidato}/governanca ou, no caso do cadastro-base antigo, o valor configurado em N8N_WEBHOOK_GOVERNANCA_BRUNEX.";
   }
 
   if (workflow === "entrada_eleitor" && rawMessage.includes("requested webhook")) {
@@ -352,8 +360,9 @@ function formatInboundMessage(response: unknown, idCandidato: string) {
 
     const eleitorId = String(payload.eleitor_id ?? "").trim();
     const etapa = String(payload.etapa ?? "").trim();
+    const resposta = String(payload.mensagem_resposta ?? "").trim();
 
-    return `Entrada de eleitor processada para o candidato ${idCandidato}${eleitorId ? `. Eleitor: ${eleitorId}.` : "."}${etapa ? ` Etapa sugerida: ${etapa}.` : ""}`;
+    return `Entrada de eleitor processada para o candidato ${idCandidato}${eleitorId ? `. Eleitor: ${eleitorId}.` : "."}${etapa ? ` Etapa sugerida: ${etapa}.` : ""}${resposta ? ` Resposta do sistema: ${resposta}` : ""}`;
   }
 
   return `Entrada de eleitor processada para o candidato ${idCandidato}.`;
@@ -380,4 +389,68 @@ function formatCadenciaMessage(response: unknown, idCandidato: string) {
   }
 
   return `Cadência executada para o candidato ${idCandidato}.`;
+}
+
+function buildGovernancePayload(input: {
+  recurso: string;
+  nome: string;
+  descricao: string;
+  dataInicio: string;
+  dataFim: string;
+  localNome: string;
+  enderecoOuUrl: string;
+  cidade: string;
+  uf: string;
+  canalConfirmacao: string;
+  tipo: string;
+  status: string;
+  capacidade: string;
+  operador: string;
+}) {
+  const metadata = {
+    origem_interface: "plataforma_admin",
+    operador: input.operador
+  };
+
+  if (input.recurso === "evento") {
+    return {
+      nome_evento: input.nome || "Evento de campanha",
+      tipo_evento: input.tipo || "reuniao",
+      descricao: input.descricao || "Evento gerado pela plataforma para organização da agenda.",
+      data_evento: input.dataInicio,
+      local_nome: input.localNome,
+      endereco: input.enderecoOuUrl,
+      cidade: input.cidade,
+      uf: input.uf,
+      capacidade_estimada: Number(input.capacidade || 0),
+      link_confirmacao: input.canalConfirmacao,
+      status: input.status || "ativo",
+      metadata
+    };
+  }
+
+  if (input.recurso === "canal") {
+    return {
+      nome_canal: input.nome || "Canal de campanha",
+      tipo_canal: input.tipo || "whatsapp",
+      identificador_externo: input.localNome,
+      url_canal: input.enderecoOuUrl,
+      status: input.status || "ativo",
+      metadata
+    };
+  }
+
+  return {
+    titulo: input.nome || "Agenda de campanha",
+    descricao: input.descricao || "Agenda gerada pela plataforma para organização operacional.",
+    data_inicio: input.dataInicio,
+    data_fim: input.dataFim,
+    local_nome: input.localNome,
+    endereco: input.enderecoOuUrl,
+    cidade: input.cidade,
+    uf: input.uf,
+    canal_confirmacao: input.canalConfirmacao,
+    status: input.status || "planejado",
+    metadata
+  };
 }
