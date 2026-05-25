@@ -6,36 +6,31 @@ import { env } from "@/lib/env";
 import { triggerN8nWebhook } from "@/lib/n8n";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
-const WORKFLOW_MAP = {
+const WORKFLOW_METADATA = {
   candidato_sync: {
-    path: env.n8nWebhookCandidateSync,
     method: "GET" as const,
     descricao: "Sincronização do cadastro-base do candidato."
   },
   qrcode_canais: {
-    path: env.n8nWebhookQrCodeBrunex,
     method: "GET" as const,
     descricao: "Geração ou atualização do QR Code e dos canais do agente."
   },
   governanca: {
-    path: env.n8nWebhookGovernancaBrunex,
     method: "GET" as const,
     descricao: "Workflow de governança operacional do candidato."
   },
   entrada_eleitor: {
-    path: env.n8nWebhookFunilBrunex,
     method: "POST" as const,
     descricao: "Entrada de eleitor no funil conversacional."
   },
   cadencia: {
-    path: env.n8nWebhookCadenciaBrunex,
     method: "POST" as const,
     descricao: "Workflow de cadência e reativação."
   }
 };
 
 export async function triggerGovernanceWorkflowAction(formData: FormData) {
-  const workflow = String(formData.get("workflow") ?? "").trim() as keyof typeof WORKFLOW_MAP;
+  const workflow = String(formData.get("workflow") ?? "").trim() as keyof typeof WORKFLOW_METADATA;
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
   const redirectTo =
     String(formData.get("redirectTo") ?? "/estatisticas/governanca/workflows").trim();
@@ -58,7 +53,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
     );
   }
 
-  const config = WORKFLOW_MAP[workflow];
+  const config = resolveWorkflowConfig(workflow, idCandidato);
 
   if (!config) {
     redirect(
@@ -144,8 +139,56 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   redirect(`${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`);
 }
 
+function resolveWorkflowConfig(
+  workflow: keyof typeof WORKFLOW_METADATA,
+  idCandidato: string
+) {
+  const metadata = WORKFLOW_METADATA[workflow];
+  const normalizedCandidateId = idCandidato || "0001";
+
+  switch (workflow) {
+    case "candidato_sync":
+      return {
+        ...metadata,
+        path: env.n8nWebhookCandidateSync
+      };
+    case "qrcode_canais":
+      return {
+        ...metadata,
+        path:
+          normalizedCandidateId === "0001"
+            ? env.n8nWebhookQrCodeBrunex
+            : `/webhook/agente-politico/${normalizedCandidateId}/qrcode/canais`
+      };
+    case "governanca":
+      return {
+        ...metadata,
+        path:
+          normalizedCandidateId === "0001"
+            ? env.n8nWebhookGovernancaBrunex
+            : `/webhook/agente-politico/${normalizedCandidateId}/governanca`
+      };
+    case "entrada_eleitor":
+      return {
+        ...metadata,
+        path:
+          normalizedCandidateId === "0001"
+            ? env.n8nWebhookFunilBrunex
+            : `/webhook/agente-politico/${normalizedCandidateId}/entrada-eleitor`
+      };
+    case "cadencia":
+      return {
+        ...metadata,
+        path:
+          normalizedCandidateId === "0001"
+            ? env.n8nWebhookCadenciaBrunex
+            : `/webhook/agente-politico/${normalizedCandidateId}/cadencia`
+      };
+  }
+}
+
 function formatWorkflowSuccessMessage(
-  workflow: keyof typeof WORKFLOW_MAP,
+  workflow: keyof typeof WORKFLOW_METADATA,
   response: unknown,
   idCandidato: string
 ) {
@@ -159,6 +202,14 @@ function formatWorkflowSuccessMessage(
 
   if (workflow === "governanca") {
     return formatGovernanceMessage(response);
+  }
+
+  if (workflow === "entrada_eleitor") {
+    return formatInboundMessage(response, idCandidato);
+  }
+
+  if (workflow === "cadencia") {
+    return formatCadenciaMessage(response, idCandidato);
   }
 
   return "Workflow iniciado com sucesso a partir da plataforma.";
@@ -231,4 +282,48 @@ function formatGovernanceMessage(response: unknown) {
   }
 
   return "Workflow de governança concluído.";
+}
+
+function formatInboundMessage(response: unknown, idCandidato: string) {
+  if (!response) {
+    return `Entrada de eleitor processada para o candidato ${idCandidato}.`;
+  }
+
+  if (typeof response === "object" && response !== null) {
+    const payload = response as Record<string, unknown>;
+
+    if (typeof payload.message === "string" && payload.message.trim()) {
+      return payload.message.trim();
+    }
+
+    const eleitorId = String(payload.eleitor_id ?? "").trim();
+    const etapa = String(payload.etapa ?? "").trim();
+
+    return `Entrada de eleitor processada para o candidato ${idCandidato}${eleitorId ? `. Eleitor: ${eleitorId}.` : "."}${etapa ? ` Etapa sugerida: ${etapa}.` : ""}`;
+  }
+
+  return `Entrada de eleitor processada para o candidato ${idCandidato}.`;
+}
+
+function formatCadenciaMessage(response: unknown, idCandidato: string) {
+  if (!response) {
+    return `Cadência executada para o candidato ${idCandidato}.`;
+  }
+
+  if (typeof response === "object" && response !== null) {
+    const payload = response as Record<string, unknown>;
+
+    if (typeof payload.message === "string" && payload.message.trim()) {
+      return payload.message.trim();
+    }
+
+    const total = Number(payload.total_processados ?? payload.total_elegiveis ?? 0);
+    const enviados = Number(payload.enviados ?? total);
+
+    if (total > 0) {
+      return `Cadência executada para o candidato ${idCandidato}. ${total} registro(s) processado(s), ${enviados} pronto(s) para ação.`;
+    }
+  }
+
+  return `Cadência executada para o candidato ${idCandidato}.`;
 }
