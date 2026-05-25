@@ -91,6 +91,7 @@ export function WorkflowCenterPanel({
   triggerAction
 }: WorkflowCenterPanelProps) {
   const [selectedCandidateId, setSelectedCandidateId] = useState(defaultCandidateId);
+  const [governanceResource, setGovernanceResource] = useState("agenda");
 
   const selectedCandidate = useMemo(
     () => candidates.find((candidate) => candidate.id_candidato === selectedCandidateId),
@@ -281,7 +282,12 @@ export function WorkflowCenterPanel({
                       <input name="acao" type="hidden" value="upsert" />
                       <label className="step-note">
                         <span>Tipo de registro</span>
-                        <select className="step-input" defaultValue="agenda" name="recurso">
+                        <select
+                          className="step-input"
+                          name="recurso"
+                          onChange={(event) => setGovernanceResource(event.target.value)}
+                          value={governanceResource}
+                        >
                           <option value="agenda">Agenda</option>
                           <option value="evento">Evento ou reunião</option>
                           <option value="canal">Canal</option>
@@ -291,7 +297,7 @@ export function WorkflowCenterPanel({
                         <span>Nome ou título</span>
                         <input
                           className="step-input"
-                          defaultValue="Agenda de campanha"
+                          defaultValue={governanceResource === "canal" ? "Canal de campanha" : "Agenda de campanha"}
                           name="governanceNome"
                           type="text"
                         />
@@ -300,77 +306,106 @@ export function WorkflowCenterPanel({
                         <span>Descrição</span>
                         <textarea
                           className="step-textarea"
-                          defaultValue="Evento gerado pela plataforma para organização da agenda de campanha."
+                          defaultValue={
+                            governanceResource === "canal"
+                              ? "Canal registrado pela plataforma para uso operacional da campanha."
+                              : "Evento gerado pela plataforma para organização da agenda de campanha."
+                          }
                           name="governanceDescricao"
                           rows={3}
                         />
                       </label>
-                      <div className="step-form-grid">
-                        <label className="step-note">
-                          <span>Data de início</span>
-                          <input
-                            className="step-input"
-                            defaultValue="2026-07-30T14:00"
-                            name="governanceDataInicio"
-                            type="datetime-local"
-                          />
-                        </label>
-                        <label className="step-note">
-                          <span>Data de fim</span>
-                          <input
-                            className="step-input"
-                            defaultValue="2026-07-30T18:00"
-                            name="governanceDataFim"
-                            type="datetime-local"
-                          />
-                        </label>
-                      </div>
-                      <div className="step-form-grid">
-                        <label className="step-note">
-                          <span>Local ou identificador</span>
-                          <input
-                            className="step-input"
-                            defaultValue="A definir"
-                            name="governanceLocalNome"
-                            type="text"
-                          />
-                        </label>
-                        <label className="step-note">
-                          <span>Endereço ou URL</span>
-                          <input
-                            className="step-input"
-                            defaultValue="A confirmar"
-                            name="governanceEnderecoOuUrl"
-                            type="text"
-                          />
-                        </label>
-                      </div>
-                      <div className="step-form-grid">
-                        <label className="step-note">
-                          <span>Cidade</span>
-                          <input
-                            className="step-input"
-                            defaultValue="Brasília"
-                            name="governanceCidade"
-                            type="text"
-                          />
-                        </label>
-                        <label className="step-note">
-                          <span>UF</span>
-                          <input
-                            className="step-input"
-                            defaultValue="DF"
-                            name="governanceUf"
-                            type="text"
-                          />
-                        </label>
-                      </div>
+                      {governanceResource !== "canal" ? (
+                        <>
+                          <div className="step-form-grid">
+                            <label className="step-note">
+                              <span>Data de início</span>
+                              <input
+                                className="step-input"
+                                defaultValue="2026-07-30T14:00"
+                                name="governanceDataInicio"
+                                type="datetime-local"
+                              />
+                            </label>
+                            <label className="step-note">
+                              <span>Data de fim</span>
+                              <input
+                                className="step-input"
+                                defaultValue="2026-07-30T18:00"
+                                name="governanceDataFim"
+                                type="datetime-local"
+                              />
+                            </label>
+                          </div>
+                          <div className="step-form-grid">
+                            <label className="step-note">
+                              <span>Local ou identificador</span>
+                              <input
+                                className="step-input"
+                                defaultValue="A definir"
+                                name="governanceLocalNome"
+                                type="text"
+                              />
+                            </label>
+                            <label className="step-note">
+                              <span>Endereço ou URL</span>
+                              <input
+                                className="step-input"
+                                defaultValue="A confirmar"
+                                name="governanceEnderecoOuUrl"
+                                type="text"
+                              />
+                            </label>
+                          </div>
+                          <div className="step-form-grid">
+                            <label className="step-note">
+                              <span>Cidade</span>
+                              <input
+                                className="step-input"
+                                defaultValue="Brasília"
+                                name="governanceCidade"
+                                type="text"
+                              />
+                            </label>
+                            <label className="step-note">
+                              <span>UF</span>
+                              <input
+                                className="step-input"
+                                defaultValue="DF"
+                                name="governanceUf"
+                                type="text"
+                              />
+                            </label>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="step-form-grid">
+                          <label className="step-note">
+                            <span>Identificador do canal</span>
+                            <input
+                              className="step-input"
+                              defaultValue="whatsapp-oficial"
+                              name="governanceLocalNome"
+                              type="text"
+                            />
+                          </label>
+                          <label className="step-note">
+                            <span>URL do canal</span>
+                            <input
+                              className="step-input"
+                              defaultValue="https://wa.me/5561993194306"
+                              name="governanceEnderecoOuUrl"
+                              type="text"
+                            />
+                          </label>
+                        </div>
+                      )}
                       <div className="step-form-grid">
                         <label className="step-note">
                           <span>Tipo complementar</span>
                           <input
                             className="step-input"
-                            defaultValue="reuniao"
+                            defaultValue={governanceResource === "canal" ? "whatsapp" : "reuniao"}
                             name="governanceTipo"
                             placeholder="Exemplo: reuniao, whatsapp, instagram"
                             type="text"
@@ -387,24 +422,28 @@ export function WorkflowCenterPanel({
                           />
                         </label>
                       </div>
-                      <label className="step-note">
-                        <span>Canal de confirmação</span>
-                        <input
-                          className="step-input"
-                          defaultValue="https://sympla.com.br"
-                          name="governanceCanalConfirmacao"
-                          type="text"
-                        />
-                      </label>
-                      <label className="step-note">
-                        <span>Capacidade estimada</span>
-                        <input
-                          className="step-input"
-                          defaultValue="0"
-                          name="governanceCapacidade"
-                          type="number"
-                        />
-                      </label>
+                      {governanceResource !== "canal" ? (
+                        <>
+                          <label className="step-note">
+                            <span>Canal de confirmação</span>
+                            <input
+                              className="step-input"
+                              defaultValue="https://sympla.com.br"
+                              name="governanceCanalConfirmacao"
+                              type="text"
+                            />
+                          </label>
+                          <label className="step-note">
+                            <span>Capacidade estimada</span>
+                            <input
+                              className="step-input"
+                              defaultValue="0"
+                              name="governanceCapacidade"
+                              type="number"
+                            />
+                          </label>
+                        </>
+                      ) : null}
                       <label className="step-note">
                         <span>Referencia</span>
                         <span className="step-field-hint">
@@ -432,6 +471,12 @@ export function WorkflowCenterPanel({
 
                   {workflow === "entrada_eleitor" || workflow === "cadencia" ? (
                     <>
+                      {workflow === "cadencia" ? (
+                        <div className="step-panel-callout">
+                          A cadência deve ser acionada depois que já existir eleitor registrado na
+                          base do candidato, seja por importação ou por entrada no funil.
+                        </div>
+                      ) : null}
                       <label className="step-note">
                         <span>Telefone</span>
                         <input
