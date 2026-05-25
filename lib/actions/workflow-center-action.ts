@@ -56,10 +56,11 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   const governanceStatus = String(formData.get("governanceStatus") ?? "").trim();
   const governanceCapacidade = String(formData.get("governanceCapacidade") ?? "").trim();
   const session = await getCurrentPlatformSession();
+  const redirectBase = buildRedirectBase(redirectTo, idCandidato);
 
   if (!session || session.perfil !== "administrador") {
     redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+      `${redirectBase}&feedback=erro&mensagem=${encodeURIComponent(
         "Apenas administradores podem iniciar workflows pela governança."
       )}`
     );
@@ -69,7 +70,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
 
   if (!config) {
     redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+      `${redirectBase}&feedback=erro&mensagem=${encodeURIComponent(
         "Workflow não identificado para execução."
       )}`
     );
@@ -126,7 +127,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
         payload.payload_json = JSON.stringify(parsed);
       } catch {
         redirect(
-          `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
+            `${redirectBase}&feedback=erro&mensagem=${encodeURIComponent(
             "Payload JSON inválido para o workflow de governança."
           )}`
         );
@@ -172,10 +173,17 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       origem: "workflow-center"
     });
 
-    redirect(`${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(message)}`);
+    redirect(`${redirectBase}&feedback=erro&mensagem=${encodeURIComponent(message)}`);
   }
 
-  redirect(`${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`);
+  redirect(`${redirectBase}&feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`);
+}
+
+function buildRedirectBase(redirectTo: string, idCandidato: string) {
+  const separator = redirectTo.includes("?") ? "&" : "?";
+  return idCandidato
+    ? `${redirectTo}${separator}candidato=${encodeURIComponent(idCandidato)}`
+    : redirectTo;
 }
 
 function resolveWorkflowConfig(

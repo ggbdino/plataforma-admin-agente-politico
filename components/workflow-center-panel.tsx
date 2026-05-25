@@ -22,7 +22,8 @@ const BATCH_WORKFLOWS = [
     workflow: "candidato_sync",
     title: "Sincronizar candidatos",
     description:
-      "Processa toda a planilha-base e atualiza apenas candidatos novos ou alterados desde a ultima sincronizacao."
+      "Processa toda a planilha-base e atualiza apenas candidatos novos ou alterados desde a última sincronização.",
+    buttonLabel: "Sincronizar candidatos"
   }
 ] as const;
 
@@ -30,29 +31,32 @@ const CANDIDATE_WORKFLOWS = [
   {
     ordem: "2",
     workflow: "qrcode_canais",
-    title: "Gerar QR Code e canais",
-    description:
-      "Dispara o workflow de QR Code e atualizacao dos canais do candidato selecionado."
+    title: "Gerar QR code",
+    description: "Dispara o workflow de QR Code e atualização dos canais do candidato selecionado.",
+    buttonLabel: "Gerar QR code"
   },
   {
     ordem: "3",
     workflow: "governanca",
-    title: "Governança da agenda",
+    title: "Atualizar eventos/canais",
     description:
-      "Aciona o workflow de governança para registrar agenda, eventos, reuniões e canais do candidato selecionado."
+      "Aciona o workflow de governança para registrar agenda, eventos, reuniões e canais do candidato selecionado.",
+    buttonLabel: "Atualizar eventos/canais"
   },
   {
     ordem: "4",
     workflow: "entrada_eleitor",
-    title: "Simular entrada de eleitor",
+    title: "Simular diálogo do Eleitor",
     description:
-      "Aciona o workflow de entrada no funil com nome, telefone e mensagem para o candidato selecionado."
+      "Aciona o workflow de entrada no funil com nome, telefone e mensagem para o candidato selecionado.",
+    buttonLabel: "Simular diálogo do Eleitor"
   },
   {
     ordem: "5",
     workflow: "cadencia",
-    title: "Acionar cadencia",
-    description: "Inicia o workflow de cadencia e reativacao controlada do candidato selecionado."
+    title: "Cadenciar relacionamento",
+    description: "Inicia o workflow de cadência e reativação controlada do candidato selecionado.",
+    buttonLabel: "Cadenciar relacionamento"
   }
 ] as const;
 
@@ -98,6 +102,8 @@ export function WorkflowCenterPanel({
     [candidates, selectedCandidateId]
   );
   const readiness = getReadiness(selectedCandidate);
+  const selectedCandidateName = selectedCandidate?.nome_urna ?? "Selecionado";
+  const isChannelGovernance = governanceResource === "canal";
 
   return (
     <main className="page-shell">
@@ -109,37 +115,37 @@ export function WorkflowCenterPanel({
       ) : null}
 
       <section className="hero-card">
-        <span className="pill">Governanca de workflows</span>
+        <span className="pill">Governança de workflows</span>
         <h1 className="title">Central de workflows do n8n</h1>
         <p className="subtitle">
-          Todos os workflows estrategicos da automacao podem ser iniciados a partir desta
-          plataforma, com trilha administrativa, ordenacao operacional e contexto de campanha.
+          Todos os workflows estratégicos da automação podem ser iniciados a partir desta plataforma,
+          com trilha administrativa, ordenação operacional e contexto de campanha.
         </p>
         <div className="hero-meta">
           <span className="pill">{isAdmin ? "Administrador autenticado" : "Acesso restrito"}</span>
-          <span className="pill">Origem unica da governanca</span>
-          <span className="pill">{candidates.length} candidato(s) disponivel(is) na base</span>
+          <span className="pill">Origem única da governança</span>
+          <span className="pill">{candidates.length} candidato(s) disponível(is) na base</span>
         </div>
         <div className="workflow-guidance">
           <div className="workflow-guidance-card">
-            <strong>Operacao em lote</strong>
+            <strong>Operação em lote</strong>
             <span>
               Use o fluxo 1 para sincronizar toda a planilha. Ele verifica todos os candidatos
               atualizados externamente e evita duplicidade por identificador.
             </span>
           </div>
           <div className="workflow-guidance-card">
-            <strong>Operacao por candidato</strong>
+            <strong>Operação por candidato</strong>
             <span>
-              Depois da sincronizacao, selecione um candidato ja refletido na base e siga a
-              implantacao. Os fluxos dependentes so podem ser executados quando os requisitos
-              minimos do ambiente estiverem disponiveis.
+              Depois da sincronização, selecione um candidato já refletido na base e siga a
+              implantação. Os fluxos dependentes só podem ser executados quando os requisitos
+              mínimos do ambiente estiverem disponíveis.
             </span>
           </div>
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
           <a className="button secondary" href="/estatisticas/governanca">
-            Voltar para governanca
+            Voltar para governança
           </a>
         </div>
       </section>
@@ -147,9 +153,9 @@ export function WorkflowCenterPanel({
       <section className="card workflow-candidate-panel">
         <div className="section-heading">
           <div>
-            <h2 className="section-title">Candidato selecionado para operacao</h2>
+            <h2 className="section-title">Candidato selecionado para operação</h2>
             <p className="subtitle">
-              A selecao usa apenas os candidatos que ja estao gravados na base da plataforma.
+              A seleção usa apenas os candidatos que já estão gravados na base da plataforma.
             </p>
           </div>
         </div>
@@ -171,38 +177,38 @@ export function WorkflowCenterPanel({
           </label>
           <div className="workflow-status-grid">
             <div className="workflow-status-card">
-              <span className="metric-label">Status de implantacao</span>
-              <strong>{selectedCandidate?.status_implantacao ?? "Nao iniciado"}</strong>
+              <span className="metric-label">Status de implantação</span>
+              <strong>{selectedCandidate?.status_implantacao ?? "Não iniciado"}</strong>
             </div>
             <div className="workflow-status-card">
-              <span className="metric-label">Instancia da Evolution</span>
+              <span className="metric-label">Instância da Evolution</span>
               <strong>{selectedCandidate?.instancia_evolution ?? "Pendente"}</strong>
             </div>
             <div className="workflow-status-card">
-              <span className="metric-label">Numero oficial</span>
+              <span className="metric-label">Número oficial</span>
               <strong>{selectedCandidate?.numero_agente_oficial ?? "Pendente"}</strong>
             </div>
             <div className="workflow-status-card">
               <span className="metric-label">QR</span>
-              <strong>{selectedCandidate?.qr_code_url ? "Disponivel" : "Pendente"}</strong>
+              <strong>{selectedCandidate?.qr_code_url ? "Disponível" : "Pendente"}</strong>
             </div>
           </div>
         </div>
         <div className="workflow-guidance" style={{ marginTop: 16 }}>
           <div className="workflow-guidance-card">
-            <strong>Controle minimo de implantacao</strong>
+            <strong>Controle mínimo de implantação</strong>
             <span>
-              Para nao falhar com administradores, a plataforma considera que a operacao por
-              candidato depende de cadastro sincronizado, registro de implantacao e, quando
-              necessario, numero oficial e instancia ativa.
+              Para não falhar com administradores, a plataforma considera que a operação por
+              candidato depende de cadastro sincronizado, registro de implantação e, quando
+              necessário, número oficial e instância ativa.
             </span>
           </div>
           <div className="workflow-guidance-card">
-            <strong>Proximo passo sugerido</strong>
+            <strong>Próximo passo sugerido</strong>
             <span>
               {readiness.canRunQrcode
-                ? "O candidato ja possui registro minimo de implantacao. Siga com QR Code, governanca e demais fluxos conforme a necessidade."
-                : "Sincronize os candidatos e depois abra a tela de Implantacao do candidato para criar a instancia e registrar o ambiente antes dos fluxos operacionais."}
+                ? "O candidato já possui registro mínimo de implantação. Siga com QR Code, governança e demais fluxos conforme a necessidade."
+                : "Sincronize os candidatos e depois abra a tela de Implantação do candidato para criar a instância e registrar o ambiente antes dos fluxos operacionais."}
             </span>
           </div>
         </div>
@@ -215,7 +221,7 @@ export function WorkflowCenterPanel({
           </h2>
         </div>
         <div className="grid grid-2">
-          {BATCH_WORKFLOWS.map(({ ordem, workflow, title, description }) => (
+          {BATCH_WORKFLOWS.map(({ workflow, ordem, title, description, buttonLabel }) => (
             <article className="card analytics-panel" key={workflow}>
               <div className="workflow-card-head">
                 <span className="workflow-order">Etapa {ordem}</span>
@@ -226,13 +232,12 @@ export function WorkflowCenterPanel({
                 <input name="workflow" type="hidden" value={workflow} />
                 <input name="redirectTo" type="hidden" value="/estatisticas/governanca/workflows" />
                 <div className="step-panel-callout">
-                  Este fluxo nao depende de um candidato especifico. Ele percorre toda a planilha
-                  externa e atualiza somente os registros novos ou alterados desde a ultima
-                  execucao.
+                  Este fluxo não depende de um candidato específico. Ele percorre toda a planilha externa
+                  e atualiza somente os registros novos ou alterados desde a última execução.
                 </div>
                 <div className="actions">
-                  <button className="button" type="submit">
-                    Iniciar workflow pela plataforma
+                  <button className="button workflow-action-button" type="submit">
+                    {buttonLabel}
                   </button>
                 </div>
               </form>
@@ -244,11 +249,11 @@ export function WorkflowCenterPanel({
       <section className="analytics-stack">
         <div className="section-heading">
           <h2 className="section-title" style={{ marginBottom: 0 }}>
-            Fluxos por candidato
+            {`Fluxos do candidato ${selectedCandidateName}`}
           </h2>
         </div>
         <div className="grid grid-2">
-          {CANDIDATE_WORKFLOWS.map(({ ordem, workflow, title, description }) => {
+          {CANDIDATE_WORKFLOWS.map(({ workflow, ordem, title, description, buttonLabel }) => {
             const disabled =
               (workflow === "qrcode_canais" && !readiness.canRunQrcode) ||
               (workflow === "governanca" && !readiness.canRunGovernance) ||
@@ -297,7 +302,7 @@ export function WorkflowCenterPanel({
                         <span>Nome ou título</span>
                         <input
                           className="step-input"
-                          defaultValue={governanceResource === "canal" ? "Canal de campanha" : "Agenda de campanha"}
+                          defaultValue={isChannelGovernance ? "Canal de campanha" : "Agenda de campanha"}
                           name="governanceNome"
                           type="text"
                         />
@@ -307,7 +312,7 @@ export function WorkflowCenterPanel({
                         <textarea
                           className="step-textarea"
                           defaultValue={
-                            governanceResource === "canal"
+                            isChannelGovernance
                               ? "Canal registrado pela plataforma para uso operacional da campanha."
                               : "Evento gerado pela plataforma para organização da agenda de campanha."
                           }
@@ -315,7 +320,29 @@ export function WorkflowCenterPanel({
                           rows={3}
                         />
                       </label>
-                      {governanceResource !== "canal" ? (
+
+                      {isChannelGovernance ? (
+                        <div className="step-form-grid">
+                          <label className="step-note">
+                            <span>Identificador do canal</span>
+                            <input
+                              className="step-input"
+                              defaultValue="whatsapp-oficial"
+                              name="governanceLocalNome"
+                              type="text"
+                            />
+                          </label>
+                          <label className="step-note">
+                            <span>URL do canal</span>
+                            <input
+                              className="step-input"
+                              defaultValue="https://wa.me/5561993194306"
+                              name="governanceEnderecoOuUrl"
+                              type="text"
+                            />
+                          </label>
+                        </div>
+                      ) : (
                         <>
                           <div className="step-form-grid">
                             <label className="step-note">
@@ -369,43 +396,18 @@ export function WorkflowCenterPanel({
                             </label>
                             <label className="step-note">
                               <span>UF</span>
-                              <input
-                                className="step-input"
-                                defaultValue="DF"
-                                name="governanceUf"
-                                type="text"
-                              />
+                              <input className="step-input" defaultValue="DF" name="governanceUf" type="text" />
                             </label>
                           </div>
                         </>
-                      ) : (
-                        <div className="step-form-grid">
-                          <label className="step-note">
-                            <span>Identificador do canal</span>
-                            <input
-                              className="step-input"
-                              defaultValue="whatsapp-oficial"
-                              name="governanceLocalNome"
-                              type="text"
-                            />
-                          </label>
-                          <label className="step-note">
-                            <span>URL do canal</span>
-                            <input
-                              className="step-input"
-                              defaultValue="https://wa.me/5561993194306"
-                              name="governanceEnderecoOuUrl"
-                              type="text"
-                            />
-                          </label>
-                        </div>
                       )}
+
                       <div className="step-form-grid">
                         <label className="step-note">
                           <span>Tipo complementar</span>
                           <input
                             className="step-input"
-                            defaultValue={governanceResource === "canal" ? "whatsapp" : "reuniao"}
+                            defaultValue={isChannelGovernance ? "whatsapp" : "reuniao"}
                             name="governanceTipo"
                             placeholder="Exemplo: reuniao, whatsapp, instagram"
                             type="text"
@@ -415,14 +417,15 @@ export function WorkflowCenterPanel({
                           <span>Status</span>
                           <input
                             className="step-input"
-                            defaultValue="planejado"
+                            defaultValue={isChannelGovernance ? "ativo" : "planejado"}
                             name="governanceStatus"
                             placeholder="Exemplo: planejado, ativo"
                             type="text"
                           />
                         </label>
                       </div>
-                      {governanceResource !== "canal" ? (
+
+                      {!isChannelGovernance ? (
                         <>
                           <label className="step-note">
                             <span>Canal de confirmação</span>
@@ -444,16 +447,17 @@ export function WorkflowCenterPanel({
                           </label>
                         </>
                       ) : null}
+
                       <label className="step-note">
-                        <span>Referencia</span>
+                        <span>Referência</span>
                         <span className="step-field-hint">
-                          Use apenas quando estiver atualizando um registro já existente da agenda.
-                          Se esta for uma agenda nova, deixe em branco.
+                          Use apenas quando estiver atualizando um registro já existente da agenda. Se
+                          este for um item novo, deixe em branco.
                         </span>
                         <input
                           className="step-input"
                           name="referenciaId"
-                          placeholder="Exemplo: UUID de uma agenda já cadastrada"
+                          placeholder="Exemplo: UUID de um item já cadastrado"
                           type="text"
                         />
                       </label>
@@ -473,8 +477,8 @@ export function WorkflowCenterPanel({
                     <>
                       {workflow === "cadencia" ? (
                         <div className="step-panel-callout">
-                          A cadência deve ser acionada depois que já existir eleitor registrado na
-                          base do candidato, seja por importação ou por entrada no funil.
+                          A cadência deve ser acionada depois que já existir eleitor registrado na base
+                          do candidato, seja por importação ou por entrada no funil.
                         </div>
                       ) : null}
                       <label className="step-note">
@@ -483,7 +487,7 @@ export function WorkflowCenterPanel({
                           className="step-input"
                           defaultValue={selectedCandidate?.numero_agente_oficial ?? ""}
                           name="telefone"
-                          placeholder="Use o numero oficial do candidato."
+                          placeholder="Use o número oficial do candidato."
                           type="text"
                         />
                       </label>
@@ -509,14 +513,14 @@ export function WorkflowCenterPanel({
                   {disabled ? (
                     <div className="step-warning">
                       {workflow === "qrcode_canais" || workflow === "governanca"
-                        ? "Este fluxo exige que o candidato ja tenha registro minimo de implantacao no ambiente."
-                        : "Este fluxo exige que o candidato ja tenha numero oficial registrado na implantacao."}
+                        ? "Este fluxo exige que o candidato já tenha registro mínimo de implantação no ambiente."
+                        : "Este fluxo exige que o candidato já tenha número oficial registrado na implantação."}
                     </div>
                   ) : null}
 
                   <div className="actions">
-                    <button className="button" disabled={disabled} type="submit">
-                      Iniciar workflow pela plataforma
+                    <button className="button workflow-action-button" disabled={disabled} type="submit">
+                      {buttonLabel}
                     </button>
                   </div>
                 </form>

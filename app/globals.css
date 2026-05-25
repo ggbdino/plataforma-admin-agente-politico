@@ -298,6 +298,12 @@ button {
   box-shadow: none;
 }
 
+.workflow-action-button {
+  width: 100%;
+  min-height: 48px;
+  text-align: center;
+}
+
 .key-value {
   display: grid;
   gap: 8px;
@@ -434,6 +440,7 @@ button {
 }
 
 .step-field-hint {
+  display: block;
   color: var(--muted);
   font-size: 0.84rem;
   line-height: 1.55;

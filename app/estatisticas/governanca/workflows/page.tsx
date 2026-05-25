@@ -7,6 +7,7 @@ type WorkflowCenterPageProps = {
   searchParams?: Promise<{
     feedback?: string;
     mensagem?: string;
+    candidato?: string;
   }>;
 };
 
@@ -16,7 +17,11 @@ export default async function WorkflowCenterPage({ searchParams }: WorkflowCente
   const query = searchParams ? await searchParams : undefined;
   const session = await getCurrentPlatformSession();
   const candidates = await listCandidates();
-  const defaultCandidateId = candidates[0]?.id_candidato ?? "0001";
+  const requestedCandidateId = query?.candidato?.trim();
+  const defaultCandidateId =
+    candidates.find((candidate) => candidate.id_candidato === requestedCandidateId)?.id_candidato ??
+    candidates[0]?.id_candidato ??
+    "0001";
 
   return (
     <WorkflowCenterPanel
