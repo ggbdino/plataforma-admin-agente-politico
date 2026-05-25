@@ -11,7 +11,7 @@ export const env = {
     "/webhook/bdb5c2b3-7308-4f19-993c-d111023bd41b",
   n8nWebhookGovernancaBrunex:
     process.env.N8N_WEBHOOK_GOVERNANCA_BRUNEX ??
-    "/webhook/agente-politico/0001/governanca",
+    "/webhook/agente-politico/governanca/atualizacao",
   n8nWebhookQrCodeBrunex:
     process.env.N8N_WEBHOOK_QRCODE_BRUNEX ??
     "/webhook/agente-politico/0001/qrcode/canais",

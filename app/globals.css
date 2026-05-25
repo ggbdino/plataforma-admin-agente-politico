@@ -433,6 +433,12 @@ button {
   font-size: 0.92rem;
 }
 
+.step-field-hint {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
 .step-form-grid {
   display: grid;
   gap: 12px;

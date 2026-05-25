@@ -37,9 +37,9 @@ const CANDIDATE_WORKFLOWS = [
   {
     ordem: "3",
     workflow: "governanca",
-    title: "Executar governanca",
+    title: "Governança da agenda",
     description:
-      "Aciona o workflow de governanca operacional para agenda, eventos e canais do candidato selecionado."
+      "Aciona o workflow de governança da agenda para registrar compromissos e atualizações operacionais do candidato selecionado."
   },
   {
     ordem: "4",
@@ -269,57 +269,124 @@ export function WorkflowCenterPanel({
                   {workflow === "governanca" ? (
                     <>
                       <div className="step-panel-callout">
-                        Preencha apenas os dados necessarios do recurso que sera governado. O
-                        candidato selecionado ja vem da base oficial da plataforma.
+                        Registre aqui apenas os dados operacionais da agenda. O candidato
+                        selecionado já vem da base oficial da plataforma e os campos técnicos
+                        ficam protegidos pela plataforma para evitar erro humano.
                       </div>
+                      <input
+                        name="liderId"
+                        type="hidden"
+                        value="d4ee483c-282c-428b-8ce2-188001d783d0"
+                      />
+                      <input name="recurso" type="hidden" value="agenda" />
+                      <input name="acao" type="hidden" value="upsert" />
                       <label className="step-note">
-                        <span>ID do lider</span>
+                        <span>Título da agenda</span>
                         <input
                           className="step-input"
-                          defaultValue="d4ee483c-282c-428b-8ce2-188001d783d0"
-                          name="liderId"
+                          defaultValue="Agenda de campanha"
+                          name="agendaTitulo"
                           type="text"
                         />
                       </label>
                       <label className="step-note">
-                        <span>Recurso</span>
-                        <select className="step-input" defaultValue="agenda" name="recurso">
-                          <option value="agenda">agenda</option>
-                          <option value="evento">evento</option>
-                          <option value="canal">canal</option>
-                        </select>
+                        <span>Descrição</span>
+                        <textarea
+                          className="step-textarea"
+                          defaultValue="Evento gerado pela plataforma para organização da agenda de campanha."
+                          name="agendaDescricao"
+                          rows={3}
+                        />
                       </label>
+                      <div className="step-form-grid">
+                        <label className="step-note">
+                          <span>Data de início</span>
+                          <input
+                            className="step-input"
+                            defaultValue="2026-07-30T14:00:00-03:00"
+                            name="agendaDataInicio"
+                            type="text"
+                          />
+                        </label>
+                        <label className="step-note">
+                          <span>Data de fim</span>
+                          <input
+                            className="step-input"
+                            defaultValue="2026-07-30T18:00:00-03:00"
+                            name="agendaDataFim"
+                            type="text"
+                          />
+                        </label>
+                      </div>
+                      <div className="step-form-grid">
+                        <label className="step-note">
+                          <span>Local</span>
+                          <input
+                            className="step-input"
+                            defaultValue="A definir"
+                            name="agendaLocalNome"
+                            type="text"
+                          />
+                        </label>
+                        <label className="step-note">
+                          <span>Endereço</span>
+                          <input
+                            className="step-input"
+                            defaultValue="A confirmar"
+                            name="agendaEndereco"
+                            type="text"
+                          />
+                        </label>
+                      </div>
+                      <div className="step-form-grid">
+                        <label className="step-note">
+                          <span>Cidade</span>
+                          <input
+                            className="step-input"
+                            defaultValue="Brasília"
+                            name="agendaCidade"
+                            type="text"
+                          />
+                        </label>
+                        <label className="step-note">
+                          <span>UF</span>
+                          <input
+                            className="step-input"
+                            defaultValue="DF"
+                            name="agendaUf"
+                            type="text"
+                          />
+                        </label>
+                      </div>
                       <label className="step-note">
-                        <span>Acao</span>
-                        <select className="step-input" defaultValue="upsert" name="acao">
-                          <option value="upsert">upsert</option>
-                        </select>
+                        <span>Canal de confirmação</span>
+                        <input
+                          className="step-input"
+                          defaultValue="https://sympla.com.br"
+                          name="agendaCanalConfirmacao"
+                          type="text"
+                        />
                       </label>
                       <label className="step-note">
                         <span>Referencia</span>
+                        <span className="step-field-hint">
+                          Use apenas quando estiver atualizando um registro já existente da agenda.
+                          Se esta for uma agenda nova, deixe em branco.
+                        </span>
                         <input
                           className="step-input"
                           name="referenciaId"
-                          placeholder="Preencha apenas para atualizar um registro ja existente."
+                          placeholder="Exemplo: UUID de uma agenda já cadastrada"
                           type="text"
                         />
                       </label>
                       <label className="step-note">
-                        <span>Observacao</span>
+                        <span>Observação operacional</span>
                         <input
                           className="step-input"
                           defaultValue="Operacao de governanca acionada pela plataforma."
                           name="observacao"
                           type="text"
-                        />
-                      </label>
-                      <label className="step-note">
-                        <span>Payload JSON</span>
-                        <textarea
-                          className="step-textarea"
-                          defaultValue={'{"titulo":"Agenda de campanha","descricao":"Evento gerado pela plataforma","data_inicio":"2026-07-30T14:00:00-03:00","data_fim":"2026-07-30T18:00:00-03:00","local_nome":"A definir","endereco":"A confirmar","cidade":"Brasilia","uf":"DF","canal_confirmacao":"https://sympla.com.br","status":"planejado","metadata":{"origem_interface":"plataforma_admin"}}'}
-                          name="payloadJson"
-                          rows={6}
                         />
                       </label>
                     </>

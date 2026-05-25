@@ -20,11 +20,11 @@ const WORKFLOW_METADATA = {
     descricao: "Workflow de governança operacional do candidato."
   },
   entrada_eleitor: {
-    method: "POST" as const,
+    method: "GET" as const,
     descricao: "Entrada de eleitor no funil conversacional."
   },
   cadencia: {
-    method: "POST" as const,
+    method: "GET" as const,
     descricao: "Workflow de cadência e reativação."
   }
 };
@@ -43,6 +43,15 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   const referenciaId = String(formData.get("referenciaId") ?? "").trim();
   const observacao = String(formData.get("observacao") ?? "").trim();
   const payloadJson = String(formData.get("payloadJson") ?? "").trim();
+  const agendaTitulo = String(formData.get("agendaTitulo") ?? "").trim();
+  const agendaDescricao = String(formData.get("agendaDescricao") ?? "").trim();
+  const agendaDataInicio = String(formData.get("agendaDataInicio") ?? "").trim();
+  const agendaDataFim = String(formData.get("agendaDataFim") ?? "").trim();
+  const agendaLocalNome = String(formData.get("agendaLocalNome") ?? "").trim();
+  const agendaEndereco = String(formData.get("agendaEndereco") ?? "").trim();
+  const agendaCidade = String(formData.get("agendaCidade") ?? "").trim();
+  const agendaUf = String(formData.get("agendaUf") ?? "").trim();
+  const agendaCanalConfirmacao = String(formData.get("agendaCanalConfirmacao") ?? "").trim();
   const session = await getCurrentPlatformSession();
 
   if (!session || session.perfil !== "administrador") {
@@ -78,7 +87,35 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
     payload.referencia_id = referenciaId;
     payload.observacao = observacao;
 
-    if (payloadJson) {
+    if (
+      agendaTitulo ||
+      agendaDescricao ||
+      agendaDataInicio ||
+      agendaDataFim ||
+      agendaLocalNome ||
+      agendaEndereco ||
+      agendaCidade ||
+      agendaUf ||
+      agendaCanalConfirmacao
+    ) {
+      payload.payload_json = JSON.stringify({
+        titulo: agendaTitulo || "Agenda de campanha",
+        descricao:
+          agendaDescricao || "Evento gerado pela plataforma para organização da agenda.",
+        data_inicio: agendaDataInicio,
+        data_fim: agendaDataFim,
+        local_nome: agendaLocalNome,
+        endereco: agendaEndereco,
+        cidade: agendaCidade,
+        uf: agendaUf,
+        canal_confirmacao: agendaCanalConfirmacao,
+        status: "planejado",
+        metadata: {
+          origem_interface: "plataforma_admin",
+          operador: session.email
+        }
+      });
+    } else if (payloadJson) {
       try {
         const parsed = JSON.parse(payloadJson) as Record<string, unknown>;
         payload.payload_json = JSON.stringify(parsed);
@@ -117,10 +154,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   } catch (error) {
     const rawMessage =
       error instanceof Error ? error.message : "Falha ao iniciar o workflow do n8n.";
-    const message =
-      workflow === "candidato_sync" && rawMessage.includes("requested webhook")
-        ? "O workflow de sincronização de candidatos ainda não expõe uma URL de produção compatível com a plataforma. Confirme se o nó Webhook está ativo, publicado e com o mesmo path configurado em N8N_WEBHOOK_CANDIDATO_SYNC."
-        : rawMessage;
+    const message = buildWorkflowErrorMessage(workflow, rawMessage);
 
     await recordGovernanceEvent({
       idCandidato: idCandidato || null,
@@ -163,10 +197,7 @@ function resolveWorkflowConfig(
     case "governanca":
       return {
         ...metadata,
-        path:
-          normalizedCandidateId === "0001"
-            ? env.n8nWebhookGovernancaBrunex
-            : `/webhook/agente-politico/${normalizedCandidateId}/governanca`
+        path: env.n8nWebhookGovernancaBrunex
       };
     case "entrada_eleitor":
       return {
@@ -185,6 +216,29 @@ function resolveWorkflowConfig(
             : `/webhook/agente-politico/${normalizedCandidateId}/cadencia`
       };
   }
+}
+
+function buildWorkflowErrorMessage(
+  workflow: keyof typeof WORKFLOW_METADATA,
+  rawMessage: string
+) {
+  if (workflow === "candidato_sync" && rawMessage.includes("requested webhook")) {
+    return "O workflow de sincronização de candidatos ainda não expõe uma URL de produção compatível com a plataforma. Confirme se o nó Webhook está ativo, publicado e com o mesmo path configurado em N8N_WEBHOOK_CANDIDATO_SYNC.";
+  }
+
+  if (workflow === "governanca" && rawMessage.includes("requested webhook")) {
+    return "O workflow de governança ainda não está publicado no path de produção esperado pela plataforma. Confirme se o fluxo está ativo no n8n e se o webhook usa o caminho /webhook/agente-politico/governanca/atualizacao ou o valor configurado em N8N_WEBHOOK_GOVERNANCA_BRUNEX.";
+  }
+
+  if (workflow === "entrada_eleitor" && rawMessage.includes("requested webhook")) {
+    return "O workflow de entrada de eleitor não está publicado com o método e o path esperados pela plataforma. Reimporte o fluxo do candidato, ative o webhook e confirme o caminho /webhook/agente-politico/{id_candidato}/entrada-eleitor.";
+  }
+
+  if (workflow === "cadencia" && rawMessage.includes("requested webhook")) {
+    return "O workflow de cadência não está publicado com o método e o path esperados pela plataforma. Reimporte o fluxo do candidato, ative o webhook e confirme o caminho /webhook/agente-politico/{id_candidato}/cadencia.";
+  }
+
+  return rawMessage;
 }
 
 function formatWorkflowSuccessMessage(
@@ -263,7 +317,7 @@ function formatQrCodeMessage(response: unknown, idCandidato: string) {
 
 function formatGovernanceMessage(response: unknown) {
   if (!response) {
-    return "Workflow de governança concluído.";
+    return "Governança da agenda concluída.";
   }
 
   if (typeof response === "object" && response !== null) {
@@ -281,7 +335,7 @@ function formatGovernanceMessage(response: unknown) {
     }
   }
 
-  return "Workflow de governança concluído.";
+  return "Governança da agenda concluída.";
 }
 
 function formatInboundMessage(response: unknown, idCandidato: string) {
