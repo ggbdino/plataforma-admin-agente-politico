@@ -107,6 +107,8 @@ export default async function CampaignOperationalPage({
   const maxGrowth = Math.max(...snapshot.crescimentoBase.map((item) => item.total_acumulado), 1);
   const pieTotal = Math.max(snapshot.funil.reduce((acc, item) => acc + item.total, 0), 1);
   const pieSegments = buildPieSegments(snapshot.funil);
+  const growthPoints = buildGrowthPoints(snapshot.crescimentoBase, maxGrowth);
+  const growthHighlights = buildGrowthHighlights(snapshot.crescimentoBase);
   const campaignStatusLabel =
     snapshot.cabecalho.status_implantacao === "ativo" &&
     snapshot.cabecalho.status_campanha === "ativa"
@@ -433,23 +435,38 @@ export default async function CampaignOperationalPage({
               <polyline
                 className="campaign-line-path"
                 fill="none"
-                points={snapshot.crescimentoBase
-                  .map((item, index, array) => {
-                    const x = array.length === 1 ? 50 : (index / (array.length - 1)) * 100;
-                    const y = 100 - (item.total_acumulado / maxGrowth) * 88 - 6;
-                    return `${x},${Math.max(y, 6)}`;
-                  })
-                  .join(" ")}
+                points={growthPoints.map((item) => `${item.x},${item.y}`).join(" ")}
               />
+              {growthPoints.map((item) => (
+                <circle
+                  className="campaign-line-point"
+                  cx={item.x}
+                  cy={item.y}
+                  key={item.data_referencia}
+                  r={item.highlight ? 2.2 : 1.1}
+                >
+                  <title>
+                    {`${formatShortDate(item.data_referencia)}: ${item.total_acumulado} eleitor(es)`}
+                  </title>
+                </circle>
+              ))}
             </svg>
             <div className="campaign-line-footer">
               <span className="muted">
                 Início:{" "}
-                {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
-                  new Date(snapshot.crescimentoBase[0]?.data_referencia ?? new Date())
-                )}
+                {formatShortDate(snapshot.crescimentoBase[0]?.data_referencia ?? new Date().toISOString())}
               </span>
               <strong>{snapshot.crescimentoBase.at(-1)?.total_acumulado ?? 0} na base atual</strong>
+            </div>
+            <div className="campaign-line-legend">
+              {growthHighlights.map((item) => (
+                <div className="campaign-line-legend-item" key={item.data_referencia}>
+                  <strong>{formatShortDate(item.data_referencia)}</strong>
+                  <span className="muted">
+                    {item.total_acumulado} acumulado • +{item.variacao} no dia
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </article>
@@ -1076,5 +1093,44 @@ function buildPieSegments(funil: { etapa_funil: string; total: number }[]) {
       end
     };
   });
+}
+
+function buildGrowthPoints(
+  growth: { data_referencia: string; total_acumulado: number }[],
+  maxGrowth: number
+) {
+  return growth.map((item, index, array) => {
+    const previous = index === 0 ? 0 : array[index - 1]?.total_acumulado ?? 0;
+    const x = array.length === 1 ? 50 : (index / (array.length - 1)) * 100;
+    const y = 100 - (item.total_acumulado / maxGrowth) * 88 - 6;
+
+    return {
+      ...item,
+      x,
+      y: Math.max(y, 6),
+      highlight:
+        index === 0 ||
+        index === array.length - 1 ||
+        item.total_acumulado !== previous
+    };
+  });
+}
+
+function buildGrowthHighlights(growth: { data_referencia: string; total_acumulado: number }[]) {
+  const changed = growth
+    .map((item, index, array) => {
+      const previous = index === 0 ? 0 : array[index - 1]?.total_acumulado ?? 0;
+      return {
+        ...item,
+        variacao: item.total_acumulado - previous
+      };
+    })
+    .filter((item, index, array) => item.variacao > 0 || index === 0 || index === array.length - 1);
+
+  return changed.slice(-6);
+}
+
+function formatShortDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(value));
 }
 

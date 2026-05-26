@@ -851,12 +851,34 @@ button {
   filter: drop-shadow(0 8px 14px rgba(255, 107, 107, 0.25));
 }
 
+.campaign-line-point {
+  fill: #124e83;
+  stroke: #ffffff;
+  stroke-width: 0.8;
+}
+
 .campaign-line-footer {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
   margin-top: -4px;
+}
+
+.campaign-line-legend {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.campaign-line-legend-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(145, 187, 219, 0.24);
+  background: rgba(244, 251, 255, 0.88);
 }
 
 .analytics-stack {
