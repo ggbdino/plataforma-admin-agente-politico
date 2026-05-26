@@ -71,15 +71,9 @@ function getReadiness(candidate: CandidateListItem | undefined) {
   }
 
   const hasImplantation = Boolean(candidate.status_implantacao);
-  const hasInstance = Boolean(candidate.instancia_evolution);
   const hasNumber = Boolean(candidate.numero_agente_oficial);
-  const hasQr = Boolean(candidate.qr_code_url);
 
   return {
-    hasImplantation,
-    hasInstance,
-    hasNumber,
-    hasQr,
     canRunQrcode: hasImplantation,
     canRunGovernance: hasImplantation,
     canRunInbound: hasNumber,
@@ -95,7 +89,7 @@ export function WorkflowCenterPanel({
   triggerAction
 }: WorkflowCenterPanelProps) {
   const [selectedCandidateId, setSelectedCandidateId] = useState(defaultCandidateId);
-  const [governanceResource, setGovernanceResource] = useState("agenda");
+  const [governanceResource, setGovernanceResource] = useState("");
 
   const selectedCandidate = useMemo(
     () => candidates.find((candidate) => candidate.id_candidato === selectedCandidateId),
@@ -104,6 +98,7 @@ export function WorkflowCenterPanel({
   const readiness = getReadiness(selectedCandidate);
   const selectedCandidateName = selectedCandidate?.nome_urna ?? "Selecionado";
   const isChannelGovernance = governanceResource === "canal";
+  const isTimelineGovernance = governanceResource === "agenda" || governanceResource === "evento";
 
   return (
     <main className="page-shell">
@@ -194,24 +189,6 @@ export function WorkflowCenterPanel({
             </div>
           </div>
         </div>
-        <div className="workflow-guidance" style={{ marginTop: 16 }}>
-          <div className="workflow-guidance-card">
-            <strong>Controle mínimo de implantação</strong>
-            <span>
-              Para não falhar com administradores, a plataforma considera que a operação por
-              candidato depende de cadastro sincronizado, registro de implantação e, quando
-              necessário, número oficial e instância ativa.
-            </span>
-          </div>
-          <div className="workflow-guidance-card">
-            <strong>Próximo passo sugerido</strong>
-            <span>
-              {readiness.canRunQrcode
-                ? "O candidato já possui registro mínimo de implantação. Siga com QR Code, governança e demais fluxos conforme a necessidade."
-                : "Sincronize os candidatos e depois abra a tela de Implantação do candidato para criar a instância e registrar o ambiente antes dos fluxos operacionais."}
-            </span>
-          </div>
-        </div>
       </section>
 
       <section className="analytics-stack" style={{ marginBottom: 16 }}>
@@ -222,20 +199,20 @@ export function WorkflowCenterPanel({
         </div>
         <div className="grid grid-2">
           {BATCH_WORKFLOWS.map(({ workflow, ordem, title, description, buttonLabel }) => (
-            <article className="card analytics-panel" key={workflow}>
+            <article className="card analytics-panel workflow-flow-card" key={workflow}>
               <div className="workflow-card-head">
                 <span className="workflow-order">Etapa {ordem}</span>
                 <h3 className="section-title workflow-card-title">{title}</h3>
               </div>
               <p className="subtitle">{description}</p>
-              <form action={triggerAction} className="manager-auth-form">
+              <form action={triggerAction} className="manager-auth-form workflow-flow-form">
                 <input name="workflow" type="hidden" value={workflow} />
                 <input name="redirectTo" type="hidden" value="/estatisticas/governanca/workflows" />
                 <div className="step-panel-callout">
                   Este fluxo não depende de um candidato específico. Ele percorre toda a planilha externa
                   e atualiza somente os registros novos ou alterados desde a última execução.
                 </div>
-                <div className="actions">
+                <div className="workflow-card-footer">
                   <button className="button workflow-action-button" type="submit">
                     {buttonLabel}
                   </button>
@@ -261,13 +238,13 @@ export function WorkflowCenterPanel({
               (workflow === "cadencia" && !readiness.canRunCadence);
 
             return (
-              <article className="card analytics-panel" key={workflow}>
+              <article className="card analytics-panel workflow-flow-card" key={workflow}>
                 <div className="workflow-card-head">
                   <span className="workflow-order">Etapa {ordem}</span>
                   <h3 className="section-title workflow-card-title">{title}</h3>
                 </div>
                 <p className="subtitle">{description}</p>
-                <form action={triggerAction} className="manager-auth-form">
+                <form action={triggerAction} className="manager-auth-form workflow-flow-form">
                   <input name="workflow" type="hidden" value={workflow} />
                   <input name="redirectTo" type="hidden" value="/estatisticas/governanca/workflows" />
                   <input name="idCandidato" type="hidden" value={selectedCandidateId} />
@@ -275,9 +252,8 @@ export function WorkflowCenterPanel({
                   {workflow === "governanca" ? (
                     <>
                       <div className="step-panel-callout">
-                        Registre aqui apenas os dados operacionais do item que será governado. O
-                        candidato selecionado já vem da base oficial da plataforma e os campos
-                        técnicos ficam protegidos para evitar erro humano.
+                        Escolha primeiro o tipo de registro. A interface monta apenas os campos
+                        necessários para reduzir erro operacional e evitar gravações desnecessárias.
                       </div>
                       <input
                         name="liderId"
@@ -293,183 +269,213 @@ export function WorkflowCenterPanel({
                           onChange={(event) => setGovernanceResource(event.target.value)}
                           value={governanceResource}
                         >
+                          <option value="">Selecione o tipo...</option>
                           <option value="agenda">Agenda</option>
                           <option value="evento">Evento ou reunião</option>
                           <option value="canal">Canal</option>
                         </select>
                       </label>
-                      <label className="step-note">
-                        <span>Nome ou título</span>
-                        <input
-                          className="step-input"
-                          defaultValue={isChannelGovernance ? "Canal de campanha" : "Agenda de campanha"}
-                          name="governanceNome"
-                          type="text"
-                        />
-                      </label>
-                      <label className="step-note">
-                        <span>Descrição</span>
-                        <textarea
-                          className="step-textarea"
-                          defaultValue={
-                            isChannelGovernance
-                              ? "Canal registrado pela plataforma para uso operacional da campanha."
-                              : "Evento gerado pela plataforma para organização da agenda de campanha."
-                          }
-                          name="governanceDescricao"
-                          rows={3}
-                        />
-                      </label>
 
-                      {isChannelGovernance ? (
-                        <div className="step-form-grid">
-                          <label className="step-note">
-                            <span>Identificador do canal</span>
-                            <input
-                              className="step-input"
-                              defaultValue="whatsapp-oficial"
-                              name="governanceLocalNome"
-                              type="text"
-                            />
-                          </label>
-                          <label className="step-note">
-                            <span>URL do canal</span>
-                            <input
-                              className="step-input"
-                              defaultValue="https://wa.me/5561993194306"
-                              name="governanceEnderecoOuUrl"
-                              type="text"
-                            />
-                          </label>
+                      {!governanceResource ? (
+                        <div className="workflow-empty-state">
+                          Escolha um tipo de registro para montar o formulário correspondente.
                         </div>
                       ) : (
                         <>
-                          <div className="step-form-grid">
-                            <label className="step-note">
-                              <span>Data de início</span>
-                              <input
-                                className="step-input"
-                                defaultValue="2026-07-30T14:00"
-                                name="governanceDataInicio"
-                                type="datetime-local"
-                              />
-                            </label>
-                            <label className="step-note">
-                              <span>Data de fim</span>
-                              <input
-                                className="step-input"
-                                defaultValue="2026-07-30T18:00"
-                                name="governanceDataFim"
-                                type="datetime-local"
-                              />
-                            </label>
-                          </div>
-                          <div className="step-form-grid">
-                            <label className="step-note">
-                              <span>Local ou identificador</span>
-                              <input
-                                className="step-input"
-                                defaultValue="A definir"
-                                name="governanceLocalNome"
-                                type="text"
-                              />
-                            </label>
-                            <label className="step-note">
-                              <span>Endereço ou URL</span>
-                              <input
-                                className="step-input"
-                                defaultValue="A confirmar"
-                                name="governanceEnderecoOuUrl"
-                                type="text"
-                              />
-                            </label>
-                          </div>
-                          <div className="step-form-grid">
-                            <label className="step-note">
-                              <span>Cidade</span>
-                              <input
-                                className="step-input"
-                                defaultValue="Brasília"
-                                name="governanceCidade"
-                                type="text"
-                              />
-                            </label>
-                            <label className="step-note">
-                              <span>UF</span>
-                              <input className="step-input" defaultValue="DF" name="governanceUf" type="text" />
-                            </label>
-                          </div>
-                        </>
-                      )}
-
-                      <div className="step-form-grid">
-                        <label className="step-note">
-                          <span>Tipo complementar</span>
-                          <input
-                            className="step-input"
-                            defaultValue={isChannelGovernance ? "whatsapp" : "reuniao"}
-                            name="governanceTipo"
-                            placeholder="Exemplo: reuniao, whatsapp, instagram"
-                            type="text"
-                          />
-                        </label>
-                        <label className="step-note">
-                          <span>Status</span>
-                          <input
-                            className="step-input"
-                            defaultValue={isChannelGovernance ? "ativo" : "planejado"}
-                            name="governanceStatus"
-                            placeholder="Exemplo: planejado, ativo"
-                            type="text"
-                          />
-                        </label>
-                      </div>
-
-                      {!isChannelGovernance ? (
-                        <>
                           <label className="step-note">
-                            <span>Canal de confirmação</span>
+                            <span>Nome ou título</span>
                             <input
                               className="step-input"
-                              defaultValue="https://sympla.com.br"
-                              name="governanceCanalConfirmacao"
+                              defaultValue={isChannelGovernance ? "Canal de campanha" : "Agenda de campanha"}
+                              name="governanceNome"
                               type="text"
                             />
                           </label>
                           <label className="step-note">
-                            <span>Capacidade estimada</span>
+                            <span>Descrição</span>
+                            <textarea
+                              className="step-textarea"
+                              defaultValue={
+                                isChannelGovernance
+                                  ? "Canal registrado pela plataforma para uso operacional da campanha."
+                                  : "Evento gerado pela plataforma para organização da agenda de campanha."
+                              }
+                              name="governanceDescricao"
+                              rows={3}
+                            />
+                          </label>
+
+                          {isChannelGovernance ? (
+                            <>
+                              <div className="step-form-grid">
+                                <label className="step-note">
+                                  <span>Identificador do canal</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="whatsapp-oficial"
+                                    name="governanceLocalNome"
+                                    type="text"
+                                  />
+                                </label>
+                                <label className="step-note">
+                                  <span>URL do canal</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="https://wa.me/5561993194306"
+                                    name="governanceEnderecoOuUrl"
+                                    type="text"
+                                  />
+                                </label>
+                              </div>
+                              <div className="step-form-grid">
+                                <label className="step-note">
+                                  <span>Tipo complementar</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="whatsapp"
+                                    name="governanceTipo"
+                                    placeholder="Exemplo: whatsapp, instagram, telegram"
+                                    type="text"
+                                  />
+                                </label>
+                                <label className="step-note">
+                                  <span>Status</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="ativo"
+                                    name="governanceStatus"
+                                    placeholder="Exemplo: ativo, pausado"
+                                    type="text"
+                                  />
+                                </label>
+                              </div>
+                            </>
+                          ) : null}
+
+                          {isTimelineGovernance ? (
+                            <>
+                              <div className="step-form-grid">
+                                <label className="step-note">
+                                  <span>Data de início</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="2026-07-30T14:00"
+                                    name="governanceDataInicio"
+                                    type="datetime-local"
+                                  />
+                                </label>
+                                <label className="step-note">
+                                  <span>Data de fim</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="2026-07-30T18:00"
+                                    name="governanceDataFim"
+                                    type="datetime-local"
+                                  />
+                                </label>
+                              </div>
+                              <div className="step-form-grid">
+                                <label className="step-note">
+                                  <span>Local ou identificador</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="A definir"
+                                    name="governanceLocalNome"
+                                    type="text"
+                                  />
+                                </label>
+                                <label className="step-note">
+                                  <span>Endereço ou URL</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="A confirmar"
+                                    name="governanceEnderecoOuUrl"
+                                    type="text"
+                                  />
+                                </label>
+                              </div>
+                              <div className="step-form-grid">
+                                <label className="step-note">
+                                  <span>Cidade</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="Brasília"
+                                    name="governanceCidade"
+                                    type="text"
+                                  />
+                                </label>
+                                <label className="step-note">
+                                  <span>UF</span>
+                                  <input className="step-input" defaultValue="DF" name="governanceUf" type="text" />
+                                </label>
+                              </div>
+                              <div className="step-form-grid">
+                                <label className="step-note">
+                                  <span>Tipo complementar</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="reuniao"
+                                    name="governanceTipo"
+                                    placeholder="Exemplo: reuniao, evento, live"
+                                    type="text"
+                                  />
+                                </label>
+                                <label className="step-note">
+                                  <span>Status</span>
+                                  <input
+                                    className="step-input"
+                                    defaultValue="planejado"
+                                    name="governanceStatus"
+                                    placeholder="Exemplo: planejado, ativo"
+                                    type="text"
+                                  />
+                                </label>
+                              </div>
+                              <label className="step-note">
+                                <span>Canal de confirmação</span>
+                                <input
+                                  className="step-input"
+                                  defaultValue="https://sympla.com.br"
+                                  name="governanceCanalConfirmacao"
+                                  type="text"
+                                />
+                              </label>
+                              <label className="step-note">
+                                <span>Capacidade estimada</span>
+                                <input
+                                  className="step-input"
+                                  defaultValue="0"
+                                  name="governanceCapacidade"
+                                  type="number"
+                                />
+                              </label>
+                            </>
+                          ) : null}
+
+                          <label className="step-note">
+                            <span>Referência</span>
+                            <span className="step-field-hint">
+                              Use apenas quando estiver atualizando um registro já existente. Se este
+                              for um item novo, deixe em branco.
+                            </span>
                             <input
                               className="step-input"
-                              defaultValue="0"
-                              name="governanceCapacidade"
-                              type="number"
+                              name="referenciaId"
+                              placeholder="Exemplo: UUID de um item já cadastrado"
+                              type="text"
+                            />
+                          </label>
+                          <label className="step-note">
+                            <span>Observação operacional</span>
+                            <input
+                              className="step-input"
+                              defaultValue="Operacao de governanca acionada pela plataforma."
+                              name="observacao"
+                              type="text"
                             />
                           </label>
                         </>
-                      ) : null}
-
-                      <label className="step-note">
-                        <span>Referência</span>
-                        <span className="step-field-hint">
-                          Use apenas quando estiver atualizando um registro já existente da agenda. Se
-                          este for um item novo, deixe em branco.
-                        </span>
-                        <input
-                          className="step-input"
-                          name="referenciaId"
-                          placeholder="Exemplo: UUID de um item já cadastrado"
-                          type="text"
-                        />
-                      </label>
-                      <label className="step-note">
-                        <span>Observação operacional</span>
-                        <input
-                          className="step-input"
-                          defaultValue="Operacao de governanca acionada pela plataforma."
-                          name="observacao"
-                          type="text"
-                        />
-                      </label>
+                      )}
                     </>
                   ) : null}
 
@@ -518,7 +524,7 @@ export function WorkflowCenterPanel({
                     </div>
                   ) : null}
 
-                  <div className="actions">
+                  <div className="workflow-card-footer">
                     <button className="button workflow-action-button" disabled={disabled} type="submit">
                       {buttonLabel}
                     </button>

@@ -300,8 +300,9 @@ button {
 
 .workflow-action-button {
   width: 100%;
-  min-height: 48px;
+  min-height: 52px;
   text-align: center;
+  font-weight: 700;
 }
 
 .key-value {
@@ -727,6 +728,31 @@ button {
 
 .workflow-card-title {
   margin-bottom: 0;
+}
+
+.workflow-flow-card {
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(240, 248, 255, 0.95)),
+    var(--surface);
+}
+
+.workflow-flow-form {
+  height: 100%;
+}
+
+.workflow-card-footer {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.workflow-empty-state {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(36, 135, 211, 0.3);
+  background: rgba(244, 251, 255, 0.82);
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .analytics-stack {
