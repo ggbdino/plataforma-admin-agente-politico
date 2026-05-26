@@ -507,7 +507,7 @@ export async function getCampaignAnalyticsSnapshot(
       with limites as (
         select
           coalesce(
-            date_trunc('day', camp.created_at)::date,
+            date_trunc('day', camp.criado_em)::date,
             date_trunc('day', min(e.criado_em))::date,
             current_date
           ) as inicio,
@@ -518,7 +518,7 @@ export async function getCampaignAnalyticsSnapshot(
         left join eleitores e
           on e.id_candidato = c.id_candidato
         where c.id_candidato = $1
-        group by camp.created_at
+        group by camp.criado_em
       ),
       dias as (
         select generate_series(limites.inicio, limites.fim, interval '1 day')::date as ref
