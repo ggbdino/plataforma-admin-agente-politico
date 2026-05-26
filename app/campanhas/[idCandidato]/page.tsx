@@ -108,7 +108,6 @@ export default async function CampaignOperationalPage({
   const pieTotal = Math.max(snapshot.funil.reduce((acc, item) => acc + item.total, 0), 1);
   const pieSegments = buildPieSegments(snapshot.funil);
   const growthPoints = buildGrowthPoints(snapshot.crescimentoBase, maxGrowth);
-  const growthHighlights = buildGrowthHighlights(snapshot.crescimentoBase);
   const campaignStatusLabel =
     snapshot.cabecalho.status_implantacao === "ativo" &&
     snapshot.cabecalho.status_campanha === "ativa"
@@ -425,6 +424,7 @@ export default async function CampaignOperationalPage({
             <span className="pill">Curva de evolução</span>
           </div>
           <div className="campaign-line-chart">
+            <div className="campaign-line-axis campaign-line-axis-y">Qtd</div>
             <div className="campaign-line-grid" />
             <svg
               aria-label="Crescimento acumulado da base"
@@ -458,16 +458,7 @@ export default async function CampaignOperationalPage({
               </span>
               <strong>{snapshot.crescimentoBase.at(-1)?.total_acumulado ?? 0} na base atual</strong>
             </div>
-            <div className="campaign-line-legend">
-              {growthHighlights.map((item) => (
-                <div className="campaign-line-legend-item" key={item.data_referencia}>
-                  <strong>{formatShortDate(item.data_referencia)}</strong>
-                  <span className="muted">
-                    {item.total_acumulado} acumulado • +{item.variacao} no dia
-                  </span>
-                </div>
-              ))}
-            </div>
+            <div className="campaign-line-axis campaign-line-axis-x">Tempo</div>
           </div>
         </article>
       </section>
@@ -1114,20 +1105,6 @@ function buildGrowthPoints(
         item.total_acumulado !== previous
     };
   });
-}
-
-function buildGrowthHighlights(growth: { data_referencia: string; total_acumulado: number }[]) {
-  const changed = growth
-    .map((item, index, array) => {
-      const previous = index === 0 ? 0 : array[index - 1]?.total_acumulado ?? 0;
-      return {
-        ...item,
-        variacao: item.total_acumulado - previous
-      };
-    })
-    .filter((item, index, array) => item.variacao > 0 || index === 0 || index === array.length - 1);
-
-  return changed.slice(-6);
 }
 
 function formatShortDate(value: string) {

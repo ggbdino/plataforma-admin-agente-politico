@@ -821,7 +821,7 @@ button {
 .campaign-line-chart {
   position: relative;
   min-height: 280px;
-  padding: 12px 0 0;
+  padding: 12px 0 24px 26px;
 }
 
 .campaign-line-grid {
@@ -857,28 +857,33 @@ button {
   stroke-width: 0.8;
 }
 
+.campaign-line-axis {
+  position: absolute;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.campaign-line-axis-y {
+  top: 18px;
+  left: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.campaign-line-axis-x {
+  right: 0;
+  bottom: 0;
+}
+
 .campaign-line-footer {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
   margin-top: -4px;
-}
-
-.campaign-line-legend {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-}
-
-.campaign-line-legend-item {
-  display: grid;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(145, 187, 219, 0.24);
-  background: rgba(244, 251, 255, 0.88);
 }
 
 .analytics-stack {
