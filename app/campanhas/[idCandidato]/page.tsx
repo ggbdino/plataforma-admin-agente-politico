@@ -104,6 +104,9 @@ export default async function CampaignOperationalPage({
     ...snapshot.evolucaoDiaria.flatMap((item) => [item.novos_leads, item.interacoes]),
     1
   );
+  const maxGrowth = Math.max(...snapshot.crescimentoBase.map((item) => item.total_acumulado), 1);
+  const pieTotal = Math.max(snapshot.funil.reduce((acc, item) => acc + item.total, 0), 1);
+  const pieSegments = buildPieSegments(snapshot.funil);
   const campaignStatusLabel =
     snapshot.cabecalho.status_implantacao === "ativo" &&
     snapshot.cabecalho.status_campanha === "ativa"
@@ -360,6 +363,95 @@ export default async function CampaignOperationalPage({
           <span className="muted">
             {snapshot.saudeFunil.leads_parados_total} lead(s) com risco de estagnação
           </span>
+        </article>
+      </section>
+
+      <section className="grid grid-2" style={{ marginBottom: 20 }}>
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Estágio de conversão da base</h2>
+              <p className="subtitle">
+                Distribuição visual da base por etapa do funil para leitura rápida da maturidade
+                dos eleitores.
+              </p>
+            </div>
+            <span className="pill ok">Funil em pizza</span>
+          </div>
+          <div className="campaign-pie-layout">
+            <div
+              className="campaign-pie-chart"
+              style={{
+                background: `conic-gradient(${pieSegments
+                  .map((segment) => `${segment.color} ${segment.start}% ${segment.end}%`)
+                  .join(", ")})`
+              }}
+            >
+              <div className="campaign-pie-core">
+                <strong>{snapshot.resumo.total_eleitores}</strong>
+                <span>eleitores</span>
+              </div>
+            </div>
+            <div className="campaign-pie-legend">
+              {pieSegments.map((segment) => (
+                <div className="campaign-pie-legend-item" key={segment.label}>
+                  <span
+                    className="campaign-pie-legend-swatch"
+                    style={{ background: segment.color }}
+                  />
+                  <div>
+                    <strong>{segment.label}</strong>
+                    <div className="muted">
+                      {segment.total} eleitor(es) • {formatPercent((segment.total / pieTotal) * 100)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </article>
+
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Crescimento da base desde a ativação</h2>
+              <p className="subtitle">
+                Linha acumulada para acompanhar a evolução da base do candidato desde o início da
+                campanha até hoje.
+              </p>
+            </div>
+            <span className="pill">Curva de evolução</span>
+          </div>
+          <div className="campaign-line-chart">
+            <div className="campaign-line-grid" />
+            <svg
+              aria-label="Crescimento acumulado da base"
+              className="campaign-line-svg"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
+              <polyline
+                className="campaign-line-path"
+                fill="none"
+                points={snapshot.crescimentoBase
+                  .map((item, index, array) => {
+                    const x = array.length === 1 ? 50 : (index / (array.length - 1)) * 100;
+                    const y = 100 - (item.total_acumulado / maxGrowth) * 88 - 6;
+                    return `${x},${Math.max(y, 6)}`;
+                  })
+                  .join(" ")}
+              />
+            </svg>
+            <div className="campaign-line-footer">
+              <span className="muted">
+                Início:{" "}
+                {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
+                  new Date(snapshot.crescimentoBase[0]?.data_referencia ?? new Date())
+                )}
+              </span>
+              <strong>{snapshot.crescimentoBase.at(-1)?.total_acumulado ?? 0} na base atual</strong>
+            </div>
+          </div>
         </article>
       </section>
 
@@ -954,5 +1046,35 @@ function parsePeriodDays(value?: string) {
   }
 
   return 14;
+}
+
+function buildPieSegments(funil: { etapa_funil: string; total: number }[]) {
+  const colors = [
+    "#ff7a59",
+    "#ffa94d",
+    "#ffd43b",
+    "#69db7c",
+    "#38d9a9",
+    "#4dabf7",
+    "#748ffc",
+    "#da77f2"
+  ];
+  const total = Math.max(funil.reduce((acc, item) => acc + item.total, 0), 1);
+  let cursor = 0;
+
+  return funil.map((item, index) => {
+    const slice = (item.total / total) * 100;
+    const start = cursor;
+    const end = cursor + slice;
+    cursor = end;
+
+    return {
+      label: labelStage(item.etapa_funil),
+      total: item.total,
+      color: colors[index % colors.length],
+      start,
+      end
+    };
+  });
 }
 

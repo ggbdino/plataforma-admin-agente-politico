@@ -155,6 +155,11 @@ export type CampaignDailyMetric = {
   interacoes: number;
 };
 
+export type CampaignBaseGrowthPoint = {
+  data_referencia: string;
+  total_acumulado: number;
+};
+
 export type CampaignThemeMetric = {
   tema: string;
   total: number;
@@ -260,6 +265,7 @@ export type CampaignAnalyticsSnapshot = {
   origens: CampaignOriginMetric[];
   temas: CampaignThemeMetric[];
   evolucaoDiaria: CampaignDailyMetric[];
+  crescimentoBase: CampaignBaseGrowthPoint[];
   conversasRecentes: CampaignRecentConversation[];
 };
 

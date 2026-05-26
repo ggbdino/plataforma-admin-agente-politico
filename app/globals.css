@@ -755,6 +755,110 @@ button {
   line-height: 1.55;
 }
 
+.campaign-pie-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.campaign-pie-chart {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow:
+    inset 0 0 0 10px rgba(255, 255, 255, 0.5),
+    0 18px 36px rgba(18, 78, 131, 0.14);
+}
+
+.campaign-pie-core {
+  width: 54%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--accent-deep);
+  box-shadow: inset 0 0 0 1px rgba(145, 187, 219, 0.35);
+}
+
+.campaign-pie-core strong {
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.campaign-pie-core span {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.campaign-pie-legend {
+  display: grid;
+  gap: 12px;
+}
+
+.campaign-pie-legend-item {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(244, 251, 255, 0.88);
+  border: 1px solid rgba(145, 187, 219, 0.26);
+}
+
+.campaign-pie-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  margin-top: 4px;
+}
+
+.campaign-line-chart {
+  position: relative;
+  min-height: 280px;
+  padding: 12px 0 0;
+}
+
+.campaign-line-grid {
+  position: absolute;
+  inset: 12px 0 32px;
+  border-radius: 18px;
+  background:
+    linear-gradient(to top, rgba(36, 135, 211, 0.08) 1px, transparent 1px) 0 0 / 100% 25%,
+    linear-gradient(to right, rgba(36, 135, 211, 0.06) 1px, transparent 1px) 0 0 / 12.5% 100%,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(232, 246, 255, 0.55));
+  border: 1px solid rgba(145, 187, 219, 0.22);
+}
+
+.campaign-line-svg {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  overflow: visible;
+}
+
+.campaign-line-path {
+  stroke: url(#campaign-line-gradient);
+  stroke: #ff6b6b;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 8px 14px rgba(255, 107, 107, 0.25));
+}
+
+.campaign-line-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: -4px;
+}
+
 .analytics-stack {
   display: grid;
   gap: 12px;
@@ -949,5 +1053,14 @@ button {
 
   .workflow-candidate-grid {
     grid-template-columns: 1fr;
+  }
+
+  .campaign-pie-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .campaign-line-footer {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

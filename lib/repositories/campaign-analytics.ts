@@ -14,6 +14,7 @@ import type {
   CampaignGoalProgress,
   CampaignPeriodSummary,
   CampaignAnalyticsSummary,
+  CampaignBaseGrowthPoint,
   CampaignDailyMetric,
   CampaignOperationalAlert,
   CampaignOriginMetric,
@@ -500,6 +501,49 @@ export async function getCampaignAnalyticsSnapshot(
     buildEmptyDailySeries()
   );
 
+  const growthResult = await queryOrDefault<CampaignBaseGrowthPoint>(
+    "campaign-growth",
+    `
+      with limites as (
+        select
+          coalesce(
+            date_trunc('day', camp.created_at)::date,
+            date_trunc('day', min(e.criado_em))::date,
+            current_date
+          ) as inicio,
+          current_date as fim
+        from candidatos c
+        left join campanhas camp
+          on camp.id_candidato = c.id_candidato
+        left join eleitores e
+          on e.id_candidato = c.id_candidato
+        where c.id_candidato = $1
+        group by camp.created_at
+      ),
+      dias as (
+        select generate_series(limites.inicio, limites.fim, interval '1 day')::date as ref
+        from limites
+      ),
+      base_dia as (
+        select
+          date_trunc('day', criado_em)::date as ref,
+          count(*)::int as total
+        from eleitores
+        where id_candidato = $1
+        group by 1
+      )
+      select
+        dias.ref::text as data_referencia,
+        coalesce(sum(base_dia.total) over (order by dias.ref rows between unbounded preceding and current row), 0)::int as total_acumulado
+      from dias
+      left join base_dia
+        on base_dia.ref = dias.ref
+      order by dias.ref
+    `,
+    [idCandidato],
+    buildEmptyGrowthSeries()
+  );
+
   const recentConversationsResult = await queryOrDefault<CampaignRecentConversation>(
     "campaign-recent-conversations",
     `
@@ -568,6 +612,7 @@ export async function getCampaignAnalyticsSnapshot(
     origens: originsResult.rows,
     temas: themesResult.rows,
     evolucaoDiaria: dailyResult.rows,
+    crescimentoBase: growthResult.rows,
     conversasRecentes: recentConversationsResult.rows
   };
 }
@@ -1090,6 +1135,24 @@ function buildEmptyDailySeries(): CampaignDailyMetric[] {
       interacoes: 0
     };
   });
+}
+
+function buildEmptyGrowthSeries(): CampaignBaseGrowthPoint[] {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+
+  const date = new Date();
+
+  return [
+    {
+      data_referencia: formatter.format(date),
+      total_acumulado: 0
+    }
+  ];
 }
 
 function buildRanking(
