@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "Painel administrativo da GAP Consult Tecnologia para operação do agente político"
 };
 
-const APP_VERSION = "V.8.2.3";
+const APP_VERSION = "V.9.0.0";
 
 export default function RootLayout({
   children

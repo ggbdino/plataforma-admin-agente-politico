@@ -183,16 +183,15 @@ export default async function CandidateImplantationPage({
         </article>
 
         <article className="card qr-frame">
-          <strong>QR Code do agente</strong>
+          <strong>QR público do canal</strong>
           <p className="qr-description">
-            Este QR Code deve ser utilizado no telefone oficial da campanha para vincular o
-            numero ao Agente Politico. A partir desse contato, qualquer conversa no WhatsApp
-            passa a alimentar o funil de captacao, relacionamento e conversao da campanha.
+            Este QR Code deve ser divulgado para que eleitores adicionem ou abram o WhatsApp
+            oficial da campanha. Ele representa o canal público de contato do candidato.
           </p>
           {data.cabecalho.qr_code_url ? (
             <>
               <Image
-                alt={`QR Code do candidato ${data.cabecalho.nome_urna}`}
+                alt={`QR público do canal do candidato ${data.cabecalho.nome_urna}`}
                 className="qr-image"
                 height={240}
                 src={data.cabecalho.qr_code_url}
@@ -200,13 +199,12 @@ export default async function CandidateImplantationPage({
                 width={240}
               />
               <div className="step-panel-callout">
-                Divulgue este QR Code e o numero oficial em redes sociais, site, eventos e
-                materiais graficos para centralizar o relacionamento no WhatsApp do Agente
-                Politico.
+                Divulgue este QR com o número oficial em redes sociais, site, eventos e materiais
+                gráficos para centralizar a captação no WhatsApp da campanha.
               </div>
             </>
           ) : (
-            <p className="muted">QR Code ainda nao gerado.</p>
+            <p className="muted">QR público do canal ainda não gerado.</p>
           )}
         </article>
       </section>

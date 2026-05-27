@@ -61,6 +61,10 @@ export async function createOrConnectEvolutionInstance(input: {
     qrCodeUrl: connectResponse.base64 ?? null,
     connectionCode: connectResponse.code ?? null,
     pairingCode: connectResponse.pairingCode ?? null,
+    connectionStatus:
+      connectResponse.base64 || connectResponse.code || connectResponse.pairingCode
+        ? "aguardando_leitura"
+        : "pendente",
     count: Number(connectResponse.count ?? 0)
   };
 }

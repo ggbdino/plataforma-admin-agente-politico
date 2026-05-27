@@ -66,6 +66,7 @@ const DEFAULT_IMPLANTATION_STEPS: Array<{
 ];
 
 export async function getCandidateImplantation(idCandidato: string) {
+  await ensureImplantationQrColumns();
   await ensureCandidateImplantationSkeleton(idCandidato);
 
   const headerResult = await db.query<ImplantationHeader>(
@@ -84,6 +85,10 @@ export async function getCandidateImplantation(idCandidato: string) {
         ic.webhook_inbound_url,
         ic.webhook_outbound_url,
         ic.qr_code_url,
+        ic.pairing_qr_code_url,
+        ic.evolution_connection_code,
+        ic.evolution_pairing_code,
+        ic.evolution_connection_status,
         ic.observacoes,
         ic.atualizado_em::text as atualizado_em
       from candidatos c
@@ -137,6 +142,10 @@ export async function getCandidateImplantation(idCandidato: string) {
       webhook_inbound_url: null,
       webhook_outbound_url: null,
       qr_code_url: null,
+      pairing_qr_code_url: null,
+      evolution_connection_code: null,
+      evolution_pairing_code: null,
+      evolution_connection_status: null,
       observacoes: "Implantação inicial ainda não consolidada no ambiente.",
       atualizado_em: null
     };
@@ -211,6 +220,16 @@ export async function getCandidateImplantation(idCandidato: string) {
     etapas: reconciledSteps,
     atualizacaoGestora: managerUpdateResult.rows[0] ?? null
   };
+}
+
+async function ensureImplantationQrColumns() {
+  await db.query(`
+    alter table implantacoes_candidato
+      add column if not exists pairing_qr_code_url text,
+      add column if not exists evolution_connection_code text,
+      add column if not exists evolution_pairing_code text,
+      add column if not exists evolution_connection_status text
+  `);
 }
 
 export async function getCampaignManagerContext(

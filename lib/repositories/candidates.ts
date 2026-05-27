@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import type { CandidateListItem } from "@/lib/types";
 
 export async function listCandidates(): Promise<CandidateListItem[]> {
+  await ensureImplantationQrColumns();
+
   const result = await db.query<CandidateListItem>(
     `
       select
@@ -15,6 +17,8 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
         ic.instancia_evolution,
         ic.numero_agente_oficial,
         ic.qr_code_url,
+        ic.pairing_qr_code_url,
+        ic.evolution_connection_status,
         ic.atualizado_em::text as implantacao_atualizada_em,
         coalesce(stats.total_etapas, 0) as total_etapas,
         coalesce(stats.etapas_concluidas, 0) as etapas_concluidas,
@@ -66,4 +70,14 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
   );
 
   return result.rows;
+}
+
+async function ensureImplantationQrColumns() {
+  await db.query(`
+    alter table implantacoes_candidato
+      add column if not exists pairing_qr_code_url text,
+      add column if not exists evolution_connection_code text,
+      add column if not exists evolution_pairing_code text,
+      add column if not exists evolution_connection_status text
+  `);
 }

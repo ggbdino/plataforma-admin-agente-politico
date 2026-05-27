@@ -470,6 +470,8 @@ async function upsertCandidateChannel(
 }
 
 async function configureEvolutionInstance(idCandidato: string) {
+  await ensureEvolutionConnectionColumns();
+
   const candidateResult = await db.query<{
     nome_urna: string;
     numero_agente_oficial: string | null;
@@ -512,7 +514,10 @@ async function configureEvolutionInstance(idCandidato: string) {
         numero_agente_oficial = $3,
         webhook_inbound_url = $4,
         webhook_outbound_url = $5,
-        qr_code_url = $6,
+        pairing_qr_code_url = $6,
+        evolution_connection_code = $7,
+        evolution_pairing_code = $8,
+        evolution_connection_status = $9,
         atualizado_em = now()
       where id_candidato = $1
     `,
@@ -522,11 +527,24 @@ async function configureEvolutionInstance(idCandidato: string) {
       evolutionResult.numeroOficial,
       evolutionResult.webhookInboundUrl,
       evolutionResult.webhookOutboundUrl,
-      evolutionResult.qrCodeUrl
+      evolutionResult.qrCodeUrl,
+      evolutionResult.connectionCode,
+      evolutionResult.pairingCode,
+      evolutionResult.connectionStatus
     ]
   );
 
   return evolutionResult;
+}
+
+async function ensureEvolutionConnectionColumns() {
+  await db.query(`
+    alter table implantacoes_candidato
+      add column if not exists pairing_qr_code_url text,
+      add column if not exists evolution_connection_code text,
+      add column if not exists evolution_pairing_code text,
+      add column if not exists evolution_connection_status text
+  `);
 }
 
 function normalizeCampaignPhone(value: string | null) {

@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentPlatformSession } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { createOrConnectEvolutionInstance } from "@/lib/evolution";
 import { triggerN8nWebhook } from "@/lib/n8n";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
@@ -138,11 +140,14 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   let successMessage = "Workflow iniciado com sucesso a partir da plataforma.";
 
   try {
-    const response = await triggerN8nWebhook({
-      path: config.path,
-      method: config.method,
-      payload
-    });
+    const response =
+      workflow === "qrcode_canais"
+        ? await generateCandidatePairingQr(idCandidato || "0001")
+        : await triggerN8nWebhook({
+            path: config.path,
+            method: config.method,
+            payload
+          });
 
     successMessage = formatWorkflowSuccessMessage(workflow, response, idCandidato || "0001");
 
@@ -324,11 +329,11 @@ function formatQrCodeMessage(response: unknown, idCandidato: string) {
 
     if (payload.base64 || payload.code || payload.pairingCode) {
       const count = Number(payload.count ?? 1);
-      return `QR Code gerado para o candidato ${idCandidato}. ${count} material(is) de conexão disponível(is).`;
+      return `QR de conexão do WhatsApp gerado para o candidato ${idCandidato}. ${count} material(is) de pareamento disponível(is).`;
     }
   }
 
-  return `QR Code e canais gerados para o candidato ${idCandidato}.`;
+  return `QR de conexão do WhatsApp gerado para o candidato ${idCandidato}.`;
 }
 
 function formatGovernanceMessage(response: unknown) {
@@ -397,6 +402,83 @@ function formatCadenciaMessage(response: unknown, idCandidato: string) {
   }
 
   return `Cadência executada para o candidato ${idCandidato}.`;
+}
+
+async function generateCandidatePairingQr(idCandidato: string) {
+  const candidateResult = await db.query<{
+    nome_urna: string;
+    numero_agente_oficial: string | null;
+  }>(
+    `
+      select
+        c.nome_urna,
+        ic.numero_agente_oficial
+      from candidatos c
+      left join implantacoes_candidato ic
+        on ic.id_candidato = c.id_candidato
+      where c.id_candidato = $1
+    `,
+    [idCandidato]
+  );
+
+  const candidate = candidateResult.rows[0];
+
+  if (!candidate) {
+    throw new Error("Candidato não localizado para gerar o QR de conexão do WhatsApp.");
+  }
+
+  if (!candidate.numero_agente_oficial) {
+    throw new Error(
+      "Registre antes o número oficial da campanha na implantação para gerar o QR de conexão do WhatsApp."
+    );
+  }
+
+  const result = await createOrConnectEvolutionInstance({
+    idCandidato,
+    nomeUrna: candidate.nome_urna,
+    numeroOficial: candidate.numero_agente_oficial
+  });
+
+  await db.query(`
+    alter table implantacoes_candidato
+      add column if not exists pairing_qr_code_url text,
+      add column if not exists evolution_connection_code text,
+      add column if not exists evolution_pairing_code text,
+      add column if not exists evolution_connection_status text
+  `);
+
+  await db.query(
+    `
+      update implantacoes_candidato
+      set
+        instancia_evolution = $2,
+        numero_agente_oficial = $3,
+        webhook_inbound_url = $4,
+        webhook_outbound_url = $5,
+        pairing_qr_code_url = $6,
+        evolution_connection_code = $7,
+        evolution_pairing_code = $8,
+        evolution_connection_status = $9,
+        atualizado_em = now()
+      where id_candidato = $1
+    `,
+    [
+      idCandidato,
+      result.instanceName,
+      result.numeroOficial,
+      result.webhookInboundUrl,
+      result.webhookOutboundUrl,
+      result.qrCodeUrl,
+      result.connectionCode,
+      result.pairingCode,
+      result.connectionStatus
+    ]
+  );
+
+  return {
+    ...result,
+    message: `QR de conexão do WhatsApp gerado para o candidato ${idCandidato}. Abra-o na etapa 2 para vincular a nova linha ao webhook da campanha.`
+  };
 }
 
 function buildGovernancePayload(input: {

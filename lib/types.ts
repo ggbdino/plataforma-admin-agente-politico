@@ -9,6 +9,8 @@ export type CandidateListItem = {
   instancia_evolution: string | null;
   numero_agente_oficial: string | null;
   qr_code_url: string | null;
+  pairing_qr_code_url: string | null;
+  evolution_connection_status: string | null;
   implantacao_atualizada_em: string | null;
   total_etapas: number;
   etapas_concluidas: number;
@@ -32,6 +34,10 @@ export type ImplantationHeader = {
   webhook_inbound_url: string | null;
   webhook_outbound_url: string | null;
   qr_code_url: string | null;
+  pairing_qr_code_url: string | null;
+  evolution_connection_code: string | null;
+  evolution_pairing_code: string | null;
+  evolution_connection_status: string | null;
   observacoes: string | null;
   atualizado_em: string | null;
 };

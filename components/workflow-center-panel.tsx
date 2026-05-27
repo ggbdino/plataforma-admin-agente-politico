@@ -31,8 +31,9 @@ const CANDIDATE_WORKFLOWS = [
   {
     ordem: "2",
     workflow: "qrcode_canais",
-    title: "Gerar QR code",
-    description: "Dispara o workflow de QR Code e atualização dos canais do candidato selecionado.",
+    title: "Gerar QR de conexão do WhatsApp",
+    description:
+      "Gera o QR de pareamento da instância Evolution para vincular a nova linha do candidato ao webhook conversacional.",
     buttonLabel: "Gerar QR code"
   },
   {
@@ -74,7 +75,7 @@ function getReadiness(candidate: CandidateListItem | undefined) {
   const hasNumber = Boolean(candidate.numero_agente_oficial);
 
   return {
-    canRunQrcode: hasImplantation,
+    canRunQrcode: hasImplantation && hasNumber,
     canRunGovernance: hasImplantation,
     canRunInbound: hasNumber,
     canRunCadence: hasNumber
@@ -184,8 +185,14 @@ export function WorkflowCenterPanel({
               <strong>{selectedCandidate?.numero_agente_oficial ?? "Pendente"}</strong>
             </div>
             <div className="workflow-status-card">
-              <span className="metric-label">QR</span>
-              <strong>{selectedCandidate?.qr_code_url ? "Disponível" : "Pendente"}</strong>
+              <span className="metric-label">QR de conexão</span>
+              <strong>
+                {selectedCandidate?.pairing_qr_code_url ? "Pareamento disponível" : "Pendente"}
+              </strong>
+            </div>
+            <div className="workflow-status-card">
+              <span className="metric-label">Conexão Evolution</span>
+              <strong>{selectedCandidate?.evolution_connection_status ?? "Não iniciada"}</strong>
             </div>
           </div>
         </div>
@@ -248,6 +255,37 @@ export function WorkflowCenterPanel({
                   <input name="workflow" type="hidden" value={workflow} />
                   <input name="redirectTo" type="hidden" value="/estatisticas/governanca/workflows" />
                   <input name="idCandidato" type="hidden" value={selectedCandidateId} />
+
+                  {workflow === "qrcode_canais" ? (
+                    <div className="step-channel-panel">
+                      <div className="step-panel-callout">
+                        Gere aqui o QR de conexão do WhatsApp da campanha. Ele deve ser lido no
+                        próprio WhatsApp do telefone oficial do candidato para associar a linha à
+                        instância Evolution e ao webhook do funil.
+                      </div>
+                      {selectedCandidate?.pairing_qr_code_url ? (
+                        <div className="workflow-qrcode-preview">
+                          <img
+                            alt={`QR de conexão do WhatsApp de ${selectedCandidateName}`}
+                            className="workflow-qrcode-image"
+                            src={selectedCandidate.pairing_qr_code_url}
+                          />
+                          <div className="workflow-qrcode-caption">
+                            <strong>QR de conexão do WhatsApp</strong>
+                            <span>
+                              Leia este QR no WhatsApp da nova linha oficial para concluir o
+                              pareamento da campanha.
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="workflow-empty-state">
+                          Gere o QR de conexão para visualizar aqui o pareamento da linha oficial
+                          do candidato.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
 
                   {workflow === "governanca" ? (
                     <>
