@@ -84,7 +84,14 @@ export async function getCandidateImplantation(idCandidato: string) {
         ic.numero_agente_oficial,
         ic.webhook_inbound_url,
         ic.webhook_outbound_url,
-        ic.qr_code_url,
+        coalesce(
+          official.metadata ->> 'qr_code_url',
+          case
+            when official.url_canal is not null and btrim(official.url_canal) <> ''
+              then 'https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=' || replace(official.url_canal, '&', '%26')
+            else ic.qr_code_url
+          end
+        ) as qr_code_url,
         ic.pairing_qr_code_url,
         ic.evolution_connection_code,
         ic.evolution_pairing_code,
@@ -94,6 +101,16 @@ export async function getCandidateImplantation(idCandidato: string) {
       from candidatos c
       join implantacoes_candidato ic
         on ic.id_candidato = c.id_candidato
+      left join lateral (
+        select
+          ci.url_canal,
+          ci.metadata
+        from canais_integracao ci
+        where ci.id_candidato = c.id_candidato
+          and ci.tipo_canal = 'whatsapp_agente'
+        order by ci.atualizado_em desc
+        limit 1
+      ) official on true
       where c.id_candidato = $1
     `,
     [idCandidato]
@@ -256,7 +273,14 @@ export async function getCampaignManagerContext(
         c.responsavel_preenchimento,
         c.email_responsavel,
         ic.numero_agente_oficial,
-        ic.qr_code_url,
+        coalesce(
+          official.metadata ->> 'qr_code_url',
+          case
+            when official.url_canal is not null and btrim(official.url_canal) <> ''
+              then 'https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=' || replace(official.url_canal, '&', '%26')
+            else ic.qr_code_url
+          end
+        ) as qr_code_url,
         official.url_canal as url_canal_oficial,
         c.dados_brutos,
         camp.configuracao,

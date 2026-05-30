@@ -16,7 +16,14 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
         ic.status_implantacao,
         ic.instancia_evolution,
         ic.numero_agente_oficial,
-        ic.qr_code_url,
+        coalesce(
+          official.metadata ->> 'qr_code_url',
+          case
+            when official.url_canal is not null and btrim(official.url_canal) <> ''
+              then 'https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=' || replace(official.url_canal, '&', '%26')
+            else ic.qr_code_url
+          end
+        ) as qr_code_url,
         ic.pairing_qr_code_url,
         ic.evolution_connection_status,
         ic.atualizado_em::text as implantacao_atualizada_em,
@@ -29,6 +36,16 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
       from candidatos c
       left join implantacoes_candidato ic
         on ic.id_candidato = c.id_candidato
+      left join lateral (
+        select
+          ci.url_canal,
+          ci.metadata
+        from canais_integracao ci
+        where ci.id_candidato = c.id_candidato
+          and ci.tipo_canal = 'whatsapp_agente'
+        order by ci.atualizado_em desc
+        limit 1
+      ) official on true
       left join lateral (
         select
           count(*)::int as total_etapas,
