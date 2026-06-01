@@ -5,6 +5,14 @@ export const env = {
   evolutionApiBaseUrl: process.env.EVOLUTION_API_BASE_URL ?? "",
   evolutionApiKey: process.env.EVOLUTION_API_KEY ?? "",
   evolutionInstancePrefix: process.env.EVOLUTION_INSTANCE_PREFIX ?? "",
+  metaWhatsAppEnabled: process.env.META_WHATSAPP_ENABLED === "true",
+  metaWhatsAppGraphApiVersion: process.env.META_WHATSAPP_GRAPH_API_VERSION ?? "v23.0",
+  metaWhatsAppBaseUrl: process.env.META_WHATSAPP_BASE_URL ?? "https://graph.facebook.com",
+  metaWhatsAppAccessToken: process.env.META_WHATSAPP_ACCESS_TOKEN ?? "",
+  metaWhatsAppAppSecret: process.env.META_WHATSAPP_APP_SECRET ?? "",
+  metaWhatsAppVerifyToken: process.env.META_WHATSAPP_VERIFY_TOKEN ?? "",
+  metaWhatsAppBusinessAccountId: process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID ?? "",
+  metaWhatsAppPhoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID ?? "",
   adminBootstrapCode: process.env.ADMIN_BOOTSTRAP_CODE ?? "",
   n8nWebhookCandidateSync:
     process.env.N8N_WEBHOOK_CANDIDATO_SYNC ??
