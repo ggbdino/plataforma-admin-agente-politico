@@ -291,7 +291,9 @@ export async function getCampaignManagerContext(
       left join campanhas camp
         on camp.id_candidato = c.id_candidato
       left join lateral (
-        select url_canal
+        select
+          url_canal,
+          metadata
         from canais_integracao ci
         where ci.id_candidato = c.id_candidato
           and ci.tipo_canal = 'whatsapp_agente'
