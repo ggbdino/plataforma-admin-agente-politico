@@ -1,5 +1,5 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { registerCampaignChannelAction } from "@/lib/actions/campaign-manager-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
@@ -36,7 +36,9 @@ export default async function CampaignManagerPage({
     <main className="page-shell">
       {query?.feedback && query?.mensagem ? (
         <section className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}>
-          <strong>{query.feedback === "sucesso" ? "Operação concluída." : "Acesso ou registro falhou."}</strong>
+          <strong>
+            {query.feedback === "sucesso" ? "Operação concluída." : "Acesso ou registro falhou."}
+          </strong>
           <div style={{ marginTop: 6 }}>{query.mensagem}</div>
         </section>
       ) : null}
@@ -45,11 +47,15 @@ export default async function CampaignManagerPage({
         <span className="pill">Gestor da campanha</span>
         <h1 className="title">Canal oficial e divulgação da campanha</h1>
         <p className="subtitle">
-          Área reservada para revisar dados do formulário de entrada, ajustar o canal oficial do Agente Político e registrar os canais de divulgação que apontam para esse WhatsApp.
+          Área reservada para revisar dados do formulário de entrada, ajustar o canal oficial do
+          Agente Político e registrar os canais de divulgação que apontam para esse WhatsApp.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
             Voltar para implantação
+          </Link>
+          <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/eventos`}>
+            Controlar presença de eventos
           </Link>
         </div>
       </section>
@@ -58,7 +64,8 @@ export default async function CampaignManagerPage({
         <section className="card manager-auth-card">
           <h2 className="section-title">Liberar acesso do Gestor da Campanha</h2>
           <p className="subtitle">
-            Informe o e-mail e a senha de um usuário previamente cadastrado com permissão de implantação para esta campanha.
+            Informe o e-mail e a senha de um usuário previamente cadastrado com permissão de
+            implantação para esta campanha.
           </p>
           <form action={authenticatePlatformAreaAction} className="manager-auth-form">
             <input name="idCandidato" type="hidden" value={idCandidato} />
@@ -114,7 +121,9 @@ export default async function CampaignManagerPage({
             <article className="card manager-info-card">
               <h2 className="section-title">Leitura operacional</h2>
               <div className="step-panel-callout">
-                O QR Code exibido na tela do candidato deve ser configurado no telefone oficial da campanha para associar o número ao Agente Político. Todo eleitor captado por qualquer canal deve ser direcionado para esse contato no WhatsApp.
+                O QR Code exibido na tela do candidato deve ser configurado no telefone oficial da
+                campanha para associar o número ao Agente Político. Todo eleitor captado por
+                qualquer canal deve ser direcionado para esse contato no WhatsApp.
               </div>
               {data.qr_code_url ? (
                 <div className="manager-qr-panel">
@@ -179,11 +188,15 @@ export default async function CampaignManagerPage({
               <div className="manager-channel-box">
                 <strong>Canais de divulgação</strong>
                 <p className="muted">
-                  Marque os canais que serão utilizados para divulgar o QR Code e o número oficial do Agente Político.
+                  Marque os canais que serão utilizados para divulgar o QR Code e o número oficial
+                  do Agente Político.
                 </p>
                 <div className="manager-channel-options">
                   {data.canais_divulgacao.map((channel) => (
-                    <label className="manager-channel-option" key={`${channel.tipo_canal}-${channel.nome_canal}`}>
+                    <label
+                      className="manager-channel-option"
+                      key={`${channel.tipo_canal}-${channel.nome_canal}`}
+                    >
                       <input
                         defaultChecked={channel.selecionado_por_padrao}
                         name="canais_divulgacao_item"
@@ -198,7 +211,9 @@ export default async function CampaignManagerPage({
                       />
                       <span>
                         <strong>{channel.nome_canal}</strong>
-                        <small className="muted">{channel.url_canal ?? channel.identificador_externo ?? "-"}</small>
+                        <small className="muted">
+                          {channel.url_canal ?? channel.identificador_externo ?? "-"}
+                        </small>
                       </span>
                     </label>
                   ))}

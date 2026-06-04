@@ -80,6 +80,26 @@ export type CampaignManagerContext = {
   canais_divulgacao: CampaignChannelOption[];
 };
 
+export type CampaignEventAttendanceItem = {
+  id: string;
+  nome_evento: string;
+  tipo_evento: string | null;
+  data_evento: string;
+  local_nome: string | null;
+  cidade: string | null;
+  uf: string | null;
+  status: string;
+  total_confirmados: number;
+  total_presentes: number;
+};
+
+export type CampaignEventAttendanceContext = {
+  id_candidato: string;
+  nome_urna: string;
+  numero_agente_oficial: string | null;
+  eventos: CampaignEventAttendanceItem[];
+};
+
 export type ManagerUpdateSummary = {
   origem: string;
   status_execucao: string;
