@@ -100,6 +100,7 @@ export default async function CampaignOperationalPage({
 
   const maxFunil = Math.max(...snapshot.funil.map((item) => item.total), 1);
   const maxOrigem = Math.max(...snapshot.origens.map((item) => item.total), 1);
+  const maxRegional = Math.max(...snapshot.distribuicaoRegional.map((item) => item.total), 1);
   const maxDaily = Math.max(
     ...snapshot.evolucaoDiaria.flatMap((item) => [item.novos_leads, item.interacoes]),
     1
@@ -464,6 +465,79 @@ export default async function CampaignOperationalPage({
       </section>
 
       <section className="grid grid-2" style={{ marginBottom: 20 }}>
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Conversão por região da base</h2>
+              <p className="subtitle">
+                Leitura territorial por UF, com cidade de maior concentração em destaque para
+                observar onde a campanha já converte melhor e onde ainda depende de maturação.
+              </p>
+            </div>
+            <span className="pill">Mapa tático</span>
+          </div>
+          <div className="analytics-stack">
+            {snapshot.distribuicaoRegional.length === 0 ? (
+              <div className="workflow-empty-state">
+                Ainda não há recorte regional suficiente para leitura territorial da base.
+              </div>
+            ) : (
+              snapshot.distribuicaoRegional.map((item, index) => (
+                <div className="regional-card" key={item.uf}>
+                  <div className="regional-card-head">
+                    <div>
+                      <strong className="regional-card-title">{item.uf}</strong>
+                      <div className="muted">
+                        {item.cidade_destaque ?? "Cidade não informada"} em destaque •{" "}
+                        {item.total_cidade_destaque} eleitor(es)
+                      </div>
+                    </div>
+                    <span className="pill ok">
+                      {formatPercent(item.taxa_conversao_percentual)} de conversão
+                    </span>
+                  </div>
+                  <div className="regional-card-grid">
+                    <article
+                      className="regional-card-metric"
+                      style={{ "--regional-accent": getRegionalColor(index) } as React.CSSProperties}
+                    >
+                      <span>Total da base</span>
+                      <strong>{item.total}</strong>
+                    </article>
+                    <article
+                      className="regional-card-metric"
+                      style={
+                        { "--regional-accent": getRegionalSupportColor(index) } as React.CSSProperties
+                      }
+                    >
+                      <span>Apoiadores</span>
+                      <strong>{item.apoiadores}</strong>
+                    </article>
+                    <article
+                      className="regional-card-metric"
+                      style={
+                        { "--regional-accent": getRegionalNeutralColor(index) } as React.CSSProperties
+                      }
+                    >
+                      <span>Cidades mapeadas</span>
+                      <strong>{item.cidades_mapeadas}</strong>
+                    </article>
+                  </div>
+                  <div className="analytics-bar-track regional-card-track">
+                    <div
+                      className="regional-card-fill"
+                      style={{
+                        width: `${Math.max((item.total / maxRegional) * 100, 8)}%`,
+                        background: `linear-gradient(135deg, ${getRegionalColor(index)}, ${getRegionalSupportColor(index)})`
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+
         <article className="card analytics-panel">
           <div className="section-heading">
             <div>
@@ -1109,5 +1183,20 @@ function buildGrowthPoints(
 
 function formatShortDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(value));
+}
+
+function getRegionalColor(index: number) {
+  const palette = ["#ff7a59", "#f59f00", "#2f9e44", "#0ca678", "#1c7ed6", "#7048e8", "#d6336c"];
+  return palette[index % palette.length];
+}
+
+function getRegionalSupportColor(index: number) {
+  const palette = ["#ffa94d", "#ffd43b", "#69db7c", "#63e6be", "#74c0fc", "#9775fa", "#f783ac"];
+  return palette[index % palette.length];
+}
+
+function getRegionalNeutralColor(index: number) {
+  const palette = ["#ffd8a8", "#ffec99", "#b2f2bb", "#c5f6fa", "#d0ebff", "#e5dbff", "#fcc2d7"];
+  return palette[index % palette.length];
 }
 

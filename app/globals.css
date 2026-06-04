@@ -951,6 +951,68 @@ button {
   background: linear-gradient(135deg, #54b6e9, #91d2f3);
 }
 
+.regional-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(36, 135, 211, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(237, 246, 252, 0.92)),
+    var(--surface);
+}
+
+.regional-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.regional-card-title {
+  font-size: 1.15rem;
+  color: var(--accent-deep);
+  letter-spacing: -0.02em;
+}
+
+.regional-card-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.regional-card-metric {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--regional-accent) 28%, white);
+  background: color-mix(in srgb, var(--regional-accent) 12%, white);
+}
+
+.regional-card-metric span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.regional-card-metric strong {
+  font-size: 1.4rem;
+  color: var(--accent-deep);
+}
+
+.regional-card-track {
+  height: 16px;
+}
+
+.regional-card-fill {
+  height: 100%;
+  border-radius: 999px;
+  box-shadow: 0 10px 20px rgba(18, 78, 131, 0.12);
+}
+
 .timeline-chart {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
@@ -1105,6 +1167,11 @@ button {
   .analytics-bar-label {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .regional-card-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .workflow-candidate-grid {

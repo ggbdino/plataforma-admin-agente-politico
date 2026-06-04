@@ -171,6 +171,16 @@ export type CampaignThemeMetric = {
   total: number;
 };
 
+export type CampaignRegionalMetric = {
+  uf: string;
+  cidade_destaque: string | null;
+  total: number;
+  apoiadores: number;
+  taxa_conversao_percentual: number;
+  cidades_mapeadas: number;
+  total_cidade_destaque: number;
+};
+
 export type CampaignDataQualitySummary = {
   total_registros: number;
   sem_nome: number;
@@ -270,6 +280,7 @@ export type CampaignAnalyticsSnapshot = {
   funil: CampaignStageMetric[];
   origens: CampaignOriginMetric[];
   temas: CampaignThemeMetric[];
+  distribuicaoRegional: CampaignRegionalMetric[];
   evolucaoDiaria: CampaignDailyMetric[];
   crescimentoBase: CampaignBaseGrowthPoint[];
   conversasRecentes: CampaignRecentConversation[];

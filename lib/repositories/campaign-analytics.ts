@@ -18,6 +18,7 @@ import type {
   CampaignDailyMetric,
   CampaignOperationalAlert,
   CampaignOriginMetric,
+  CampaignRegionalMetric,
   CampaignRecentConversation,
   CampaignStageMetric
 } from "@/lib/types";
@@ -28,6 +29,7 @@ export async function getCampaignAnalyticsSnapshot(
 ): Promise<CampaignAnalyticsSnapshot | null> {
   const normalizedPeriodDays = normalizePeriodDays(periodDays);
   const hasElectorEmailColumn = await hasTableColumn("eleitores", "email");
+  const hasElectorUfColumn = await hasTableColumn("eleitores", "uf");
   const headerResult = await db.query<CampaignAnalyticsHeader>(
     `
       select
@@ -464,6 +466,63 @@ export async function getCampaignAnalyticsSnapshot(
     []
   );
 
+  const regionalResult = await queryOrDefault<CampaignRegionalMetric>(
+    "campaign-regional",
+    `
+      with eleitor_base as (
+        select
+          ${
+            hasElectorUfColumn
+              ? "coalesce(nullif(trim(coalesce(uf, '')), ''), $2, 'UF não informada')"
+              : "coalesce($2, 'UF não informada')"
+          } as uf_resolvida,
+          coalesce(nullif(trim(coalesce(cidade, '')), ''), 'Cidade não informada') as cidade_resolvida,
+          intencao_voto
+        from eleitores
+        where id_candidato = $1
+      ),
+      uf_totais as (
+        select
+          uf_resolvida,
+          count(*)::int as total,
+          count(*) filter (where intencao_voto = 'apoiador')::int as apoiadores,
+          count(distinct cidade_resolvida)::int as cidades_mapeadas
+        from eleitor_base
+        group by uf_resolvida
+      ),
+      cidade_rank as (
+        select
+          uf_resolvida,
+          cidade_resolvida,
+          count(*)::int as total_cidade,
+          row_number() over (
+            partition by uf_resolvida
+            order by count(*) desc, cidade_resolvida asc
+          ) as rn
+        from eleitor_base
+        group by uf_resolvida, cidade_resolvida
+      )
+      select
+        uf_totais.uf_resolvida as uf,
+        cidade_rank.cidade_resolvida as cidade_destaque,
+        uf_totais.total,
+        uf_totais.apoiadores,
+        case
+          when uf_totais.total = 0 then 0
+          else round((uf_totais.apoiadores::numeric / greatest(uf_totais.total, 1)::numeric) * 100, 2)
+        end as taxa_conversao_percentual,
+        uf_totais.cidades_mapeadas,
+        coalesce(cidade_rank.total_cidade, 0) as total_cidade_destaque
+      from uf_totais
+      left join cidade_rank
+        on cidade_rank.uf_resolvida = uf_totais.uf_resolvida
+       and cidade_rank.rn = 1
+      order by uf_totais.total desc, uf_totais.uf_resolvida asc
+    `,
+    [idCandidato, cabecalho.uf ?? null],
+    []
+  );
+
   const dailyResult = await queryOrDefault<CampaignDailyMetric>(
     "campaign-daily",
     `
@@ -611,6 +670,7 @@ export async function getCampaignAnalyticsSnapshot(
     funil: funilResult.rows,
     origens: originsResult.rows,
     temas: themesResult.rows,
+    distribuicaoRegional: regionalResult.rows,
     evolucaoDiaria: dailyResult.rows,
     crescimentoBase: growthResult.rows,
     conversasRecentes: recentConversationsResult.rows
