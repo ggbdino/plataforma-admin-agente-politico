@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { ensureElectorEnrichmentColumns } from "@/lib/repositories/elector-schema";
 
 type FunnelRecalculationSummary = {
   eleitores_processados: number;
@@ -24,6 +25,7 @@ type ElectorCycleRow = {
   ultimo_sentimento: string | null;
   ultima_intencao: string | null;
   ultimo_tema: string | null;
+  grupo_interesse: string | null;
   ultima_etapa_sugerida: string | null;
   ultima_interacao_em: string | null;
   confirmacoes_evento: number;
@@ -37,12 +39,14 @@ type CycleInference = {
   score_engajamento: number;
   score_propensao_voto: number;
   tema_interesse: string | null;
+  grupo_interesse: string | null;
   ultimo_contato_em: string | null;
 };
 
 export async function recalculateCampaignFunnelCycle(
   idCandidato: string
 ): Promise<FunnelRecalculationSummary> {
+  await ensureElectorEnrichmentColumns();
   const electorRows = await db.query<ElectorCycleRow>(
     `
       with interaction_stats as (
@@ -90,6 +94,7 @@ export async function recalculateCampaignFunnelCycle(
         latest.ultimo_sentimento,
         latest.ultima_intencao,
         latest.ultimo_tema,
+        e.grupo_interesse,
         latest.ultima_etapa_sugerida,
         stats.ultima_interacao_em,
         coalesce(events.confirmacoes_evento, 0) as confirmacoes_evento,
@@ -149,6 +154,7 @@ export async function recalculateCampaignFunnelCycle(
         !engagementChanged &&
         !propensityChanged &&
         normalizeNullable(next.tema_interesse) === null &&
+        normalizeNullable(next.grupo_interesse) === normalizeNullable(row.grupo_interesse) &&
         normalizeNullable(next.ultimo_contato_em) === normalizeNullable(row.ultima_interacao_em)
       ) {
         continue;
@@ -164,7 +170,15 @@ export async function recalculateCampaignFunnelCycle(
             score_engajamento = $5,
             score_propensao_voto = $6,
             tema_interesse = coalesce($7, tema_interesse),
-            ultimo_contato_em = coalesce($8::timestamptz, ultimo_contato_em),
+            grupo_interesse = case
+              when coalesce(nullif(grupo_interesse, ''), '') = '' and nullif($8, '') is not null then $8
+              else grupo_interesse
+            end,
+            origem_grupo = case
+              when coalesce(nullif(grupo_interesse, ''), '') = '' and nullif($8, '') is not null then 'qualificacao_automatica'
+              else origem_grupo
+            end,
+            ultimo_contato_em = coalesce($9::timestamptz, ultimo_contato_em),
             atualizado_em = now()
           where eleitor_uid = $1
         `,
@@ -176,6 +190,7 @@ export async function recalculateCampaignFunnelCycle(
           next.score_engajamento,
           next.score_propensao_voto,
           next.tema_interesse,
+          next.grupo_interesse,
           next.ultimo_contato_em
         ]
       );
@@ -220,6 +235,8 @@ function inferFunnelCycle(row: ElectorCycleRow): CycleInference {
     score_engajamento: engagement,
     score_propensao_voto: propensity,
     tema_interesse: normalizeNullable(row.ultimo_tema),
+    grupo_interesse:
+      normalizeNullable(row.grupo_interesse) ?? inferInterestGroup(normalizeNullable(row.ultimo_tema)),
     ultimo_contato_em: normalizeNullable(row.ultima_interacao_em)
   };
 }
@@ -329,4 +346,41 @@ function normalizeNullable(value: string | null | undefined) {
 
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function inferInterestGroup(theme: string | null) {
+  const normalizedTheme = normalizeNullable(theme)
+    ?.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s-]+/g, "_");
+
+  if (!normalizedTheme) {
+    return null;
+  }
+
+  const thematicGroups: Array<{ group: string; keywords: string[] }> = [
+    { group: "saude", keywords: ["saude", "hospital", "ubs", "medico"] },
+    { group: "educacao", keywords: ["educacao", "escola", "creche", "professor"] },
+    { group: "seguranca", keywords: ["seguranca", "policia", "violencia", "guarda"] },
+    { group: "mobilidade", keywords: ["mobilidade", "transporte", "onibus", "transito"] },
+    { group: "assistencia_social", keywords: ["assistencia", "social", "familia", "beneficio"] },
+    { group: "juventude", keywords: ["juventude", "jovem", "estudante"] },
+    { group: "empreendedorismo", keywords: ["empreendedor", "empreendedorismo", "negocio", "comercio"] },
+    { group: "cultura_esporte", keywords: ["cultura", "esporte", "lazer"] },
+    { group: "infraestrutura", keywords: ["infraestrutura", "obra", "asfalto", "iluminacao", "saneamento"] },
+    { group: "habitacao", keywords: ["habitacao", "moradia", "casa"] },
+    { group: "meio_ambiente", keywords: ["meio_ambiente", "ambiental", "reciclagem", "sustentabilidade"] },
+    { group: "agricultura", keywords: ["agricultura", "rural", "produtor", "agro"] },
+    { group: "mulheres", keywords: ["mulher", "mulheres"] },
+    { group: "idosos", keywords: ["idoso", "idosos", "terceira_idade"] },
+    { group: "servidor_publico", keywords: ["servidor", "funcionalismo", "concursado"] }
+  ];
+
+  const matchedGroup = thematicGroups.find((entry) =>
+    entry.keywords.some((keyword) => normalizedTheme.includes(keyword))
+  );
+
+  return matchedGroup?.group ?? normalizedTheme;
 }

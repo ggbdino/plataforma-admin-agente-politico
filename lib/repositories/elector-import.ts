@@ -1,9 +1,13 @@
 import { db } from "@/lib/db";
+import { ensureElectorEnrichmentColumns } from "@/lib/repositories/elector-schema";
 
 type ParsedElectorRow = {
   nome: string;
   telefone: string;
   email: string;
+  cidade: string;
+  uf: string;
+  grupo_interesse: string;
 };
 
 type ExistingElectorRow = {
@@ -11,6 +15,9 @@ type ExistingElectorRow = {
   nome: string | null;
   telefone: string | null;
   email?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+  grupo_interesse?: string | null;
 };
 
 type ImportSummary = {
@@ -19,11 +26,19 @@ type ImportSummary = {
   ignorados: number;
 };
 
+type OptionalElectorColumns = {
+  hasEmailColumn: boolean;
+  hasCityColumn: boolean;
+  hasUfColumn: boolean;
+  hasGroupColumn: boolean;
+};
+
 export async function importCampaignElectorBase(
   idCandidato: string,
   rawFileContents: string,
   origemCaptacao = "importacao_admin"
 ): Promise<ImportSummary> {
+  await ensureElectorEnrichmentColumns();
   const rows = parseElectorCsv(rawFileContents);
 
   if (rows.length === 0) {
@@ -47,7 +62,12 @@ export async function importCampaignElectorBase(
     );
 
     const columns = new Set(columnResult.rows.map((row) => row.column_name));
-    const hasEmailColumn = columns.has("email");
+    const availableColumns: OptionalElectorColumns = {
+      hasEmailColumn: columns.has("email"),
+      hasCityColumn: columns.has("cidade"),
+      hasUfColumn: columns.has("uf"),
+      hasGroupColumn: columns.has("grupo_interesse")
+    };
 
     let importados = 0;
     let atualizados = 0;
@@ -72,34 +92,38 @@ export async function importCampaignElectorBase(
       }
 
       const lookup = await client.query<ExistingElectorRow>(
-        buildLookupQuery(hasEmailColumn, Boolean(row.telefone), Boolean(row.email)),
+        buildLookupQuery(
+          availableColumns.hasEmailColumn,
+          Boolean(row.telefone),
+          Boolean(row.email)
+        ),
         buildLookupValues(idCandidato, row.telefone, row.email)
       );
 
       if (lookup.rows[0]?.eleitor_uid) {
-        if (isSameElectorData(lookup.rows[0], row, hasEmailColumn)) {
+        if (isSameElectorData(lookup.rows[0], row, availableColumns.hasEmailColumn)) {
           ignorados += 1;
           continue;
         }
 
-        await client.query(
-          buildUpdateQuery(hasEmailColumn),
-          buildUpdateValues(
-            lookup.rows[0].eleitor_uid,
-            row.nome,
-            row.telefone,
-            row.email,
-            origemCaptacao
-          )
+        const updateStatement = buildUpdateStatement(
+          lookup.rows[0].eleitor_uid,
+          row,
+          origemCaptacao,
+          availableColumns
         );
+        await client.query(updateStatement.query, updateStatement.values);
         atualizados += 1;
         continue;
       }
 
-      await client.query(
-        buildInsertQuery(hasEmailColumn),
-        buildInsertValues(idCandidato, row, origemCaptacao, hasEmailColumn)
+      const insertStatement = buildInsertStatement(
+        idCandidato,
+        row,
+        origemCaptacao,
+        availableColumns
       );
+      await client.query(insertStatement.query, insertStatement.values);
       importados += 1;
     }
 
@@ -145,10 +169,18 @@ function parseElectorCsv(rawFileContents: string): ParsedElectorRow[] {
   const nomeIndex = findHeaderIndex(headers, ["nome", "nome completo", "nome_completo"]);
   const telefoneIndex = findHeaderIndex(headers, ["telefone", "celular", "whatsapp", "fone"]);
   const emailIndex = findHeaderIndex(headers, ["email", "e-mail", "mail"]);
+  const cidadeIndex = findHeaderIndex(headers, ["cidade", "municipio", "município"]);
+  const ufIndex = findHeaderIndex(headers, ["uf", "estado"]);
+  const grupoIndex = findHeaderIndex(headers, [
+    "grupo",
+    "grupo interesse",
+    "grupo_interesse",
+    "segmento"
+  ]);
 
   if (nomeIndex < 0 && telefoneIndex < 0 && emailIndex < 0) {
     throw new Error(
-      "Estrutura inválida do arquivo. Use um CSV com cabeçalho contendo as colunas nome, telefone e email."
+      "Estrutura inválida do arquivo. Use um CSV com cabeçalho contendo ao menos uma das colunas nome, telefone ou email."
     );
   }
 
@@ -158,7 +190,10 @@ function parseElectorCsv(rawFileContents: string): ParsedElectorRow[] {
     return {
       nome: sanitizeCell(values[nomeIndex]),
       telefone: normalizePhone(values[telefoneIndex]),
-      email: normalizeEmail(values[emailIndex])
+      email: normalizeEmail(values[emailIndex]),
+      cidade: sanitizeCell(values[cidadeIndex]),
+      uf: normalizeUf(values[ufIndex]),
+      grupo_interesse: normalizeGroup(values[grupoIndex])
     };
   });
 }
@@ -233,6 +268,19 @@ function normalizeEmail(value: string | undefined) {
   return sanitizeCell(value).toLowerCase();
 }
 
+function normalizeUf(value: string | undefined) {
+  return sanitizeCell(value).toUpperCase().slice(0, 2);
+}
+
+function normalizeGroup(value: string | undefined) {
+  return sanitizeCell(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s-]+/g, "_");
+}
+
 function buildLookupQuery(hasEmailColumn: boolean, hasPhone: boolean, hasEmail: boolean) {
   const conditions: string[] = [];
   let paramIndex = 2;
@@ -248,7 +296,7 @@ function buildLookupQuery(hasEmailColumn: boolean, hasPhone: boolean, hasEmail: 
 
   if (conditions.length === 0) {
     return `
-      select eleitor_uid, nome, telefone${hasEmailColumn ? ", email" : ""}
+      select eleitor_uid, nome, telefone${hasEmailColumn ? ", email" : ""}, cidade, uf, grupo_interesse
       from eleitores
       where id_candidato = $1
         and 1 = 0
@@ -257,7 +305,7 @@ function buildLookupQuery(hasEmailColumn: boolean, hasPhone: boolean, hasEmail: 
   }
 
   return `
-    select eleitor_uid, nome, telefone${hasEmailColumn ? ", email" : ""}
+    select eleitor_uid, nome, telefone${hasEmailColumn ? ", email" : ""}, cidade, uf, grupo_interesse
     from eleitores
     where id_candidato = $1
       and (${conditions.join(" or ")})
@@ -279,94 +327,126 @@ function buildLookupValues(idCandidato: string, telefone: string, email: string)
   return values;
 }
 
-function buildUpdateQuery(hasEmailColumn: boolean) {
-  return `
-    update eleitores
-    set
-      nome = case when nullif($2, '') is not null then $2 else nome end,
-      telefone = case when nullif($3, '') is not null then $3 else telefone end,
-      ${hasEmailColumn ? "email = case when nullif($4, '') is not null then $4 else email end," : ""}
-      origem_captacao = case
-        when coalesce(nullif(origem_captacao, ''), '') = '' then $5
-        else origem_captacao
-      end,
-      atualizado_em = now()
-    where eleitor_uid = $1
-  `;
-}
-
-function buildUpdateValues(
+function buildUpdateStatement(
   eleitorUid: string,
-  nome: string,
-  telefone: string,
-  email: string,
-  origemCaptacao: string
+  row: ParsedElectorRow,
+  origemCaptacao: string,
+  columns: OptionalElectorColumns
 ) {
-  return [eleitorUid, nome, telefone, email, origemCaptacao];
-}
+  const values: Array<string | null> = [eleitorUid];
+  const assignments: string[] = [];
 
-function buildInsertQuery(hasEmailColumn: boolean) {
-  const columns = [
-    "eleitor_uid",
-    "eleitor_id",
-    "id_candidato",
-    "nome",
-    "telefone",
-    "origem_captacao",
-    "etapa_funil",
-    "criado_em",
-    "atualizado_em"
-  ];
+  const pushParam = (value: string | null) => {
+    values.push(value);
+    return `$${values.length}`;
+  };
 
-  const valuePlaceholders = [
-    "$1",
-    "$2",
-    "$3",
-    "$4",
-    "$5",
-    "$6",
-    "$7",
-    "now()",
-    "now()"
-  ];
+  const nomeParam = pushParam(row.nome || null);
+  assignments.push(`nome = case when nullif(${nomeParam}, '') is not null then ${nomeParam} else nome end`);
 
-  if (hasEmailColumn) {
-    columns.splice(5, 0, "email");
-    valuePlaceholders.splice(5, 0, "$6");
-    valuePlaceholders[6] = "$7";
-    valuePlaceholders[7] = "$8";
+  const telefoneParam = pushParam(row.telefone || null);
+  assignments.push(
+    `telefone = case when nullif(${telefoneParam}, '') is not null then ${telefoneParam} else telefone end`
+  );
+
+  if (columns.hasEmailColumn) {
+    const emailParam = pushParam(row.email || null);
+    assignments.push(
+      `email = case when nullif(${emailParam}, '') is not null then lower(${emailParam}) else email end`
+    );
   }
 
-  return `
-    insert into eleitores (${columns.join(", ")})
-    values (${valuePlaceholders.join(", ")})
-  `;
+  if (columns.hasCityColumn) {
+    const cityParam = pushParam(row.cidade || null);
+    assignments.push(
+      `cidade = case when nullif(${cityParam}, '') is not null then ${cityParam} else cidade end`
+    );
+    assignments.push(
+      `origem_cidade = case when nullif(${cityParam}, '') is not null then 'importacao_base' else origem_cidade end`
+    );
+  }
+
+  if (columns.hasUfColumn) {
+    const ufParam = pushParam(row.uf || null);
+    assignments.push(`uf = case when nullif(${ufParam}, '') is not null then ${ufParam} else uf end`);
+  }
+
+  if (columns.hasGroupColumn) {
+    const groupParam = pushParam(row.grupo_interesse || null);
+    assignments.push(
+      `grupo_interesse = case when nullif(${groupParam}, '') is not null then ${groupParam} else grupo_interesse end`
+    );
+    assignments.push(
+      `origem_grupo = case when nullif(${groupParam}, '') is not null then 'importacao_base' else origem_grupo end`
+    );
+  }
+
+  const origemParam = pushParam(origemCaptacao || null);
+  assignments.push(
+    `origem_captacao = case when coalesce(nullif(origem_captacao, ''), '') = '' then ${origemParam} else origem_captacao end`
+  );
+  assignments.push("atualizado_em = now()");
+
+  return {
+    query: `
+      update eleitores
+      set ${assignments.join(",\n          ")}
+      where eleitor_uid = $1
+    `,
+    values
+  };
 }
 
-function buildInsertValues(
+function buildInsertStatement(
   idCandidato: string,
   row: ParsedElectorRow,
   origemCaptacao: string,
-  hasEmailColumn: boolean
+  columns: OptionalElectorColumns
 ) {
   const eleitorUid = crypto.randomUUID();
   const eleitorId = row.telefone || row.email || eleitorUid;
 
-  const baseValues = [
+  const insertColumns = ["eleitor_uid", "eleitor_id", "id_candidato", "nome", "telefone"];
+  const values: Array<string | null> = [
     eleitorUid,
     eleitorId,
     idCandidato,
     row.nome || "Eleitor importado",
-    row.telefone || null,
-    origemCaptacao,
-    "novo_lead"
+    row.telefone || null
   ];
 
-  if (hasEmailColumn) {
-    baseValues.splice(5, 0, row.email || null);
+  if (columns.hasEmailColumn) {
+    insertColumns.push("email");
+    values.push(row.email || null);
   }
 
-  return baseValues;
+  if (columns.hasCityColumn) {
+    insertColumns.push("cidade", "origem_cidade");
+    values.push(row.cidade || null, row.cidade ? "importacao_base" : null);
+  }
+
+  if (columns.hasUfColumn) {
+    insertColumns.push("uf");
+    values.push(row.uf || null);
+  }
+
+  if (columns.hasGroupColumn) {
+    insertColumns.push("grupo_interesse", "origem_grupo");
+    values.push(row.grupo_interesse || null, row.grupo_interesse ? "importacao_base" : null);
+  }
+
+  insertColumns.push("origem_captacao", "etapa_funil");
+  values.push(origemCaptacao, "novo_lead");
+
+  const placeholders = values.map((_, index) => `$${index + 1}`);
+
+  return {
+    query: `
+      insert into eleitores (${insertColumns.join(", ")}, criado_em, atualizado_em)
+      values (${placeholders.join(", ")}, now(), now())
+    `,
+    values
+  };
 }
 
 function buildImportKey(telefone: string, email: string) {
@@ -392,8 +472,13 @@ function isSameElectorData(
   const sameEmail = hasEmailColumn
     ? normalizeComparableValue(existing.email) === normalizeComparableValue(incoming.email)
     : true;
+  const sameCity = normalizeComparableValue(existing.cidade) === normalizeComparableValue(incoming.cidade);
+  const sameUf = normalizeComparableValue(existing.uf) === normalizeComparableValue(incoming.uf);
+  const sameGroup =
+    normalizeComparableValue(existing.grupo_interesse) ===
+    normalizeComparableValue(incoming.grupo_interesse);
 
-  return sameName && samePhone && sameEmail;
+  return sameName && samePhone && sameEmail && sameCity && sameUf && sameGroup;
 }
 
 function normalizeComparableValue(value: string | null | undefined) {

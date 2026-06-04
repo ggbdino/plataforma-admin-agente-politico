@@ -167,8 +167,9 @@ export default async function CampaignOperationalPage({
           <div>
             <h2 className="section-title">Importação controlada da base de eleitores</h2>
             <p className="subtitle">
-              Upload administrativo de planilha CSV com <strong>nome</strong>, <strong>telefone</strong> e{" "}
-              <strong>email</strong> para alimentar a base individual desta campanha.
+              Upload administrativo de planilha CSV com <strong>nome</strong>, <strong>telefone</strong>,{" "}
+              <strong>email</strong> e, opcionalmente, <strong>cidade</strong>, <strong>uf</strong> e{" "}
+              <strong>grupo</strong> para alimentar a base individual desta campanha.
             </p>
           </div>
           <span className="pill">Controle do administrador</span>
@@ -202,7 +203,9 @@ export default async function CampaignOperationalPage({
             <span>Formato esperado</span>
             <div className="step-panel-callout">
               Cabeçalho com colunas <span className="mono">nome</span>, <span className="mono">telefone</span> e{" "}
-              <span className="mono">email</span>. Telefones repetidos atualizam o eleitor existente na campanha.
+              <span className="mono">email</span>. Também aceitamos os campos opcionais{" "}
+              <span className="mono">cidade</span>, <span className="mono">uf</span> e{" "}
+              <span className="mono">grupo</span>. Telefones repetidos atualizam o eleitor existente na campanha.
             </div>
           </label>
           <div className="actions" style={{ alignItems: "end" }}>
