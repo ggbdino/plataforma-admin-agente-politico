@@ -22,3 +22,5 @@ App Next.js para operar o Agente Politico no Caminho A:
 - `GET /api/candidatos`
 - `GET /api/candidatos/:idCandidato/implantacao`
 - `POST /api/candidatos/:idCandidato/implantacao/etapas/:codigoEtapa/executar`
+- `GET /api/campanhas/:idCandidato/evento-ativo`
+- `POST /api/campanhas/:idCandidato/evento-ativo`

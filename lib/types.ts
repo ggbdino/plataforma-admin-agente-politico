@@ -97,7 +97,13 @@ export type CampaignEventAttendanceContext = {
   id_candidato: string;
   nome_urna: string;
   numero_agente_oficial: string | null;
+  qr_code_url: string | null;
   eventos: CampaignEventAttendanceItem[];
+};
+
+export type CampaignActiveEventSnapshot = {
+  ativo: boolean;
+  evento: CampaignEventAttendanceItem | null;
 };
 
 export type ManagerUpdateSummary = {

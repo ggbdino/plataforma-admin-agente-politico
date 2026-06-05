@@ -13,7 +13,7 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
   const eventoId = String(formData.get("eventoId") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim();
   const nome = String(formData.get("nome") ?? "").trim();
-  const statusParticipacao = String(formData.get("statusParticipacao") ?? "presente").trim();
+  const cidade = String(formData.get("cidade") ?? "").trim();
   const observacao = String(formData.get("observacao") ?? "").trim();
   const session = await getCurrentPlatformSession();
   const canOperateEvents = await hasCampaignAccess(session, idCandidato, "pode_operar_eventos");
@@ -35,22 +35,14 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     );
   }
 
-  if (statusParticipacao !== "confirmado" && statusParticipacao !== "presente") {
-    redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
-        "Status de participação inválido para o registro do evento."
-      )}`
-    );
-  }
-
   try {
     const result = await registerEventAttendanceByPhone({
       idCandidato,
       eventoId,
       telefone,
       nome,
-      statusParticipacao,
-      observacao,
+      cidade,
+      observacao
     });
 
     await recordGovernanceEvent({
@@ -58,16 +50,30 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
       escopo: "campanha",
       ator: session?.email ?? "controle_evento",
       categoria: "presenca_evento",
-      acao: "presenca_registrada",
-      descricao: `Participação registrada por telefone no evento ${result.nomeEvento}.`,
+      acao: result.linkedToEvent ? "presenca_registrada" : "cadastro_evento_fora_janela",
+      descricao: result.linkedToEvent
+        ? `Presença registrada por telefone no evento ${result.nomeEvento}.`
+        : `Cadastro realizado fora da janela operacional do evento ${result.nomeEvento}.`,
       status: "sucesso",
       origem: "gestora-eventos",
       detalhes: {
         eventoId,
         telefone: result.telefone,
-        statusParticipacao
+        createdNewElector: result.createdNewElector,
+        linkedToEvent: result.linkedToEvent
       }
     });
+
+    revalidatePath(`/gestor/candidato/${idCandidato}/eventos`);
+    revalidatePath(`/campanhas/${idCandidato}`);
+
+    redirect(
+      `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
+        result.linkedToEvent
+          ? "Presença registrada com sucesso para este evento."
+          : "Contato cadastrado, mas fora da janela do evento. A presença não foi computada."
+      )}`
+    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Falha ao registrar a presença no evento.";
@@ -86,12 +92,4 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     revalidatePath(`/gestor/candidato/${idCandidato}/eventos`);
     redirect(`${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(message)}`);
   }
-
-  revalidatePath(`/gestor/candidato/${idCandidato}/eventos`);
-  revalidatePath(`/campanhas/${idCandidato}`);
-  redirect(
-    `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
-      "Presença registrada com sucesso para este evento."
-    )}`
-  );
 }

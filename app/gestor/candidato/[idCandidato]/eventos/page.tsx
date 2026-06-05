@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
@@ -44,10 +45,10 @@ export default async function CampaignEventAttendancePage({
 
       <section className="hero-card">
         <span className="pill">Controle de eventos</span>
-        <h1 className="title">Presença por telefone da campanha {data.nome_urna}</h1>
+        <h1 className="title">Entrada e presença da campanha {data.nome_urna}</h1>
         <p className="subtitle">
-          Tela operacional para localizar ou criar o eleitor pelo telefone e registrar presença ou
-          confirmação nos eventos ativos do candidato.
+          Painel para validar presença por telefone na entrada do evento, criar contato mínimo quando
+          necessário e estimular o início do relacionamento pelo QR Code oficial da campanha.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}`}>
@@ -88,10 +89,10 @@ export default async function CampaignEventAttendancePage({
         <>
           <section className="grid grid-2" style={{ marginBottom: 20 }}>
             <article className="card manager-info-card">
-              <h2 className="section-title">Registro rápido de presença</h2>
+              <h2 className="section-title">Registrar entrada pelo telefone</h2>
               <div className="step-panel-callout">
-                Use o telefone como chave principal. Se o eleitor ainda não estiver na base da campanha,
-                o sistema cria um cadastro mínimo e já registra a participação no evento.
+                Durante a janela do evento, qualquer pessoa registrada por aqui é considerada como
+                presente. Para cadastros novos, telefone, nome e cidade são obrigatórios.
               </div>
               <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form" style={{ marginTop: 16 }}>
                 <input name="idCandidato" type="hidden" value={idCandidato} />
@@ -123,45 +124,67 @@ export default async function CampaignEventAttendancePage({
                   <input
                     className="step-input"
                     name="nome"
-                    placeholder="Opcional para cadastro mínimo"
+                    placeholder="Obrigatório para novo cadastro"
                     type="text"
                   />
                 </label>
                 <label className="step-note">
-                  <span>Status do registro</span>
-                  <select className="step-input" defaultValue="presente" name="statusParticipacao">
-                    <option value="presente">Presente</option>
-                    <option value="confirmado">Confirmado</option>
-                  </select>
+                  <span>Cidade do participante</span>
+                  <input
+                    className="step-input"
+                    name="cidade"
+                    placeholder="Obrigatória para novo cadastro"
+                    type="text"
+                  />
                 </label>
                 <label className="step-note">
                   <span>Observação do controle</span>
                   <textarea
                     className="step-textarea"
                     name="observacao"
-                    placeholder="Ex.: credenciamento, entrada pelo QR, apoio local."
+                    placeholder="Ex.: entrada pelo credenciamento, convidado especial, apoio local."
                     rows={3}
                   />
                 </label>
                 <div className="actions">
                   <button className="button" disabled={data.eventos.length === 0} type="submit">
-                    Registrar participação
+                    Registrar entrada
                   </button>
                 </div>
               </form>
             </article>
 
             <article className="card manager-info-card">
-              <h2 className="section-title">Leitura operacional do evento</h2>
-              <ul className="manager-checklist">
-                <li>O telefone é a chave principal para localizar o eleitor na base.</li>
-                <li>Se o contato ainda não existir, criamos um cadastro mínimo para o candidato ativo.</li>
-                <li>A presença registrada alimenta funil, relacionamento e indicadores de conversão.</li>
-                <li>Este painel pode ser usado em computadores espalhados pelo evento ou por operadores autorizados.</li>
-              </ul>
+              <h2 className="section-title">QR Code e canal oficial</h2>
+              <div className="step-panel-callout">
+                Deixe esta tela visível nos computadores do evento para facilitar a entrada espontânea
+                do participante no canal oficial da campanha.
+              </div>
+              {data.qr_code_url ? (
+                <div className="manager-qr-panel">
+                  <strong>QR Code oficial da campanha</strong>
+                  <Image
+                    alt={`QR Code oficial de ${data.nome_urna}`}
+                    className="qr-image"
+                    height={220}
+                    src={data.qr_code_url}
+                    unoptimized
+                    width={220}
+                  />
+                </div>
+              ) : (
+                <div className="step-panel-callout" style={{ marginTop: 16 }}>
+                  QR Code oficial ainda não disponível para esta campanha.
+                </div>
+              )}
               <div className="step-panel-callout" style={{ marginTop: 18 }}>
                 Número oficial da campanha: <span className="mono">{data.numero_agente_oficial ?? "pendente"}</span>
               </div>
+              <ul className="manager-checklist">
+                <li>Se o contato iniciar conversa durante a janela do evento, a campanha já pode qualificar esse eleitor.</li>
+                <li>Cadastros feitos fora da janela não contam como presença, mas podem entrar na base para relacionamento.</li>
+                <li>O telefone continua sendo a chave principal de validação do participante.</li>
+              </ul>
             </article>
           </section>
 
@@ -170,7 +193,7 @@ export default async function CampaignEventAttendancePage({
               <div>
                 <h2 className="section-title">Eventos disponíveis para controle</h2>
                 <p className="subtitle">
-                  Resumo da agenda operacional com totais de confirmados e presentes já registrados.
+                  Resumo da agenda operacional com totais de presentes já computados na campanha.
                 </p>
               </div>
               <span className="pill">{data.eventos.length} evento(s)</span>
