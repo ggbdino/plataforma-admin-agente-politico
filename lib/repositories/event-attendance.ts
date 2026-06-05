@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { ensureElectorEnrichmentColumns } from "@/lib/repositories/elector-schema";
 import type {
   CampaignActiveEventSnapshot,
+  CampaignAttendanceElectorLookup,
   CampaignEventAttendanceContext,
   CampaignEventAttendanceItem
 } from "@/lib/types";
@@ -136,6 +137,35 @@ export async function getActiveCampaignEvent(
     ativo: eventsResult.rows.length > 0,
     evento: eventsResult.rows[0] ?? null
   };
+}
+
+export async function findCampaignElectorByPhone(
+  idCandidato: string,
+  telefoneInformado: string
+): Promise<CampaignAttendanceElectorLookup | null> {
+  const telefone = normalizePhone(telefoneInformado);
+
+  if (!telefone) {
+    return null;
+  }
+
+  const result = await db.query<CampaignAttendanceElectorLookup>(
+    `
+      select
+        eleitor_uid,
+        nome,
+        telefone,
+        cidade,
+        uf
+      from eleitores
+      where id_candidato = $1
+        and telefone = $2
+      limit 1
+    `,
+    [idCandidato, telefone]
+  );
+
+  return result.rows[0] ?? null;
 }
 
 export async function registerEventAttendanceByPhone(input: {
@@ -341,6 +371,7 @@ export async function registerEventAttendanceByPhone(input: {
 
     return {
       nomeEvento: event.nome_evento,
+      nomeEleitor: nome ?? electorResult.rows[0]?.nome ?? null,
       telefone,
       createdNewElector,
       linkedToEvent: shouldCountAsAttendance

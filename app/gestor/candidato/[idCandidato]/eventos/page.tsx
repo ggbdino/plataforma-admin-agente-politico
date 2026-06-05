@@ -2,9 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
-import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { registerEventAttendanceByPhoneAction } from "@/lib/actions/event-attendance-action";
-import { getCampaignEventAttendanceContext } from "@/lib/repositories/event-attendance";
+import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
+import {
+  findCampaignElectorByPhone,
+  getCampaignEventAttendanceContext
+} from "@/lib/repositories/event-attendance";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +18,8 @@ type CampaignEventAttendancePageProps = {
   searchParams?: Promise<{
     feedback?: string;
     mensagem?: string;
+    evento?: string;
+    telefone?: string;
   }>;
 };
 
@@ -34,25 +39,31 @@ export default async function CampaignEventAttendancePage({
     notFound();
   }
 
+  const selectedEventId = query?.evento || data.eventos[0]?.id || "";
+  const selectedEvent = data.eventos.find((event) => event.id === selectedEventId) ?? data.eventos[0] ?? null;
+  const typedPhone = String(query?.telefone ?? "").trim();
+  const electorLookup =
+    hasAccess && typedPhone ? await findCampaignElectorByPhone(idCandidato, typedPhone) : null;
+
   return (
     <main className="page-shell">
       {query?.feedback && query?.mensagem ? (
         <section className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}>
-          <strong>{query.feedback === "sucesso" ? "Operação concluída." : "Falha operacional."}</strong>
+          <strong>{query.feedback === "sucesso" ? "Operacao concluida." : "Falha operacional."}</strong>
           <div style={{ marginTop: 6 }}>{query.mensagem}</div>
         </section>
       ) : null}
 
       <section className="hero-card">
         <span className="pill">Controle de eventos</span>
-        <h1 className="title">Entrada e presença da campanha {data.nome_urna}</h1>
+        <h1 className="title">Presenca e autoatendimento da campanha {data.nome_urna}</h1>
         <p className="subtitle">
-          Painel para validar presença por telefone na entrada do evento, criar contato mínimo quando
-          necessário e estimular o início do relacionamento pelo QR Code oficial da campanha.
+          Tela operacional para entrada no evento, confirmacao de presenca por telefone e exibicao do
+          canal oficial da campanha para quem preferir confirmar pelo proprio WhatsApp.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}`}>
-            Voltar para área da gestora
+            Voltar para area da gestora
           </Link>
         </div>
       </section>
@@ -61,23 +72,19 @@ export default async function CampaignEventAttendancePage({
         <section className="card manager-auth-card">
           <h2 className="section-title">Liberar acesso ao controle de eventos</h2>
           <p className="subtitle">
-            Informe o e-mail e a senha de um usuário com permissão para operar eventos ou implantar
-            a campanha deste candidato.
+            Informe o e-mail e a senha de um usuario com permissao para operar eventos ou implantar a
+            campanha deste candidato.
           </p>
           <form action={authenticatePlatformAreaAction} className="manager-auth-form">
             <input name="idCandidato" type="hidden" value={idCandidato} />
-            <input
-              name="redirectTo"
-              type="hidden"
-              value={`/gestor/candidato/${idCandidato}/eventos`}
-            />
+            <input name="redirectTo" type="hidden" value={`/gestor/candidato/${idCandidato}/eventos`} />
             <input name="contexto" type="hidden" value="gestora" />
             <label className="step-note">
-              <span>E-mail do usuário</span>
+              <span>E-mail do usuario</span>
               <input className="step-input" name="email" type="email" />
             </label>
             <label className="step-note">
-              <span>Senha do usuário</span>
+              <span>Senha do usuario</span>
               <input className="step-input" name="senha" type="password" />
             </label>
             <button className="button" type="submit">
@@ -87,126 +94,201 @@ export default async function CampaignEventAttendancePage({
         </section>
       ) : (
         <>
-          <section className="grid grid-2" style={{ marginBottom: 20 }}>
-            <article className="card manager-info-card">
-              <h2 className="section-title">Registrar entrada pelo telefone</h2>
-              <div className="step-panel-callout">
-                Durante a janela do evento, qualquer pessoa registrada por aqui é considerada como
-                presente. Para cadastros novos, telefone, nome e cidade são obrigatórios.
-              </div>
-              <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form" style={{ marginTop: 16 }}>
-                <input name="idCandidato" type="hidden" value={idCandidato} />
-                <input
-                  name="redirectTo"
-                  type="hidden"
-                  value={`/gestor/candidato/${idCandidato}/eventos`}
-                />
-                <label className="step-note">
-                  <span>Evento da campanha</span>
-                  <select className="step-input" defaultValue={data.eventos[0]?.id ?? ""} name="eventoId">
-                    {data.eventos.length === 0 ? (
-                      <option value="">Nenhum evento disponível</option>
-                    ) : (
-                      data.eventos.map((event) => (
-                        <option key={event.id} value={event.id}>
-                          {event.nome_evento} • {formatDateTime(event.data_evento)}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </label>
-                <label className="step-note">
-                  <span>Telefone do participante</span>
-                  <input className="step-input" name="telefone" placeholder="61999998888" type="text" />
-                </label>
-                <label className="step-note">
-                  <span>Nome do participante</span>
-                  <input
-                    className="step-input"
-                    name="nome"
-                    placeholder="Obrigatório para novo cadastro"
-                    type="text"
-                  />
-                </label>
-                <label className="step-note">
-                  <span>Cidade do participante</span>
-                  <input
-                    className="step-input"
-                    name="cidade"
-                    placeholder="Obrigatória para novo cadastro"
-                    type="text"
-                  />
-                </label>
-                <label className="step-note">
-                  <span>Observação do controle</span>
-                  <textarea
-                    className="step-textarea"
-                    name="observacao"
-                    placeholder="Ex.: entrada pelo credenciamento, convidado especial, apoio local."
-                    rows={3}
-                  />
-                </label>
-                <div className="actions">
-                  <button className="button" disabled={data.eventos.length === 0} type="submit">
-                    Registrar entrada
-                  </button>
+          <section className="card event-attendance-hero-panel">
+            <div className="event-attendance-hero-grid">
+              <div className="event-attendance-operator">
+                <div className="event-attendance-combo">
+                  <div>
+                    <span className="metric-label">Evento em operacao</span>
+                    <h2 className="section-title" style={{ marginTop: 6 }}>
+                      {selectedEvent ? selectedEvent.nome_evento : "Nenhum evento disponivel"}
+                    </h2>
+                    <p className="subtitle" style={{ maxWidth: "none" }}>
+                      {selectedEvent
+                        ? `${formatDateTime(selectedEvent.data_evento)} • ${selectedEvent.local_nome ?? selectedEvent.cidade ?? "local a definir"}`
+                        : "Cadastre um evento para habilitar o controle de presenca."}
+                    </p>
+                  </div>
+                  <form className="event-attendance-event-form" method="get">
+                    <label className="step-note" style={{ marginBottom: 0 }}>
+                      <span>Selecionar evento</span>
+                      <select className="step-input" defaultValue={selectedEventId} name="evento">
+                        {data.eventos.length === 0 ? (
+                          <option value="">Nenhum evento disponivel</option>
+                        ) : (
+                          data.eventos.map((event) => (
+                            <option key={event.id} value={event.id}>
+                              {event.nome_evento} • {formatDateTime(event.data_evento)}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </label>
+                    <button className="button secondary" disabled={data.eventos.length === 0} type="submit">
+                      Fixar evento
+                    </button>
+                  </form>
                 </div>
-              </form>
-            </article>
 
-            <article className="card manager-info-card">
-              <h2 className="section-title">QR Code e canal oficial</h2>
-              <div className="step-panel-callout">
-                Deixe esta tela visível nos computadores do evento para facilitar a entrada espontânea
-                do participante no canal oficial da campanha.
-              </div>
-              {data.qr_code_url ? (
-                <div className="manager-qr-panel">
-                  <strong>QR Code oficial da campanha</strong>
-                  <Image
-                    alt={`QR Code oficial de ${data.nome_urna}`}
-                    className="qr-image"
-                    height={220}
-                    src={data.qr_code_url}
-                    unoptimized
-                    width={220}
-                  />
+                <div className="event-attendance-summary-grid">
+                  <div className="regional-card-metric">
+                    <span>Confirmados</span>
+                    <strong>{selectedEvent?.total_confirmados ?? 0}</strong>
+                  </div>
+                  <div className="regional-card-metric">
+                    <span>Presentes</span>
+                    <strong>{selectedEvent?.total_presentes ?? 0}</strong>
+                  </div>
+                  <div className="regional-card-metric">
+                    <span>Praca</span>
+                    <strong style={{ fontSize: "1rem" }}>
+                      {[selectedEvent?.cidade, selectedEvent?.uf].filter(Boolean).join(" / ") || "-"}
+                    </strong>
+                  </div>
+                  <div className="regional-card-metric">
+                    <span>Status</span>
+                    <strong style={{ fontSize: "1rem" }}>{selectedEvent?.status ?? "-"}</strong>
+                  </div>
                 </div>
-              ) : (
-                <div className="step-panel-callout" style={{ marginTop: 16 }}>
-                  QR Code oficial ainda não disponível para esta campanha.
+
+                <div className="event-attendance-flow">
+                  <h2 className="section-title">Entrada por telefone</h2>
+                  <p className="event-attendance-instruction">
+                    Solicite o telefone para registrar a presenca.
+                  </p>
+
+                  <form className="event-attendance-phone-form" method="get">
+                    <input name="evento" type="hidden" value={selectedEventId} />
+                    <label className="step-note" style={{ marginBottom: 0 }}>
+                      <span>Telefone do participante</span>
+                      <input
+                        className="step-input event-attendance-phone-input"
+                        defaultValue={typedPhone}
+                        name="telefone"
+                        placeholder="61999998888"
+                        type="text"
+                      />
+                    </label>
+                    <button className="button" disabled={!selectedEvent} type="submit">
+                      Validar telefone
+                    </button>
+                  </form>
+
+                  {typedPhone ? (
+                    electorLookup ? (
+                      <article className="card event-attendance-result-card">
+                        <span className="pill ok">Telefone encontrado na base</span>
+                        <strong className="metric-title">{electorLookup.nome ?? "Participante sem nome"}</strong>
+                        <div className="muted">
+                          {[electorLookup.cidade, electorLookup.uf].filter(Boolean).join(" / ") || "Cidade nao informada"}
+                        </div>
+                        <div className="step-panel-callout">
+                          Ao confirmar abaixo, a presenca sera registrada para <strong>{electorLookup.nome ?? "este participante"}</strong>.
+                        </div>
+                        <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
+                          <input name="idCandidato" type="hidden" value={idCandidato} />
+                          <input
+                            name="redirectTo"
+                            type="hidden"
+                            value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}`}
+                          />
+                          <input name="eventoId" type="hidden" value={selectedEventId} />
+                          <input name="telefone" type="hidden" value={electorLookup.telefone} />
+                          <input name="nome" type="hidden" value={electorLookup.nome ?? ""} />
+                          <input name="cidade" type="hidden" value={electorLookup.cidade ?? ""} />
+                          <button className="button" type="submit">
+                            Registrar presenca de {electorLookup.nome ?? "participante"}
+                          </button>
+                        </form>
+                      </article>
+                    ) : (
+                      <article className="card event-attendance-result-card">
+                        <span className="pill warn">Telefone ainda nao cadastrado</span>
+                        <strong className="metric-title">Novo usuario</strong>
+                        <div className="step-panel-callout">
+                          Complete nome e cidade para criar o cadastro e registrar a presenca no evento.
+                        </div>
+                        <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
+                          <input name="idCandidato" type="hidden" value={idCandidato} />
+                          <input
+                            name="redirectTo"
+                            type="hidden"
+                            value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}`}
+                          />
+                          <input name="eventoId" type="hidden" value={selectedEventId} />
+                          <input name="telefone" type="hidden" value={typedPhone} />
+                          <label className="step-note">
+                            <span>Nome</span>
+                            <input className="step-input" name="nome" placeholder="Nome do participante" type="text" />
+                          </label>
+                          <label className="step-note">
+                            <span>Cidade</span>
+                            <input className="step-input" name="cidade" placeholder="Cidade do participante" type="text" />
+                          </label>
+                          <button className="button" type="submit">
+                            Cadastrar novo usuario e registrar presenca
+                          </button>
+                        </form>
+                      </article>
+                    )
+                  ) : (
+                    <article className="card event-attendance-result-card event-attendance-idle-card">
+                      <span className="pill">Fluxo rapido</span>
+                      <strong className="metric-title">Atendimento focado no telefone</strong>
+                      <div className="muted">
+                        Com o evento fixado, o atendente so precisa validar o telefone. Se o contato existir, a presenca e confirmada no ato.
+                      </div>
+                    </article>
+                  )}
                 </div>
-              )}
-              <div className="step-panel-callout" style={{ marginTop: 18 }}>
-                Número oficial da campanha: <span className="mono">{data.numero_agente_oficial ?? "pendente"}</span>
               </div>
-              <ul className="manager-checklist">
-                <li>Se o contato iniciar conversa durante a janela do evento, a campanha já pode qualificar esse eleitor.</li>
-                <li>Cadastros feitos fora da janela não contam como presença, mas podem entrar na base para relacionamento.</li>
-                <li>O telefone continua sendo a chave principal de validação do participante.</li>
-              </ul>
-            </article>
+
+              <aside className="event-attendance-self-service">
+                <div className="event-attendance-self-service-card">
+                  <span className="pill ok">Autoatendimento</span>
+                  <h2 className="section-title">Confirme sua presenca no evento</h2>
+                  {data.qr_code_url ? (
+                    <Image
+                      alt={`QR Code oficial de ${data.nome_urna}`}
+                      className="qr-image"
+                      height={260}
+                      src={data.qr_code_url}
+                      unoptimized
+                      width={260}
+                    />
+                  ) : (
+                    <div className="step-panel-callout">QR Code oficial ainda nao disponivel para esta campanha.</div>
+                  )}
+                  <div className="event-attendance-number-highlight">
+                    <span>Numero oficial</span>
+                    <strong>{data.numero_agente_oficial ?? "pendente"}</strong>
+                  </div>
+                  <div className="event-attendance-self-service-copy">
+                    Aponte a camera do celular para o QR Code ou registre o telefone no WhatsApp para confirmar a presenca.
+                  </div>
+                </div>
+              </aside>
+            </div>
           </section>
 
           <section className="card">
             <div className="section-heading">
               <div>
-                <h2 className="section-title">Eventos disponíveis para controle</h2>
+                <h2 className="section-title">Eventos disponiveis para controle</h2>
                 <p className="subtitle">
-                  Resumo da agenda operacional com totais de presentes já computados na campanha.
+                  Resumo da agenda operacional com totais de presentes ja computados na campanha.
                 </p>
               </div>
               <span className="pill">{data.eventos.length} evento(s)</span>
             </div>
             {data.eventos.length === 0 ? (
               <div className="step-panel-callout">
-                Ainda não há eventos cadastrados para esta campanha. Cadastre a agenda antes de iniciar o
-                controle de presença.
+                Ainda nao ha eventos cadastrados para esta campanha. Cadastre a agenda antes de iniciar o controle de presenca.
               </div>
             ) : (
               <div className="grid grid-2">
                 {data.eventos.map((event) => (
-                  <article className="card metric-card" key={event.id} style={{ border: "1px solid var(--border-soft)" }}>
+                  <article className="card metric-card" key={event.id} style={{ border: "1px solid var(--line)" }}>
                     <span className="metric-label">{event.tipo_evento ?? "evento"}</span>
                     <strong className="metric-value" style={{ fontSize: "1.25rem" }}>
                       {event.nome_evento}
@@ -228,7 +310,7 @@ export default async function CampaignEventAttendancePage({
                         <div>{event.total_presentes}</div>
                       </div>
                       <div>
-                        <strong>Praça</strong>
+                        <strong>Praca</strong>
                         <div>{[event.cidade, event.uf].filter(Boolean).join(" / ") || "-"}</div>
                       </div>
                     </div>

@@ -1,7 +1,7 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 import { registerEventAttendanceByPhone } from "@/lib/repositories/event-attendance";
@@ -22,7 +22,7 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
   if (!canOperateEvents && !canImplant) {
     redirect(
       `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
-        "Seu usuário não possui permissão para controlar presença de eventos desta campanha."
+        "Seu usuario nao possui permissao para controlar presenca de eventos desta campanha."
       )}`
     );
   }
@@ -30,7 +30,7 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
   if (!eventoId) {
     redirect(
       `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
-        "Selecione um evento antes de registrar a presença."
+        "Selecione um evento antes de registrar a presenca."
       )}`
     );
   }
@@ -52,7 +52,7 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
       categoria: "presenca_evento",
       acao: result.linkedToEvent ? "presenca_registrada" : "cadastro_evento_fora_janela",
       descricao: result.linkedToEvent
-        ? `Presença registrada por telefone no evento ${result.nomeEvento}.`
+        ? `Presenca registrada por telefone no evento ${result.nomeEvento}.`
         : `Cadastro realizado fora da janela operacional do evento ${result.nomeEvento}.`,
       status: "sucesso",
       origem: "gestora-eventos",
@@ -70,13 +70,13 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     redirect(
       `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
         result.linkedToEvent
-          ? "Presença registrada com sucesso para este evento."
-          : "Contato cadastrado, mas fora da janela do evento. A presença não foi computada."
+          ? `Presenca registrada para ${result.nomeEleitor ?? "participante"}.`
+          : `Cadastro realizado para ${result.nomeEleitor ?? "novo participante"}, mas fora da janela do evento.`
       )}`
     );
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Falha ao registrar a presença no evento.";
+      error instanceof Error ? error.message : "Falha ao registrar a presenca no evento.";
 
     await recordGovernanceEvent({
       idCandidato,

@@ -655,6 +655,114 @@ button {
   justify-items: start;
 }
 
+.event-attendance-hero-panel {
+  margin-bottom: 20px;
+}
+
+.event-attendance-hero-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.9fr);
+  align-items: start;
+}
+
+.event-attendance-operator,
+.event-attendance-self-service-card,
+.event-attendance-result-card {
+  display: grid;
+  gap: 14px;
+}
+
+.event-attendance-combo {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(36, 135, 211, 0.16);
+  background: rgba(244, 251, 255, 0.88);
+}
+
+.event-attendance-event-form,
+.event-attendance-phone-form {
+  display: grid;
+  gap: 12px;
+}
+
+.event-attendance-summary-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.event-attendance-flow {
+  display: grid;
+  gap: 14px;
+}
+
+.event-attendance-instruction {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
+.event-attendance-phone-input {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.event-attendance-idle-card {
+  background: rgba(244, 251, 255, 0.88);
+}
+
+.event-attendance-self-service {
+  height: 100%;
+}
+
+.event-attendance-self-service-card {
+  position: sticky;
+  top: 24px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(36, 135, 211, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(234, 246, 255, 0.96)),
+    var(--surface);
+  justify-items: center;
+  text-align: center;
+}
+
+.event-attendance-number-highlight {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(230, 242, 251, 0.95);
+  border: 1px solid rgba(36, 135, 211, 0.16);
+}
+
+.event-attendance-number-highlight span {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+
+.event-attendance-number-highlight strong {
+  color: var(--accent-deep);
+  font-size: 1.5rem;
+  letter-spacing: 0.03em;
+}
+
+.event-attendance-self-service-copy {
+  color: var(--accent-deep);
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 28ch;
+}
+
 .manager-candidate-grid {
   display: grid;
   gap: 16px;
@@ -1175,6 +1283,10 @@ button {
   }
 
   .workflow-candidate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .event-attendance-hero-grid {
     grid-template-columns: 1fr;
   }
 

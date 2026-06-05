@@ -106,6 +106,14 @@ export type CampaignActiveEventSnapshot = {
   evento: CampaignEventAttendanceItem | null;
 };
 
+export type CampaignAttendanceElectorLookup = {
+  eleitor_uid: string;
+  nome: string | null;
+  telefone: string;
+  cidade: string | null;
+  uf: string | null;
+};
+
 export type ManagerUpdateSummary = {
   origem: string;
   status_execucao: string;
