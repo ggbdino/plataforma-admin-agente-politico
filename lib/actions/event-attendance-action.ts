@@ -20,19 +20,17 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
   const canImplant = await hasCampaignAccess(session, idCandidato, "pode_implantar");
 
   if (!canOperateEvents && !canImplant) {
-    redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
-        "Seu usuario nao possui permissao para controlar presenca de eventos desta campanha."
-      )}`
-    );
+    redirectToEventScreen(redirectTo, {
+      feedback: "erro",
+      mensagem: "Seu usuario nao possui permissao para controlar presenca de eventos desta campanha."
+    });
   }
 
   if (!eventoId) {
-    redirect(
-      `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
-        "Selecione um evento antes de registrar a presenca."
-      )}`
-    );
+    redirectToEventScreen(redirectTo, {
+      feedback: "erro",
+      mensagem: "Selecione um evento antes de registrar a presenca."
+    });
   }
 
   try {
@@ -67,13 +65,14 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     revalidatePath(`/gestor/candidato/${idCandidato}/eventos`);
     revalidatePath(`/campanhas/${idCandidato}`);
 
-    redirect(
-      `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
-        result.linkedToEvent
-          ? `Presenca registrada para ${result.nomeEleitor ?? "participante"}.`
-          : `Cadastro realizado para ${result.nomeEleitor ?? "novo participante"}, mas fora da janela do evento.`
-      )}`
-    );
+    redirectToEventScreen(redirectTo, {
+      feedback: "sucesso",
+      mensagem: result.linkedToEvent
+        ? `Presenca registrada para ${result.nomeEleitor ?? "participante"}.`
+        : `Cadastro realizado para ${result.nomeEleitor ?? "novo participante"}, mas fora da janela do evento.`,
+      telefone: result.telefone,
+      nome: result.nomeEleitor ?? ""
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Falha ao registrar a presenca no evento.";
@@ -90,6 +89,38 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     });
 
     revalidatePath(`/gestor/candidato/${idCandidato}/eventos`);
-    redirect(`${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(message)}`);
+    redirectToEventScreen(redirectTo, {
+      feedback: "erro",
+      mensagem: message,
+      telefone
+    });
   }
+}
+
+function redirectToEventScreen(
+  target: string,
+  params: {
+    feedback: string;
+    mensagem: string;
+    telefone?: string;
+    nome?: string;
+  }
+): never {
+  const [pathAndQuery, hashFragment] = target.split("#");
+  const [pathname, search = ""] = pathAndQuery.split("?");
+  const nextParams = new URLSearchParams(search);
+
+  nextParams.set("feedback", params.feedback);
+  nextParams.set("mensagem", params.mensagem);
+
+  if (params.telefone) {
+    nextParams.set("telefone", params.telefone);
+  }
+
+  if (params.nome) {
+    nextParams.set("nome", params.nome);
+  }
+
+  const nextUrl = `${pathname}?${nextParams.toString()}${hashFragment ? `#${hashFragment}` : ""}`;
+  redirect(nextUrl);
 }
