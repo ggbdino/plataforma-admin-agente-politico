@@ -23,14 +23,14 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
   if (!canOperateEvents && !canImplant) {
     redirectToEventScreen(redirectTo, {
       feedback: "erro",
-      mensagem: "Seu usuario nao possui permissao para controlar presenca de eventos desta campanha."
+      mensagem: "Seu usuário não possui permissão para controlar a presença de eventos desta campanha."
     });
   }
 
   if (!eventoId) {
     redirectToEventScreen(redirectTo, {
       feedback: "erro",
-      mensagem: "Selecione um evento antes de registrar a presenca."
+      mensagem: "Selecione um evento antes de registrar a presença."
     });
   }
 
@@ -51,8 +51,8 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
       categoria: "presenca_evento",
       acao: result.linkedToEvent ? "presenca_registrada" : "cadastro_evento_fora_janela",
       descricao: result.linkedToEvent
-        ? `Presenca registrada por telefone no evento ${result.nomeEvento}.`
-        : `Cadastro realizado fora da janela operacional do evento ${result.nomeEvento}.`,
+        ? `Presença registrada por telefone no evento ${result.nomeEvento}.`
+        : `Cadastro processado fora da janela operacional do evento ${result.nomeEvento}.`,
       status: "sucesso",
       origem: "gestora-eventos",
       detalhes: {
@@ -69,8 +69,10 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     redirectToEventScreen(redirectTo, {
       feedback: "sucesso",
       mensagem: result.linkedToEvent
-        ? `Presenca registrada para ${result.nomeEleitor ?? "participante"}.`
-        : `Cadastro realizado para ${result.nomeEleitor ?? "novo participante"}, mas fora da janela do evento.`,
+        ? `Presença registrada para ${result.nomeEleitor ?? "participante"}.`
+        : result.createdNewElector
+          ? `Cadastro realizado para ${result.nomeEleitor ?? "novo participante"}, mas fora da janela do evento.`
+          : `Contato localizado na base para ${result.nomeEleitor ?? "participante"}, mas fora da janela do evento. Nenhuma presença foi computada.`,
       telefone: result.telefone,
       nome: result.nomeEleitor ?? ""
     });
@@ -80,7 +82,7 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     }
 
     const message =
-      error instanceof Error ? error.message : "Falha ao registrar a presenca no evento.";
+      error instanceof Error ? error.message : "Falha ao registrar a presença no evento.";
 
     await recordGovernanceEvent({
       idCandidato,

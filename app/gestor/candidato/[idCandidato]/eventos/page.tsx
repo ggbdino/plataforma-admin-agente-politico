@@ -24,6 +24,12 @@ type CampaignEventAttendancePageProps = {
   }>;
 };
 
+type AttendanceWindowState = {
+  isOpen: boolean;
+  label: string;
+  message: string;
+};
+
 export default async function CampaignEventAttendancePage({
   params,
   searchParams
@@ -48,19 +54,20 @@ export default async function CampaignEventAttendancePage({
   const needsElectorCompletion = Boolean(
     electorLookup && (!normalizeText(electorLookup.nome) || !normalizeText(electorLookup.cidade))
   );
+  const windowState = selectedEvent ? getAttendanceWindowState(selectedEvent.data_evento) : null;
 
   return (
     <main className="page-shell">
       <section className="hero-card">
         <span className="pill">Controle de eventos</span>
-        <h1 className="title">Presenca e autoatendimento da campanha {data.nome_urna}</h1>
+        <h1 className="title">Presença e autoatendimento da campanha {data.nome_urna}</h1>
         <p className="subtitle">
-          Tela operacional dedicada ao evento atual, com entrada por telefone para a equipe e um modo separado
-          de autoatendimento para QR Code e numero oficial da campanha.
+          Tela operacional dedicada ao evento atual, com entrada por telefone para a equipe e modo
+          separado de autoatendimento com QR Code e número oficial da campanha.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}`}>
-            Voltar para area da gestora
+            Voltar para a área da gestora
           </Link>
         </div>
       </section>
@@ -69,7 +76,7 @@ export default async function CampaignEventAttendancePage({
         <section className="card manager-auth-card">
           <h2 className="section-title">Liberar acesso ao controle de eventos</h2>
           <p className="subtitle">
-            Informe o e-mail e a senha de um usuario com permissao para operar eventos ou implantar a
+            Informe o e-mail e a senha de um usuário com permissão para operar eventos ou implantar a
             campanha deste candidato.
           </p>
           <form action={authenticatePlatformAreaAction} className="manager-auth-form">
@@ -77,11 +84,11 @@ export default async function CampaignEventAttendancePage({
             <input name="redirectTo" type="hidden" value={`/gestor/candidato/${idCandidato}/eventos`} />
             <input name="contexto" type="hidden" value="gestora" />
             <label className="step-note">
-              <span>E-mail do usuario</span>
+              <span>E-mail do usuário</span>
               <input className="step-input" name="email" type="email" />
             </label>
             <label className="step-note">
-              <span>Senha do usuario</span>
+              <span>Senha do usuário</span>
               <input className="step-input" name="senha" type="password" />
             </label>
             <button className="button" type="submit">
@@ -95,14 +102,14 @@ export default async function CampaignEventAttendancePage({
             <div className="event-attendance-operator">
               <div className="event-attendance-combo">
                 <div>
-                  <span className="metric-label">Evento em operacao</span>
+                  <span className="metric-label">Evento em operação</span>
                   <h2 className="section-title" style={{ marginTop: 6 }}>
-                    {selectedEvent ? selectedEvent.nome_evento : "Nenhum evento disponivel"}
+                    {selectedEvent ? selectedEvent.nome_evento : "Nenhum evento disponível"}
                   </h2>
                   <p className="subtitle" style={{ maxWidth: "none" }}>
                     {selectedEvent
-                      ? `${formatDateTime(selectedEvent.data_evento)} • ${selectedEvent.local_nome ?? selectedEvent.cidade ?? "local a definir"}`
-                      : "Cadastre um evento para habilitar o controle de presenca."}
+                      ? `${formatDateTime(selectedEvent.data_evento)} • ${selectedEvent.local_nome ?? selectedEvent.cidade ?? "Local a definir"}`
+                      : "Cadastre um evento para habilitar o controle de presença."}
                   </p>
                 </div>
                 <form className="event-attendance-event-form" method="get">
@@ -110,7 +117,7 @@ export default async function CampaignEventAttendancePage({
                     <span>Selecionar evento</span>
                     <select className="step-input" defaultValue={selectedEventId} name="evento">
                       {data.eventos.length === 0 ? (
-                        <option value="">Nenhum evento disponivel</option>
+                        <option value="">Nenhum evento disponível</option>
                       ) : (
                         data.eventos.map((event) => (
                           <option key={event.id} value={event.id}>
@@ -126,6 +133,13 @@ export default async function CampaignEventAttendancePage({
                 </form>
               </div>
 
+              {windowState ? (
+                <div className={`event-window-banner ${windowState.isOpen ? "ok" : "warn"}`}>
+                  <strong>{windowState.label}</strong>
+                  <span>{windowState.message}</span>
+                </div>
+              ) : null}
+
               <div className="event-attendance-summary-grid">
                 <div className="regional-card-metric">
                   <span>Presentes</span>
@@ -136,7 +150,7 @@ export default async function CampaignEventAttendancePage({
                   <strong>{selectedEvent?.total_confirmados ?? 0}</strong>
                 </div>
                 <div className="regional-card-metric">
-                  <span>Praca</span>
+                  <span>Praça</span>
                   <strong style={{ fontSize: "1rem" }}>
                     {[selectedEvent?.cidade, selectedEvent?.uf].filter(Boolean).join(" / ") || "-"}
                   </strong>
@@ -150,16 +164,16 @@ export default async function CampaignEventAttendancePage({
               <div className="event-attendance-flow">
                 <div id="entrada-telefone" />
                 <h2 className="section-title">Entrada por telefone</h2>
-                <p className="event-attendance-instruction">Solicite o telefone para registrar a presenca.</p>
+                <p className="event-attendance-instruction">Solicite o telefone para registrar a presença.</p>
 
                 {query?.feedback && query?.mensagem ? (
                   <section className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}>
                     <strong>{query.feedback === "sucesso" ? "Registro confirmado." : "Falha operacional."}</strong>
                     <div style={{ marginTop: 6 }}>{query.mensagem}</div>
-                    {query.feedback === "sucesso" ? (
+                    {query.telefone ? (
                       <div style={{ marginTop: 8 }}>
                         <strong>{query.nome ?? "Participante"}</strong>
-                        {query.telefone ? <span className="mono"> • {query.telefone}</span> : null}
+                        <span className="mono"> • {query.telefone}</span>
                       </div>
                     ) : null}
                   </section>
@@ -188,12 +202,13 @@ export default async function CampaignEventAttendancePage({
                       <span className="pill ok">Telefone encontrado na base</span>
                       <strong className="metric-title">{electorLookup.nome ?? "Participante sem nome"}</strong>
                       <div className="muted">
-                        {[electorLookup.cidade, electorLookup.uf].filter(Boolean).join(" / ") || "Cidade nao informada"}
+                        {[electorLookup.cidade, electorLookup.uf].filter(Boolean).join(" / ") || "Cidade não informada"}
                       </div>
                       {needsElectorCompletion ? (
                         <>
                           <div className="step-panel-callout">
-                            Antes de registrar a presenca, complete os dados basicos para melhorar a qualidade do cadastro.
+                            Antes de registrar a presença, complete os dados básicos para melhorar a
+                            qualidade do cadastro.
                           </div>
                           <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
                             <input name="idCandidato" type="hidden" value={idCandidato} />
@@ -225,14 +240,15 @@ export default async function CampaignEventAttendancePage({
                               />
                             </label>
                             <button className="button" type="submit">
-                              Atualizar cadastro e registrar presenca
+                              Atualizar cadastro e registrar presença
                             </button>
                           </form>
                         </>
                       ) : (
                         <>
                           <div className="step-panel-callout">
-                            Ao confirmar abaixo, a presenca sera registrada para <strong>{electorLookup.nome ?? "este participante"}</strong>.
+                            Ao confirmar abaixo, a presença será registrada para{" "}
+                            <strong>{electorLookup.nome ?? "este participante"}</strong>.
                           </div>
                           <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
                             <input name="idCandidato" type="hidden" value={idCandidato} />
@@ -246,7 +262,7 @@ export default async function CampaignEventAttendancePage({
                             <input name="nome" type="hidden" value={electorLookup.nome ?? ""} />
                             <input name="cidade" type="hidden" value={electorLookup.cidade ?? ""} />
                             <button className="button" type="submit">
-                              Registrar presenca de {electorLookup.nome ?? "participante"}
+                              Registrar presença de {electorLookup.nome ?? "participante"}
                             </button>
                           </form>
                         </>
@@ -254,10 +270,10 @@ export default async function CampaignEventAttendancePage({
                     </article>
                   ) : (
                     <article className="card event-attendance-result-card">
-                      <span className="pill warn">Telefone ainda nao cadastrado</span>
-                      <strong className="metric-title">Novo usuario</strong>
+                      <span className="pill warn">Telefone ainda não cadastrado</span>
+                      <strong className="metric-title">Novo usuário</strong>
                       <div className="step-panel-callout">
-                        Complete nome e cidade para criar o cadastro e registrar a presenca no evento.
+                        Complete nome e cidade para criar o cadastro e registrar a presença no evento.
                       </div>
                       <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
                         <input name="idCandidato" type="hidden" value={idCandidato} />
@@ -277,17 +293,18 @@ export default async function CampaignEventAttendancePage({
                           <input className="step-input" name="cidade" placeholder="Cidade do participante" type="text" />
                         </label>
                         <button className="button" type="submit">
-                          Cadastrar novo usuario e registrar presenca
+                          Cadastrar novo usuário e registrar presença
                         </button>
                       </form>
                     </article>
                   )
                 ) : (
                   <article className="card event-attendance-result-card event-attendance-idle-card">
-                    <span className="pill">Fluxo rapido</span>
+                    <span className="pill">Fluxo rápido</span>
                     <strong className="metric-title">Atendimento focado no telefone</strong>
                     <div className="muted">
-                      Com o evento fixado, o atendente so precisa validar o telefone. Se o contato existir, a presenca e confirmada no ato.
+                      Com o evento fixado, o atendente só precisa validar o telefone. Se o contato existir,
+                      a presença é confirmada no ato.
                     </div>
                   </article>
                 )}
@@ -295,7 +312,7 @@ export default async function CampaignEventAttendancePage({
                 <article className="card event-attendance-result-card">
                   <span className="metric-label">Presentes no evento atual</span>
                   <strong className="metric-value">{selectedEvent?.total_presentes ?? 0}</strong>
-                  <div className="muted">Total de presencas computadas ate este momento no evento selecionado.</div>
+                  <div className="muted">Total de presenças computadas até este momento no evento selecionado.</div>
                 </article>
               </div>
             </div>
@@ -303,7 +320,7 @@ export default async function CampaignEventAttendancePage({
             <aside className="event-attendance-self-service">
               <div className="event-attendance-self-service-card">
                 <span className="pill ok">Autoatendimento</span>
-                <h2 className="section-title">Confirme sua presenca no evento</h2>
+                <h2 className="section-title">Confirme sua presença no evento</h2>
                 {data.qr_code_url ? (
                   <Image
                     alt={`QR Code oficial de ${data.nome_urna}`}
@@ -314,21 +331,22 @@ export default async function CampaignEventAttendancePage({
                     width={260}
                   />
                 ) : (
-                  <div className="step-panel-callout">QR Code oficial ainda nao disponivel para esta campanha.</div>
+                  <div className="step-panel-callout">QR Code oficial ainda não disponível para esta campanha.</div>
                 )}
                 <div className="event-attendance-number-highlight">
-                  <span>Numero oficial</span>
+                  <span>Número oficial</span>
                   <strong>{data.numero_agente_oficial ?? "pendente"}</strong>
                 </div>
                 <div className="event-attendance-self-service-copy">
-                  Aponte a camera do celular para o QR Code ou registre o telefone no WhatsApp para confirmar a presenca.
+                  Aponte a câmera do celular para o QR Code ou registre o telefone no WhatsApp para
+                  confirmar a presença.
                 </div>
                 <Link
                   className="button secondary"
                   href={`/gestor/candidato/${idCandidato}/eventos/telao?evento=${encodeURIComponent(selectedEventId)}`}
                   target="_blank"
                 >
-                  Abrir modo telao
+                  Abrir modo telão
                 </Link>
               </div>
             </aside>
@@ -349,4 +367,33 @@ function formatDateTime(value: string) {
 function normalizeText(value: string | null | undefined) {
   const normalized = String(value ?? "").trim();
   return normalized || null;
+}
+
+function getAttendanceWindowState(eventDate: string): AttendanceWindowState {
+  const eventTime = new Date(eventDate).getTime();
+  const now = Date.now();
+  const fourHoursInMs = 4 * 60 * 60 * 1000;
+  const endTime = eventTime + fourHoursInMs;
+
+  if (now >= eventTime && now <= endTime) {
+    return {
+      isOpen: true,
+      label: "Janela de presença aberta",
+      message: `As presenças serão computadas normalmente até ${formatDateTime(new Date(endTime).toISOString())}.`
+    };
+  }
+
+  if (now < eventTime) {
+    return {
+      isOpen: false,
+      label: "Evento ainda não iniciado",
+      message: "Cadastros realizados agora não serão computados como presença até o início oficial do evento."
+    };
+  }
+
+  return {
+    isOpen: false,
+    label: "Fora da janela de presença",
+    message: "Cadastros realizados agora não serão computados como presença, apenas como atualização ou inclusão na base."
+  };
 }

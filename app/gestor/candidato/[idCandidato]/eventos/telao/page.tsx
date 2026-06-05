@@ -41,7 +41,7 @@ export default async function CampaignEventWallPage({
     <main className="page-shell">
       <section className="hero-card event-wall-shell">
         <span className="pill ok">Autoatendimento</span>
-        <h1 className="title">Confirme sua presenca no evento</h1>
+        <h1 className="title">Confirme sua presença no evento</h1>
         <p className="subtitle event-wall-subtitle">
           {selectedEvent
             ? `${selectedEvent.nome_evento} • ${formatDateTime(selectedEvent.data_evento)}`
@@ -57,10 +57,10 @@ export default async function CampaignEventWallPage({
             width={360}
           />
         ) : (
-          <div className="step-panel-callout">QR Code oficial ainda nao disponivel para esta campanha.</div>
+          <div className="step-panel-callout">QR Code oficial ainda não disponível para esta campanha.</div>
         )}
         <div className="event-wall-number">
-          <span>Numero oficial da campanha</span>
+          <span>Número oficial da campanha</span>
           <strong>{data.numero_agente_oficial ?? "pendente"}</strong>
         </div>
       </section>
