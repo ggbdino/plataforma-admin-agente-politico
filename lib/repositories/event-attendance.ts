@@ -6,7 +6,9 @@ import type {
   CampaignAttendanceElectorLookup,
   CampaignEventAttendanceContext,
   CampaignEventAttendanceItem,
-  CampaignEventConfirmationContext
+  CampaignEventConfirmationContext,
+  CampaignEventManagementContext,
+  CampaignEventParticipantItem
 } from "@/lib/types";
 
 type EventRow = CampaignEventAttendanceItem;
@@ -158,9 +160,13 @@ export async function getActiveCampaignEvent(
         e.tipo_evento,
         e.data_evento::text as data_evento,
         e.local_nome,
+        e.endereco,
+        e.descricao,
         e.cidade,
         e.uf,
         e.status,
+        e.capacidade_estimada,
+        e.link_confirmacao,
         count(*) filter (
           where p.status_participacao in ('confirmado', 'confirmada')
         )::int as total_confirmados,
@@ -493,6 +499,157 @@ export async function confirmActiveEventAttendanceByPhone(input: {
   };
 }
 
+export async function getCampaignEventManagementContext(
+  idCandidato: string,
+  selectedEventId?: string
+): Promise<CampaignEventManagementContext | null> {
+  await ensureElectorEnrichmentColumns();
+
+  const candidateResult = await db.query<{
+    id_candidato: string;
+    nome_urna: string;
+    nome_completo: string | null;
+    partido: string | null;
+    cargo_disputado: string | null;
+    numero_agente_oficial: string | null;
+    qr_code_url: string | null;
+  }>(
+    `
+      select
+        c.id_candidato,
+        c.nome_urna,
+        c.nome_completo,
+        c.partido,
+        c.cargo_disputado,
+        ic.numero_agente_oficial,
+        coalesce(
+          official.metadata ->> 'qr_code_url',
+          case
+            when official.url_canal is not null and btrim(official.url_canal) <> ''
+              then 'https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=' || replace(official.url_canal, '&', '%26')
+            else ic.qr_code_url
+          end
+        ) as qr_code_url
+      from candidatos c
+      left join implantacoes_candidato ic
+        on ic.id_candidato = c.id_candidato
+      left join lateral (
+        select
+          url_canal,
+          metadata
+        from canais_integracao ci
+        where ci.id_candidato = c.id_candidato
+          and ci.tipo_canal = 'whatsapp_agente'
+        order by ci.atualizado_em desc
+        limit 1
+      ) official on true
+      where c.id_candidato = $1
+      limit 1
+    `,
+    [idCandidato]
+  );
+
+  const candidate = candidateResult.rows[0];
+
+  if (!candidate) {
+    return null;
+  }
+
+  const eventos = await listCampaignEvents(idCandidato);
+  const eventoSelecionado =
+    eventos.find((event) => event.id === selectedEventId) ?? eventos[0] ?? null;
+  const participantesEventoSelecionado = eventoSelecionado
+    ? await listCampaignEventParticipants(idCandidato, eventoSelecionado.id)
+    : [];
+
+  return {
+    id_candidato: candidate.id_candidato,
+    nome_urna: candidate.nome_urna,
+    nome_completo: candidate.nome_completo,
+    partido: candidate.partido,
+    cargo_disputado: candidate.cargo_disputado,
+    numero_agente_oficial: candidate.numero_agente_oficial,
+    qr_code_url: candidate.qr_code_url,
+    eventos,
+    eventoSelecionado,
+    participantesEventoSelecionado
+  };
+}
+
+export async function createCampaignEvent(input: {
+  idCandidato: string;
+  nomeEvento: string;
+  dataEvento: string;
+  tipoEvento?: string;
+  localNome?: string;
+  endereco?: string;
+  cidade?: string;
+  uf?: string;
+  descricao?: string;
+  capacidadeEstimada?: number | null;
+  status?: string;
+}) {
+  const nomeEvento = normalizeText(input.nomeEvento);
+  const dataEvento = normalizeText(input.dataEvento);
+
+  if (!nomeEvento || !dataEvento) {
+    throw new Error("Informe pelo menos o nome e a data do evento para cadastrá-lo.");
+  }
+
+  const result = await db.query<{ id: string }>(
+    `
+      insert into eventos_campanha (
+        id_candidato,
+        nome_evento,
+        tipo_evento,
+        descricao,
+        data_evento,
+        local_nome,
+        endereco,
+        cidade,
+        uf,
+        capacidade_estimada,
+        status,
+        criado_em,
+        atualizado_em
+      )
+      values (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5::timestamptz,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        now(),
+        now()
+      )
+      returning id::text as id
+    `,
+    [
+      input.idCandidato,
+      nomeEvento,
+      normalizeText(input.tipoEvento) ?? "reuniao",
+      normalizeText(input.descricao),
+      dataEvento,
+      normalizeText(input.localNome),
+      normalizeText(input.endereco),
+      normalizeText(input.cidade),
+      normalizeText(input.uf),
+      input.capacidadeEstimada ?? null,
+      normalizeText(input.status) ?? "ativo"
+    ]
+  );
+
+  return {
+    id: result.rows[0]?.id ?? null
+  };
+}
+
 async function listCampaignEvents(idCandidato: string, eventId?: string) {
   const values: string[] = [idCandidato];
   const eventFilter = eventId ? "and e.id = $2::uuid" : "";
@@ -509,9 +666,13 @@ async function listCampaignEvents(idCandidato: string, eventId?: string) {
         e.tipo_evento,
         e.data_evento::text as data_evento,
         e.local_nome,
+        e.endereco,
+        e.descricao,
         e.cidade,
         e.uf,
         e.status,
+        e.capacidade_estimada,
+        e.link_confirmacao,
         count(*) filter (
           where p.status_participacao in ('confirmado', 'confirmada')
         )::int as total_confirmados,
@@ -533,6 +694,33 @@ async function listCampaignEvents(idCandidato: string, eventId?: string) {
   );
 
   return eventsResult.rows;
+}
+
+async function listCampaignEventParticipants(idCandidato: string, eventId: string) {
+  const result = await db.query<CampaignEventParticipantItem>(
+    `
+      select
+        p.eleitor_uid,
+        e.nome,
+        p.eleitor_id as telefone,
+        e.cidade,
+        e.uf,
+        p.status_participacao,
+        p.origem_registro,
+        p.canal_registro,
+        p.registrado_em::text as registrado_em
+      from participacoes_eventos p
+      left join eleitores e
+        on e.eleitor_uid = p.eleitor_uid
+      where p.id_candidato = $1
+        and p.evento_id = $2::uuid
+      order by p.registrado_em desc nulls last
+      limit 100
+    `,
+    [idCandidato, eventId]
+  );
+
+  return result.rows;
 }
 
 async function getScopedEvent(idCandidato: string, eventId: string) {

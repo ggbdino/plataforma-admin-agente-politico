@@ -86,9 +86,13 @@ export type CampaignEventAttendanceItem = {
   tipo_evento: string | null;
   data_evento: string;
   local_nome: string | null;
+  endereco: string | null;
+  descricao: string | null;
   cidade: string | null;
   uf: string | null;
   status: string;
+  capacidade_estimada?: number | null;
+  link_confirmacao?: string | null;
   total_confirmados: number;
   total_presentes: number;
 };
@@ -110,6 +114,31 @@ export type CampaignEventConfirmationContext = {
   numero_agente_oficial: string | null;
   qr_code_url: string | null;
   evento: CampaignEventAttendanceItem | null;
+};
+
+export type CampaignEventParticipantItem = {
+  eleitor_uid: string;
+  nome: string | null;
+  telefone: string | null;
+  cidade: string | null;
+  uf: string | null;
+  status_participacao: string;
+  origem_registro: string | null;
+  canal_registro: string | null;
+  registrado_em: string | null;
+};
+
+export type CampaignEventManagementContext = {
+  id_candidato: string;
+  nome_urna: string;
+  nome_completo: string | null;
+  partido: string | null;
+  cargo_disputado: string | null;
+  numero_agente_oficial: string | null;
+  qr_code_url: string | null;
+  eventos: CampaignEventAttendanceItem[];
+  eventoSelecionado: CampaignEventAttendanceItem | null;
+  participantesEventoSelecionado: CampaignEventParticipantItem[];
 };
 
 export type CampaignActiveEventSnapshot = {
