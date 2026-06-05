@@ -666,6 +666,35 @@ button {
   align-items: start;
 }
 
+.event-confirmation-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.event-confirmation-header {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.event-confirmation-meta {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.event-confirmation-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  align-items: start;
+}
+
+.event-confirmation-form-panel {
+  display: grid;
+  gap: 14px;
+}
+
 .event-attendance-operator,
 .event-attendance-self-service-card,
 .event-attendance-result-card {
@@ -1371,6 +1400,10 @@ button {
   }
 
   .event-attendance-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .event-confirmation-grid {
     grid-template-columns: 1fr;
   }
 

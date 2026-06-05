@@ -131,6 +131,24 @@ export default async function CampaignEventAttendancePage({
                     Fixar evento
                   </button>
                 </form>
+                {selectedEvent ? (
+                  <div className="actions">
+                    <Link
+                      className="button secondary"
+                      href={`/campanhas/${idCandidato}/eventos/${selectedEvent.id}/confirmar`}
+                      target="_blank"
+                    >
+                      Abrir página de confirmação
+                    </Link>
+                    <Link
+                      className="button secondary"
+                      href={`/gestor/candidato/${idCandidato}/eventos/telao?evento=${encodeURIComponent(selectedEvent.id)}`}
+                      target="_blank"
+                    >
+                      Abrir modo telão
+                    </Link>
+                  </div>
+                ) : null}
               </div>
 
               {windowState ? (
@@ -341,13 +359,15 @@ export default async function CampaignEventAttendancePage({
                   Aponte a câmera do celular para o QR Code ou registre o telefone no WhatsApp para
                   confirmar a presença.
                 </div>
-                <Link
-                  className="button secondary"
-                  href={`/gestor/candidato/${idCandidato}/eventos/telao?evento=${encodeURIComponent(selectedEventId)}`}
-                  target="_blank"
-                >
-                  Abrir modo telão
-                </Link>
+                {selectedEvent ? (
+                  <Link
+                    className="button secondary"
+                    href={`/campanhas/${idCandidato}/eventos/${selectedEvent.id}/confirmar`}
+                    target="_blank"
+                  >
+                    Abrir página de confirmação
+                  </Link>
+                ) : null}
               </div>
             </aside>
           </div>

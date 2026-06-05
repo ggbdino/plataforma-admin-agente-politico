@@ -101,6 +101,17 @@ export type CampaignEventAttendanceContext = {
   eventos: CampaignEventAttendanceItem[];
 };
 
+export type CampaignEventConfirmationContext = {
+  id_candidato: string;
+  nome_urna: string;
+  nome_completo: string | null;
+  partido: string | null;
+  cargo_disputado: string | null;
+  numero_agente_oficial: string | null;
+  qr_code_url: string | null;
+  evento: CampaignEventAttendanceItem | null;
+};
+
 export type CampaignActiveEventSnapshot = {
   ativo: boolean;
   evento: CampaignEventAttendanceItem | null;
