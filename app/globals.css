@@ -732,6 +732,28 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
+.event-public-link-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(244, 251, 255, 0.9);
+}
+
+.event-public-link-copy {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 320px;
+}
+
+.copy-link-button {
+  min-width: 160px;
+}
+
 .event-confirmation-grid {
   display: grid;
   gap: 20px;

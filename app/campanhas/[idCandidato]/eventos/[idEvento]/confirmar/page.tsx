@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { confirmEventAttendanceAction } from "@/lib/actions/event-confirmation-action";
 import { getCampaignEventConfirmationContext } from "@/lib/repositories/event-attendance";
 
@@ -39,6 +40,7 @@ export default async function EventConfirmationPage({
   });
   const partyAcronym = normalizePartyAcronym(data.partido);
   const partyLogoPath = resolvePartyLogoPath(data.partido);
+  const publicLink = absolutePublicUrl(`/campanhas/${idCandidato}/eventos/${idEvento}/confirmar`);
 
   return (
     <main className="page-shell">
@@ -81,6 +83,13 @@ export default async function EventConfirmationPage({
             <span>Confirmados</span>
             <strong>{data.evento.total_confirmados}</strong>
           </div>
+        </div>
+        <div className="event-public-link-panel">
+          <div className="event-public-link-copy">
+            <strong>Link público de confirmação</strong>
+            <div className="mono mono-wrap">{publicLink}</div>
+          </div>
+          <CopyLinkButton value={publicLink} />
         </div>
       </section>
 
@@ -250,4 +259,8 @@ function resolvePartyLogoPath(partido: string | null) {
   };
 
   return knownPartyLogos[acronym] ?? null;
+}
+
+function absolutePublicUrl(path: string) {
+  return `https://n8n-plataforma-admin.kb0fgy.easypanel.host${path}`;
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { createCampaignEventAction } from "@/lib/actions/event-management-action";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
@@ -211,6 +212,11 @@ export default async function CampaignEventManagementPage({
                       </div>
                     </div>
                   </div>
+                  {publicLink ? (
+                    <div className="actions" style={{ marginTop: 12 }}>
+                      <CopyLinkButton value={absolutePublicUrl(publicLink)} />
+                    </div>
+                  ) : null}
                   <div className="actions" style={{ marginTop: 16 }}>
                     <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/eventos?evento=${selectedEvent.id}`}>
                       Operar presença
