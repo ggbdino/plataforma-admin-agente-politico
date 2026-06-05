@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 import { registerEventAttendanceByPhone } from "@/lib/repositories/event-attendance";
@@ -74,6 +75,10 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
       nome: result.nomeEleitor ?? ""
     });
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     const message =
       error instanceof Error ? error.message : "Falha ao registrar a presenca no evento.";
 
