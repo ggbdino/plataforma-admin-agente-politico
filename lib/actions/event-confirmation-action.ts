@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 import { registerEventConfirmationByPhone } from "@/lib/repositories/event-attendance";
 
@@ -44,6 +45,7 @@ export async function confirmEventAttendanceAction(formData: FormData) {
 
     revalidatePath(`/campanhas/${idCandidato}/eventos/${eventoId}/confirmar`);
     revalidatePath(`/gestor/candidato/${idCandidato}/eventos`);
+    revalidatePath(`/gestor/candidato/${idCandidato}/eventos/gestao`);
     revalidatePath(`/campanhas/${idCandidato}`);
 
     const nextParams = new URLSearchParams({
@@ -55,6 +57,10 @@ export async function confirmEventAttendanceAction(formData: FormData) {
 
     redirect(`${redirectTo}?${nextParams.toString()}`);
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     const message =
       error instanceof Error ? error.message : "Falha ao confirmar participação no evento.";
 

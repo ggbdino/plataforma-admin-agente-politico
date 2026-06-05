@@ -677,6 +677,55 @@ button {
   flex-wrap: wrap;
 }
 
+.event-confirmation-header-split {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.event-confirmation-header-copy {
+  display: grid;
+  gap: 8px;
+  flex: 1 1 420px;
+}
+
+.event-party-mark {
+  width: 92px;
+  height: 92px;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(232, 244, 252, 0.94));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 24px rgba(18, 78, 131, 0.08);
+}
+
+.event-party-mark-image {
+  width: 78px;
+  height: 78px;
+  object-fit: contain;
+}
+
+.event-party-mark-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 64px;
+  padding: 8px;
+  border-radius: 18px;
+  background: rgba(36, 135, 211, 0.12);
+  color: var(--accent-deep);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
 .event-confirmation-meta {
   display: grid;
   gap: 12px;

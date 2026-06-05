@@ -37,15 +37,35 @@ export default async function EventConfirmationPage({
     cargoDisputado: data.cargo_disputado,
     eventDate: data.evento.data_evento
   });
+  const partyAcronym = normalizePartyAcronym(data.partido);
+  const partyLogoPath = resolvePartyLogoPath(data.partido);
 
   return (
     <main className="page-shell">
       <section className="hero-card event-confirmation-shell">
-        <div className="event-confirmation-header">
-          <span className="pill ok">{politicalIdentity.badge}</span>
-          <span className="pill">{data.partido ?? "Sem legenda informada"}</span>
+        <div className="event-confirmation-header event-confirmation-header-split">
+          <div className="event-confirmation-header-copy">
+            <div className="event-confirmation-header">
+              <span className="pill ok">{politicalIdentity.badge}</span>
+              <span className="pill">{data.partido ?? "Sem legenda informada"}</span>
+            </div>
+            <h1 className="title">{politicalIdentity.headline}</h1>
+          </div>
+          <div className="event-party-mark" aria-label={`Legenda ${data.partido ?? "não informada"}`}>
+            {partyLogoPath ? (
+              <Image
+                alt={`Logo do partido ${data.partido ?? ""}`}
+                className="event-party-mark-image"
+                height={78}
+                src={partyLogoPath}
+                unoptimized
+                width={78}
+              />
+            ) : (
+              <span className="event-party-mark-fallback">{partyAcronym || "?"}</span>
+            )}
+          </div>
         </div>
-        <h1 className="title">{politicalIdentity.headline}</h1>
         <p className="subtitle event-wall-subtitle">
           {data.evento.nome_evento} • {formatDateTime(data.evento.data_evento)}
         </p>
@@ -194,4 +214,40 @@ function buildPoliticalIdentity(input: {
     badge: input.cargoDisputado ? `${input.cargoDisputado} em exercício` : "Mandato em exercício",
     headline: input.nomeUrna
   };
+}
+
+function normalizePartyAcronym(partido: string | null) {
+  return String(partido ?? "")
+    .trim()
+    .replace(/[^A-Za-z0-9]/g, "")
+    .slice(0, 12)
+    .toUpperCase();
+}
+
+function resolvePartyLogoPath(partido: string | null) {
+  const acronym = normalizePartyAcronym(partido);
+
+  if (!acronym) {
+    return null;
+  }
+
+  const knownPartyLogos: Record<string, string> = {
+    MDB: "/partidos/mdb.png",
+    PDT: "/partidos/pdt.png",
+    PL: "/partidos/pl.png",
+    PODE: "/partidos/pode.png",
+    PP: "/partidos/pp.png",
+    PRD: "/partidos/prd.png",
+    PSB: "/partidos/psb.png",
+    PSD: "/partidos/psd.png",
+    PSDB: "/partidos/psdb.png",
+    PSOL: "/partidos/psol.png",
+    PT: "/partidos/pt.png",
+    PV: "/partidos/pv.png",
+    REPUBLICANOS: "/partidos/republicanos.png",
+    SOLIDARIEDADE: "/partidos/solidariedade.png",
+    UNIAOBRASIL: "/partidos/uniaobrasil.png"
+  };
+
+  return knownPartyLogos[acronym] ?? null;
 }
