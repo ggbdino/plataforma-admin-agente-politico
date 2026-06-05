@@ -44,6 +44,9 @@ export default async function CampaignEventAttendancePage({
   const typedPhone = String(query?.telefone ?? "").trim();
   const electorLookup =
     hasAccess && typedPhone ? await findCampaignElectorByPhone(idCandidato, typedPhone) : null;
+  const needsElectorCompletion = Boolean(
+    electorLookup && (!normalizeText(electorLookup.nome) || !normalizeText(electorLookup.cidade))
+  );
 
   return (
     <main className="page-shell">
@@ -152,10 +155,18 @@ export default async function CampaignEventAttendancePage({
                 </div>
 
                 <div className="event-attendance-flow">
+                  <div id="entrada-telefone" />
                   <h2 className="section-title">Entrada por telefone</h2>
                   <p className="event-attendance-instruction">
                     Solicite o telefone para registrar a presenca.
                   </p>
+
+                  {query?.feedback && query?.mensagem ? (
+                    <section className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}>
+                      <strong>{query.feedback === "sucesso" ? "Operacao concluida." : "Falha operacional."}</strong>
+                      <div style={{ marginTop: 6 }}>{query.mensagem}</div>
+                    </section>
+                  ) : null}
 
                   <form className="event-attendance-phone-form" method="get">
                     <input name="evento" type="hidden" value={selectedEventId} />
@@ -182,24 +193,67 @@ export default async function CampaignEventAttendancePage({
                         <div className="muted">
                           {[electorLookup.cidade, electorLookup.uf].filter(Boolean).join(" / ") || "Cidade nao informada"}
                         </div>
-                        <div className="step-panel-callout">
-                          Ao confirmar abaixo, a presenca sera registrada para <strong>{electorLookup.nome ?? "este participante"}</strong>.
-                        </div>
-                        <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
-                          <input name="idCandidato" type="hidden" value={idCandidato} />
-                          <input
-                            name="redirectTo"
-                            type="hidden"
-                            value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}`}
-                          />
-                          <input name="eventoId" type="hidden" value={selectedEventId} />
-                          <input name="telefone" type="hidden" value={electorLookup.telefone} />
-                          <input name="nome" type="hidden" value={electorLookup.nome ?? ""} />
-                          <input name="cidade" type="hidden" value={electorLookup.cidade ?? ""} />
-                          <button className="button" type="submit">
-                            Registrar presenca de {electorLookup.nome ?? "participante"}
-                          </button>
-                        </form>
+                        {needsElectorCompletion ? (
+                          <>
+                            <div className="step-panel-callout">
+                              Antes de registrar a presenca, complete os dados basicos para melhorar a qualidade do cadastro.
+                            </div>
+                            <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
+                              <input name="idCandidato" type="hidden" value={idCandidato} />
+                              <input
+                                name="redirectTo"
+                                type="hidden"
+                                value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}#entrada-telefone`}
+                              />
+                              <input name="eventoId" type="hidden" value={selectedEventId} />
+                              <input name="telefone" type="hidden" value={electorLookup.telefone} />
+                              <label className="step-note">
+                                <span>Nome</span>
+                                <input
+                                  className="step-input"
+                                  defaultValue={electorLookup.nome ?? ""}
+                                  name="nome"
+                                  placeholder="Nome do participante"
+                                  type="text"
+                                />
+                              </label>
+                              <label className="step-note">
+                                <span>Cidade</span>
+                                <input
+                                  className="step-input"
+                                  defaultValue={electorLookup.cidade ?? ""}
+                                  name="cidade"
+                                  placeholder="Cidade do participante"
+                                  type="text"
+                                />
+                              </label>
+                              <button className="button" type="submit">
+                                Atualizar cadastro e registrar presenca
+                              </button>
+                            </form>
+                          </>
+                        ) : (
+                          <>
+                            <div className="step-panel-callout">
+                              Ao confirmar abaixo, a presenca sera registrada para <strong>{electorLookup.nome ?? "este participante"}</strong>.
+                            </div>
+                            <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
+                              <input name="idCandidato" type="hidden" value={idCandidato} />
+                              <input
+                                name="redirectTo"
+                                type="hidden"
+                                value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}#entrada-telefone`}
+                              />
+                              <input name="eventoId" type="hidden" value={selectedEventId} />
+                              <input name="telefone" type="hidden" value={electorLookup.telefone} />
+                              <input name="nome" type="hidden" value={electorLookup.nome ?? ""} />
+                              <input name="cidade" type="hidden" value={electorLookup.cidade ?? ""} />
+                              <button className="button" type="submit">
+                                Registrar presenca de {electorLookup.nome ?? "participante"}
+                              </button>
+                            </form>
+                          </>
+                        )}
                       </article>
                     ) : (
                       <article className="card event-attendance-result-card">
@@ -213,7 +267,7 @@ export default async function CampaignEventAttendancePage({
                           <input
                             name="redirectTo"
                             type="hidden"
-                            value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}`}
+                            value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}#entrada-telefone`}
                           />
                           <input name="eventoId" type="hidden" value={selectedEventId} />
                           <input name="telefone" type="hidden" value={typedPhone} />
@@ -266,6 +320,13 @@ export default async function CampaignEventAttendancePage({
                   <div className="event-attendance-self-service-copy">
                     Aponte a camera do celular para o QR Code ou registre o telefone no WhatsApp para confirmar a presenca.
                   </div>
+                  <Link
+                    className="button secondary"
+                    href={`/gestor/candidato/${idCandidato}/eventos/telao?evento=${encodeURIComponent(selectedEventId)}`}
+                    target="_blank"
+                  >
+                    Abrir modo telao
+                  </Link>
                 </div>
               </aside>
             </div>
@@ -330,4 +391,9 @@ function formatDateTime(value: string) {
     dateStyle: "short",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+function normalizeText(value: string | null | undefined) {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
 }
