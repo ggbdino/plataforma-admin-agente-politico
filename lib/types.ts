@@ -128,6 +128,8 @@ export type CampaignEventParticipantItem = {
   registrado_em: string | null;
 };
 
+export type CampaignEventParticipantStatusFilter = "todos" | "confirmados" | "presentes";
+
 export type CampaignEventManagementContext = {
   id_candidato: string;
   nome_urna: string;
@@ -138,6 +140,7 @@ export type CampaignEventManagementContext = {
   qr_code_url: string | null;
   eventos: CampaignEventAttendanceItem[];
   eventoSelecionado: CampaignEventAttendanceItem | null;
+  filtroParticipantes: CampaignEventParticipantStatusFilter;
   participantesEventoSelecionado: CampaignEventParticipantItem[];
 };
 

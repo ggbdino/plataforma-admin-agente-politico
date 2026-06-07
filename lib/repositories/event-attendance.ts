@@ -8,7 +8,8 @@ import type {
   CampaignEventAttendanceItem,
   CampaignEventConfirmationContext,
   CampaignEventManagementContext,
-  CampaignEventParticipantItem
+  CampaignEventParticipantItem,
+  CampaignEventParticipantStatusFilter
 } from "@/lib/types";
 
 type EventRow = CampaignEventAttendanceItem;
@@ -501,7 +502,8 @@ export async function confirmActiveEventAttendanceByPhone(input: {
 
 export async function getCampaignEventManagementContext(
   idCandidato: string,
-  selectedEventId?: string
+  selectedEventId?: string,
+  participantStatusFilter: CampaignEventParticipantStatusFilter = "todos"
 ): Promise<CampaignEventManagementContext | null> {
   await ensureElectorEnrichmentColumns();
 
@@ -559,7 +561,7 @@ export async function getCampaignEventManagementContext(
   const eventoSelecionado =
     eventos.find((event) => event.id === selectedEventId) ?? eventos[0] ?? null;
   const participantesEventoSelecionado = eventoSelecionado
-    ? await listCampaignEventParticipants(idCandidato, eventoSelecionado.id)
+    ? await listCampaignEventParticipants(idCandidato, eventoSelecionado.id, participantStatusFilter)
     : [];
 
   return {
@@ -572,6 +574,7 @@ export async function getCampaignEventManagementContext(
     qr_code_url: candidate.qr_code_url,
     eventos,
     eventoSelecionado,
+    filtroParticipantes: participantStatusFilter,
     participantesEventoSelecionado
   };
 }
@@ -696,7 +699,22 @@ async function listCampaignEvents(idCandidato: string, eventId?: string) {
   return eventsResult.rows;
 }
 
-async function listCampaignEventParticipants(idCandidato: string, eventId: string) {
+async function listCampaignEventParticipants(
+  idCandidato: string,
+  eventId: string,
+  statusFilter: CampaignEventParticipantStatusFilter
+) {
+  const values: string[] = [idCandidato, eventId];
+  let statusClause = "";
+
+  if (statusFilter === "confirmados") {
+    values.push("confirmado", "confirmada");
+    statusClause = "and p.status_participacao = any($3::text[])";
+  } else if (statusFilter === "presentes") {
+    values.push("presente", "compareceu");
+    statusClause = "and p.status_participacao = any($3::text[])";
+  }
+
   const result = await db.query<CampaignEventParticipantItem>(
     `
       select
@@ -714,10 +732,11 @@ async function listCampaignEventParticipants(idCandidato: string, eventId: strin
         on e.eleitor_uid = p.eleitor_uid
       where p.id_candidato = $1
         and p.evento_id = $2::uuid
+        ${statusClause}
       order by p.registrado_em desc nulls last
       limit 100
     `,
-    [idCandidato, eventId]
+    values
   );
 
   return result.rows;

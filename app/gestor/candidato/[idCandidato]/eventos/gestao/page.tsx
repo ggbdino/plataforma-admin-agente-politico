@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyLinkButton } from "@/components/copy-link-button";
-import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { createCampaignEventAction } from "@/lib/actions/event-management-action";
+import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignEventManagementContext } from "@/lib/repositories/event-attendance";
+import type { CampaignEventParticipantStatusFilter } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ type CampaignEventManagementPageProps = {
     feedback?: string;
     mensagem?: string;
     evento?: string;
+    status?: string;
   }>;
 };
 
@@ -25,11 +27,16 @@ export default async function CampaignEventManagementPage({
 }: CampaignEventManagementPageProps) {
   const { idCandidato } = await params;
   const query = searchParams ? await searchParams : undefined;
+  const participantStatusFilter = normalizeParticipantStatusFilter(query?.status);
   const session = await getCurrentPlatformSession();
   const canOperateEvents = await hasCampaignAccess(session, idCandidato, "pode_operar_eventos");
   const canImplant = await hasCampaignAccess(session, idCandidato, "pode_implantar");
   const hasAccess = canOperateEvents || canImplant;
-  const data = await getCampaignEventManagementContext(idCandidato, query?.evento);
+  const data = await getCampaignEventManagementContext(
+    idCandidato,
+    query?.evento,
+    participantStatusFilter
+  );
 
   if (!data) {
     notFound();
@@ -45,7 +52,9 @@ export default async function CampaignEventManagementPage({
       {query?.feedback && query?.mensagem ? (
         <section className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}>
           <strong>
-            {query.feedback === "sucesso" ? "Operação concluída." : "Não foi possível concluir a operação."}
+            {query.feedback === "sucesso"
+              ? "Operação concluída."
+              : "Não foi possível concluir a operação."}
           </strong>
           <div style={{ marginTop: 6 }}>{query.mensagem}</div>
         </section>
@@ -218,7 +227,10 @@ export default async function CampaignEventManagementPage({
                     </div>
                   ) : null}
                   <div className="actions" style={{ marginTop: 16 }}>
-                    <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/eventos?evento=${selectedEvent.id}`}>
+                    <Link
+                      className="button secondary"
+                      href={`/gestor/candidato/${idCandidato}/eventos?evento=${selectedEvent.id}`}
+                    >
                       Operar presença
                     </Link>
                     <Link className="button secondary" href={publicLink ?? "#"} target="_blank">
@@ -227,7 +239,9 @@ export default async function CampaignEventManagementPage({
                   </div>
                 </>
               ) : (
-                <div className="step-panel-callout">Cadastre o primeiro evento para liberar o painel gerencial e o link público.</div>
+                <div className="step-panel-callout">
+                  Cadastre o primeiro evento para liberar o painel gerencial e o link público.
+                </div>
               )}
             </article>
           </section>
@@ -236,8 +250,12 @@ export default async function CampaignEventManagementPage({
             <article className="card">
               <div className="regional-card-head">
                 <div>
-                  <h2 className="section-title" style={{ marginBottom: 6 }}>Eventos cadastrados</h2>
-                  <p className="subtitle">Selecione um evento para ver participantes, métricas e o link público de confirmação.</p>
+                  <h2 className="section-title" style={{ marginBottom: 6 }}>
+                    Eventos cadastrados
+                  </h2>
+                  <p className="subtitle">
+                    Selecione um evento para ver participantes, métricas e o link público de confirmação.
+                  </p>
                 </div>
                 <span className="pill">{data.eventos.length} evento(s)</span>
               </div>
@@ -248,9 +266,15 @@ export default async function CampaignEventManagementPage({
                       <div>
                         <div className="metric-label">{event.tipo_evento ?? "evento"}</div>
                         <div className="regional-card-title">{event.nome_evento}</div>
-                        <div className="muted">{formatDateTime(event.data_evento)} • {event.local_nome ?? event.cidade ?? "Local a definir"}</div>
+                        <div className="muted">
+                          {formatDateTime(event.data_evento)} • {event.local_nome ?? event.cidade ?? "Local a definir"}
+                        </div>
                       </div>
-                      <span className={`status-pill ${String(event.status).replace(/\s+/g, "_").toLowerCase()}`}>{event.status}</span>
+                      <span
+                        className={`status-pill ${String(event.status).replace(/\s+/g, "_").toLowerCase()}`}
+                      >
+                        {event.status}
+                      </span>
                     </div>
                     <div className="regional-card-grid">
                       <div className="regional-card-metric">
@@ -263,10 +287,17 @@ export default async function CampaignEventManagementPage({
                       </div>
                     </div>
                     <div className="actions">
-                      <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/eventos/gestao?evento=${event.id}`}>
+                      <Link
+                        className="button secondary"
+                        href={`/gestor/candidato/${idCandidato}/eventos/gestao?evento=${event.id}&status=${data.filtroParticipantes}`}
+                      >
                         Ver participantes
                       </Link>
-                      <Link className="button secondary" href={`/campanhas/${idCandidato}/eventos/${event.id}/confirmar`} target="_blank">
+                      <Link
+                        className="button secondary"
+                        href={`/campanhas/${idCandidato}/eventos/${event.id}/confirmar`}
+                        target="_blank"
+                      >
                         Link do evento
                       </Link>
                     </div>
@@ -276,10 +307,30 @@ export default async function CampaignEventManagementPage({
             </article>
 
             <article className="card">
-              <h2 className="section-title">Participantes do evento selecionado</h2>
-              <p className="subtitle">
-                Lista operacional de confirmados e presentes já captados no evento.
-              </p>
+              <div className="regional-card-head">
+                <div>
+                  <h2 className="section-title">Participantes do evento selecionado</h2>
+                  <p className="subtitle">
+                    Lista operacional de confirmados e presentes já captados no evento.
+                  </p>
+                </div>
+                {selectedEvent ? (
+                  <form method="get" style={{ minWidth: 220 }}>
+                    <input name="evento" type="hidden" value={selectedEvent.id} />
+                    <label className="step-note" style={{ gap: 6 }}>
+                      <span>Filtrar participantes</span>
+                      <select className="step-input" defaultValue={data.filtroParticipantes} name="status">
+                        <option value="todos">Todos</option>
+                        <option value="confirmados">Confirmados</option>
+                        <option value="presentes">Presentes</option>
+                      </select>
+                    </label>
+                    <button className="button secondary" style={{ marginTop: 10 }} type="submit">
+                      Aplicar filtro
+                    </button>
+                  </form>
+                ) : null}
+              </div>
               {selectedEvent ? (
                 data.participantesEventoSelecionado.length > 0 ? (
                   <div className="table-responsive" style={{ marginTop: 16 }}>
@@ -310,7 +361,7 @@ export default async function CampaignEventManagementPage({
                   </div>
                 ) : (
                   <div className="step-panel-callout" style={{ marginTop: 16 }}>
-                    Ainda não há participantes registrados para este evento.
+                    Não há participantes para o filtro selecionado neste evento.
                   </div>
                 )
               ) : (
@@ -335,4 +386,12 @@ function formatDateTime(value: string) {
 
 function absolutePublicUrl(path: string) {
   return `https://n8n-plataforma-admin.kb0fgy.easypanel.host${path}`;
+}
+
+function normalizeParticipantStatusFilter(value?: string): CampaignEventParticipantStatusFilter {
+  if (value === "confirmados" || value === "presentes") {
+    return value;
+  }
+
+  return "todos";
 }
