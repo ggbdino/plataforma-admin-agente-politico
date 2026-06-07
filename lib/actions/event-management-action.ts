@@ -1,5 +1,6 @@
 "use server";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { createCampaignEvent } from "@/lib/repositories/event-attendance";
@@ -7,8 +8,9 @@ import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
 export async function createCampaignEventAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
-  const redirectTo =
-    String(formData.get("redirectTo") ?? `/gestor/candidato/${idCandidato}/eventos/gestao`).trim();
+  const redirectTo = String(
+    formData.get("redirectTo") ?? `/gestor/candidato/${idCandidato}/eventos/gestao`
+  ).trim();
   const nomeEvento = String(formData.get("nomeEvento") ?? "").trim();
   const dataEvento = String(formData.get("dataEvento") ?? "").trim();
   const tipoEvento = String(formData.get("tipoEvento") ?? "").trim();
@@ -70,6 +72,10 @@ export async function createCampaignEventAction(formData: FormData) {
       )}${created.id ? `&evento=${encodeURIComponent(created.id)}` : ""}`
     );
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     const message =
       error instanceof Error ? error.message : "Não foi possível cadastrar o evento da campanha.";
 
