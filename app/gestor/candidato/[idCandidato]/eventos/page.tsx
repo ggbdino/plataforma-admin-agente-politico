@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { registerEventAttendanceByPhoneAction } from "@/lib/actions/event-attendance-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
+import { buildPublicEventUrl } from "@/lib/public-events";
 import {
   findCampaignElectorByPhone,
   getCampaignEventAttendanceContext
@@ -135,7 +136,7 @@ export default async function CampaignEventAttendancePage({
                   <div className="actions">
                     <Link
                       className="button secondary"
-                      href={selectedEvent.link_confirmacao ?? "#"}
+                      href={selectedEvent.link_confirmacao ? buildPublicEventUrl(selectedEvent.link_confirmacao) : "#"}
                       target="_blank"
                     >
                       Abrir página de confirmação
@@ -362,7 +363,7 @@ export default async function CampaignEventAttendancePage({
                 {selectedEvent ? (
                   <Link
                     className="button secondary"
-                    href={selectedEvent.link_confirmacao ?? "#"}
+                    href={selectedEvent.link_confirmacao ? buildPublicEventUrl(selectedEvent.link_confirmacao) : "#"}
                     target="_blank"
                   >
                     Abrir página de confirmação

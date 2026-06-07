@@ -1,6 +1,10 @@
 export const env = {
   databaseUrl: process.env.DATABASE_URL,
   n8nBaseUrl: process.env.N8N_BASE_URL,
+  publicEventsBaseUrl:
+    process.env.PUBLIC_EVENTS_BASE_URL ??
+    process.env.NEXT_PUBLIC_EVENTS_BASE_URL ??
+    "https://n8n-plataforma-admin.kb0fgy.easypanel.host",
   n8nApiKey: process.env.N8N_API_KEY ?? "",
   evolutionApiBaseUrl: process.env.EVOLUTION_API_BASE_URL ?? "",
   evolutionApiKey: process.env.EVOLUTION_API_KEY ?? "",

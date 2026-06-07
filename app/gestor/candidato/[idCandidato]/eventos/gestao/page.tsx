@@ -4,6 +4,7 @@ import { CopyLinkButton } from "@/components/copy-link-button";
 import { createCampaignEventAction } from "@/lib/actions/event-management-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
+import { buildPublicEventUrl } from "@/lib/public-events";
 import { getCampaignEventManagementContext } from "@/lib/repositories/event-attendance";
 import type { CampaignEventParticipantStatusFilter } from "@/lib/types";
 
@@ -215,13 +216,13 @@ export default async function CampaignEventManagementPage({
                     <div>
                       <strong>Link público</strong>
                       <div className="mono mono-wrap">
-                        {publicLink ? absolutePublicUrl(publicLink) : "-"}
+                        {publicLink ? buildPublicEventUrl(publicLink) : "-"}
                       </div>
                     </div>
                   </div>
                   {publicLink ? (
                     <div className="actions" style={{ marginTop: 12 }}>
-                      <CopyLinkButton value={absolutePublicUrl(publicLink)} />
+                      <CopyLinkButton value={buildPublicEventUrl(publicLink)} />
                     </div>
                   ) : null}
                   <div className="actions" style={{ marginTop: 16 }}>
@@ -238,7 +239,7 @@ export default async function CampaignEventManagementPage({
                     >
                       Abrir modo telão
                     </Link>
-                    <Link className="button secondary" href={publicLink ?? "#"} target="_blank">
+                    <Link className="button secondary" href={publicLink ? buildPublicEventUrl(publicLink) : "#"} target="_blank">
                       Abrir link de divulgação
                     </Link>
                   </div>
@@ -300,7 +301,7 @@ export default async function CampaignEventManagementPage({
                       </Link>
                       <Link
                         className="button secondary"
-                        href={event.link_confirmacao ?? "#"}
+                        href={event.link_confirmacao ? buildPublicEventUrl(event.link_confirmacao) : "#"}
                         target="_blank"
                       >
                         Link do evento
@@ -387,10 +388,6 @@ function formatDateTime(value: string) {
     dateStyle: "short",
     timeStyle: "short"
   }).format(new Date(value));
-}
-
-function absolutePublicUrl(path: string) {
-  return `https://n8n-plataforma-admin.kb0fgy.easypanel.host${path}`;
 }
 
 function normalizeParticipantStatusFilter(value?: string): CampaignEventParticipantStatusFilter {
