@@ -2,14 +2,13 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { PublicExitButton } from "@/components/public-exit-button";
 import { confirmEventAttendanceAction } from "@/lib/actions/event-confirmation-action";
-import { getCampaignEventConfirmationContext } from "@/lib/repositories/event-attendance";
+import { getCampaignEventConfirmationContextByPublicLink } from "@/lib/repositories/event-attendance";
 
 export const dynamic = "force-dynamic";
 
-type EventConfirmationPageProps = {
+type PublicEventConfirmationPageProps = {
   params: Promise<{
-    idCandidato: string;
-    idEvento: string;
+    publicToken: string;
   }>;
   searchParams?: Promise<{
     feedback?: string;
@@ -20,13 +19,14 @@ type EventConfirmationPageProps = {
   }>;
 };
 
-export default async function EventConfirmationPage({
+export default async function PublicEventConfirmationPage({
   params,
   searchParams
-}: EventConfirmationPageProps) {
-  const { idCandidato, idEvento } = await params;
+}: PublicEventConfirmationPageProps) {
+  const { publicToken } = await params;
   const query = searchParams ? await searchParams : undefined;
-  const data = await getCampaignEventConfirmationContext(idCandidato, idEvento);
+  const publicLink = `/e/${publicToken}`;
+  const data = await getCampaignEventConfirmationContextByPublicLink(publicLink);
 
   if (!data || !data.evento) {
     notFound();
@@ -117,7 +117,7 @@ export default async function EventConfirmationPage({
                 <section className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}>
                   <strong>{query.feedback === "sucesso" ? "Confirmação registrada." : "Falha no registro."}</strong>
                   <div style={{ marginTop: 6 }}>{query.mensagem}</div>
-                  {query.telefone ? (
+                  {query?.telefone ? (
                     <div style={{ marginTop: 8 }}>
                       <strong>{query.nome ?? "Participante"}</strong>
                       <span className="mono"> • {query.telefone}</span>
@@ -127,13 +127,9 @@ export default async function EventConfirmationPage({
               ) : null}
 
               <form action={confirmEventAttendanceAction} className="manager-auth-form">
-                <input name="idCandidato" type="hidden" value={idCandidato} />
-                <input name="eventoId" type="hidden" value={idEvento} />
-                <input
-                  name="redirectTo"
-                  type="hidden"
-                  value={`/campanhas/${idCandidato}/eventos/${idEvento}/confirmar`}
-                />
+                <input name="idCandidato" type="hidden" value={data.id_candidato} />
+                <input name="eventoId" type="hidden" value={data.evento.id} />
+                <input name="redirectTo" type="hidden" value={publicLink} />
                 <label className="step-note">
                   <span>Telefone</span>
                   <input

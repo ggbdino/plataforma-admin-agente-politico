@@ -135,7 +135,7 @@ export default async function CampaignEventAttendancePage({
                   <div className="actions">
                     <Link
                       className="button secondary"
-                      href={`/campanhas/${idCandidato}/eventos/${selectedEvent.id}/confirmar`}
+                      href={selectedEvent.link_confirmacao ?? "#"}
                       target="_blank"
                     >
                       Abrir página de confirmação
@@ -362,7 +362,7 @@ export default async function CampaignEventAttendancePage({
                 {selectedEvent ? (
                   <Link
                     className="button secondary"
-                    href={`/campanhas/${idCandidato}/eventos/${selectedEvent.id}/confirmar`}
+                    href={selectedEvent.link_confirmacao ?? "#"}
                     target="_blank"
                   >
                     Abrir página de confirmação

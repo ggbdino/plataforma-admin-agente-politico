@@ -43,7 +43,7 @@ export async function confirmEventAttendanceAction(formData: FormData) {
       }
     });
 
-    revalidatePath(`/campanhas/${idCandidato}/eventos/${eventoId}/confirmar`);
+    revalidatePath(redirectTo);
     revalidatePath(`/gestor/candidato/${idCandidato}/eventos`);
     revalidatePath(`/gestor/candidato/${idCandidato}/eventos/gestao`);
     revalidatePath(`/campanhas/${idCandidato}`);
@@ -75,7 +75,7 @@ export async function confirmEventAttendanceAction(formData: FormData) {
       origem: "pagina-evento"
     });
 
-    revalidatePath(`/campanhas/${idCandidato}/eventos/${eventoId}/confirmar`);
+    revalidatePath(redirectTo);
 
     const nextParams = new URLSearchParams({
       feedback: "erro",

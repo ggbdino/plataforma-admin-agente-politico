@@ -43,9 +43,7 @@ export default async function CampaignEventManagementPage({
   }
 
   const selectedEvent = data.eventoSelecionado;
-  const publicLink = selectedEvent
-    ? `/campanhas/${idCandidato}/eventos/${selectedEvent.id}/confirmar`
-    : null;
+  const publicLink = selectedEvent?.link_confirmacao ?? null;
 
   return (
     <main className="page-shell">
@@ -233,6 +231,13 @@ export default async function CampaignEventManagementPage({
                     >
                       Operar presença
                     </Link>
+                    <Link
+                      className="button secondary"
+                      href={`/gestor/candidato/${idCandidato}/eventos/telao?evento=${selectedEvent.id}`}
+                      target="_blank"
+                    >
+                      Abrir modo telão
+                    </Link>
                     <Link className="button secondary" href={publicLink ?? "#"} target="_blank">
                       Abrir link de divulgação
                     </Link>
@@ -295,7 +300,7 @@ export default async function CampaignEventManagementPage({
                       </Link>
                       <Link
                         className="button secondary"
-                        href={`/campanhas/${idCandidato}/eventos/${event.id}/confirmar`}
+                        href={event.link_confirmacao ?? "#"}
                         target="_blank"
                       >
                         Link do evento

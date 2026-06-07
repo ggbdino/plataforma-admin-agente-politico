@@ -149,6 +149,86 @@ export async function getCampaignEventConfirmationContext(
   };
 }
 
+export async function getCampaignEventConfirmationContextByPublicLink(
+  publicLink: string
+): Promise<CampaignEventConfirmationContext | null> {
+  await ensureElectorEnrichmentColumns();
+
+  const normalizedLink = normalizeText(publicLink);
+
+  if (!normalizedLink) {
+    return null;
+  }
+
+  const result = await db.query<{
+    id_candidato: string;
+    nome_urna: string;
+    nome_completo: string | null;
+    partido: string | null;
+    cargo_disputado: string | null;
+    numero_agente_oficial: string | null;
+    qr_code_url: string | null;
+    evento_id: string | null;
+  }>(
+    `
+      select
+        c.id_candidato,
+        c.nome_urna,
+        c.nome_completo,
+        c.partido,
+        c.cargo_disputado,
+        ic.numero_agente_oficial,
+        coalesce(
+          official.metadata ->> 'qr_code_url',
+          case
+            when official.url_canal is not null and btrim(official.url_canal) <> ''
+              then 'https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=' || replace(official.url_canal, '&', '%26')
+            else ic.qr_code_url
+          end
+        ) as qr_code_url,
+        e.id::text as evento_id
+      from eventos_campanha e
+      join candidatos c
+        on c.id_candidato = e.id_candidato
+      left join implantacoes_candidato ic
+        on ic.id_candidato = c.id_candidato
+      left join lateral (
+        select
+          url_canal,
+          metadata
+        from canais_integracao ci
+        where ci.id_candidato = c.id_candidato
+          and ci.tipo_canal = 'whatsapp_agente'
+        order by ci.atualizado_em desc
+        limit 1
+      ) official on true
+      where e.link_confirmacao = $1
+      limit 1
+    `,
+    [normalizedLink]
+  );
+
+  const candidate = result.rows[0];
+
+  if (!candidate || !candidate.evento_id) {
+    return null;
+  }
+
+  const events = await listCampaignEvents(candidate.id_candidato, candidate.evento_id);
+  const event = events.find((item) => item.id === candidate.evento_id) ?? null;
+
+  return {
+    id_candidato: candidate.id_candidato,
+    nome_urna: candidate.nome_urna,
+    nome_completo: candidate.nome_completo,
+    partido: candidate.partido,
+    cargo_disputado: candidate.cargo_disputado,
+    numero_agente_oficial: candidate.numero_agente_oficial,
+    qr_code_url: candidate.qr_code_url,
+    evento: event
+  };
+}
+
 export async function getActiveCampaignEvent(
   idCandidato: string,
   referenceTime = new Date()
@@ -594,6 +674,7 @@ export async function createCampaignEvent(input: {
 }) {
   const nomeEvento = normalizeText(input.nomeEvento);
   const dataEvento = normalizeText(input.dataEvento);
+  const publicLink = `/e/${crypto.randomUUID().replace(/-/g, "")}`;
 
   if (!nomeEvento || !dataEvento) {
     throw new Error("Informe pelo menos o nome e a data do evento para cadastrá-lo.");
@@ -612,6 +693,7 @@ export async function createCampaignEvent(input: {
         cidade,
         uf,
         capacidade_estimada,
+        link_confirmacao,
         status,
         criado_em,
         atualizado_em
@@ -628,6 +710,7 @@ export async function createCampaignEvent(input: {
         $9,
         $10,
         $11,
+        $12,
         now(),
         now()
       )
@@ -644,12 +727,14 @@ export async function createCampaignEvent(input: {
       normalizeText(input.cidade),
       normalizeText(input.uf),
       input.capacidadeEstimada ?? null,
+      publicLink,
       normalizeText(input.status) ?? "ativo"
     ]
   );
 
   return {
-    id: result.rows[0]?.id ?? null
+    id: result.rows[0]?.id ?? null,
+    linkConfirmacao: publicLink
   };
 }
 
