@@ -15,9 +15,17 @@ export function isPublicEventConfirmationWindowOpen(
   eventDate: string,
   referenceTime = new Date()
 ) {
-  const eventStart = new Date(eventDate).getTime();
-  const now = referenceTime.getTime();
-  const fifteenDaysInMs = 15 * 24 * 60 * 60 * 1000;
+  const cutoff = getPublicEventConfirmationCutoff(eventDate);
 
-  return now >= eventStart - fifteenDaysInMs && now < eventStart;
+  return referenceTime.getTime() < cutoff.getTime();
+}
+
+function getPublicEventConfirmationCutoff(eventDate: string) {
+  const event = new Date(eventDate);
+  const cutoff = new Date(event);
+
+  cutoff.setDate(cutoff.getDate() + 1);
+  cutoff.setHours(0, 0, 0, 0);
+
+  return cutoff;
 }

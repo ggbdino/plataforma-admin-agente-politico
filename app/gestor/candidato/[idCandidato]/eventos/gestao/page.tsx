@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyLinkButton } from "@/components/copy-link-button";
-import { createCampaignEventAction } from "@/lib/actions/event-management-action";
+import {
+  createCampaignEventAction,
+  deleteCampaignEventAction
+} from "@/lib/actions/event-management-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignEventManagementContext } from "@/lib/repositories/event-attendance";
@@ -18,6 +21,7 @@ type CampaignEventManagementPageProps = {
     mensagem?: string;
     evento?: string;
     status?: string;
+    confirmarExclusao?: string;
   }>;
 };
 
@@ -44,6 +48,11 @@ export default async function CampaignEventManagementPage({
 
   const selectedEvent = data.eventoSelecionado;
   const publicLink = selectedEvent?.link_confirmacao ?? null;
+  const deletableSelectedEvent =
+    selectedEvent && new Date(selectedEvent.data_evento).getTime() > Date.now() ? selectedEvent : null;
+  const isDeleteConfirmationOpen = deletableSelectedEvent
+    ? query?.confirmarExclusao === deletableSelectedEvent.id
+    : false;
 
   return (
     <main className="page-shell">
@@ -242,6 +251,48 @@ export default async function CampaignEventManagementPage({
                       Abrir link de divulgação
                     </Link>
                   </div>
+                  {deletableSelectedEvent ? (
+                    isDeleteConfirmationOpen ? (
+                      <section className="feedback-banner error" style={{ marginTop: 16 }}>
+                        <strong>Confirmar exclusÃ£o do evento</strong>
+                        <div style={{ marginTop: 6 }}>
+                          VocÃª estÃ¡ prestes a excluir <strong>{deletableSelectedEvent.nome_evento}</strong>. Esta aÃ§Ã£o
+                          tambÃ©m remove confirmados e presentes vinculados ao evento.
+                        </div>
+                        <div className="actions" style={{ marginTop: 12 }}>
+                          <form action={deleteCampaignEventAction}>
+                            <input name="idCandidato" type="hidden" value={idCandidato} />
+                            <input
+                              name="redirectTo"
+                              type="hidden"
+                              value={`/gestor/candidato/${idCandidato}/eventos/gestao`}
+                            />
+                            <input name="eventoId" type="hidden" value={deletableSelectedEvent.id} />
+                            <input name="nomeEvento" type="hidden" value={deletableSelectedEvent.nome_evento} />
+                            <input name="confirmouExclusao" type="hidden" value="sim" />
+                            <button className="button" type="submit">
+                              Confirmar exclusÃ£o definitiva
+                            </button>
+                          </form>
+                          <Link
+                            className="button secondary"
+                            href={`/gestor/candidato/${idCandidato}/eventos/gestao?evento=${deletableSelectedEvent.id}&status=${data.filtroParticipantes}`}
+                          >
+                            Cancelar
+                          </Link>
+                        </div>
+                      </section>
+                    ) : (
+                      <div className="actions" style={{ marginTop: 12 }}>
+                        <Link
+                          className="button secondary"
+                          href={`/gestor/candidato/${idCandidato}/eventos/gestao?evento=${deletableSelectedEvent.id}&status=${data.filtroParticipantes}&confirmarExclusao=${deletableSelectedEvent.id}`}
+                        >
+                          Excluir evento
+                        </Link>
+                      </div>
+                    )
+                  ) : null}
                 </>
               ) : (
                 <div className="step-panel-callout">

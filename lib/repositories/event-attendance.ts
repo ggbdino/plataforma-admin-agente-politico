@@ -744,6 +744,54 @@ export async function createCampaignEvent(input: {
   };
 }
 
+export async function deleteCampaignEvent(input: {
+  idCandidato: string;
+  eventoId: string;
+}) {
+  const event = await getScopedEvent(input.idCandidato, input.eventoId);
+
+  if (!event) {
+    throw new Error("Evento não encontrado para esta campanha.");
+  }
+
+  if (new Date(event.data_evento).getTime() <= Date.now()) {
+    throw new Error("Só é permitido excluir eventos que ainda não ocorreram.");
+  }
+
+  const client = await db.connect();
+
+  try {
+    await client.query("begin");
+    await client.query(
+      `
+        delete from participacoes_eventos
+        where id_candidato = $1
+          and evento_id = $2::uuid
+      `,
+      [input.idCandidato, input.eventoId]
+    );
+    await client.query(
+      `
+        delete from eventos_campanha
+        where id_candidato = $1
+          and id = $2::uuid
+      `,
+      [input.idCandidato, input.eventoId]
+    );
+    await client.query("commit");
+
+    return {
+      id: event.id,
+      nomeEvento: event.nome_evento
+    };
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function listCampaignEvents(idCandidato: string, eventId?: string) {
   const values: string[] = [idCandidato];
   const eventFilter = eventId ? "and e.id = $2::uuid" : "";
