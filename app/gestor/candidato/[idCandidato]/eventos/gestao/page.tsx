@@ -254,10 +254,10 @@ export default async function CampaignEventManagementPage({
                   {deletableSelectedEvent ? (
                     isDeleteConfirmationOpen ? (
                       <section className="feedback-banner error" style={{ marginTop: 16 }}>
-                        <strong>Confirmar exclusÃ£o do evento</strong>
+                        <strong>Confirmar exclusão do evento</strong>
                         <div style={{ marginTop: 6 }}>
-                          VocÃª estÃ¡ prestes a excluir <strong>{deletableSelectedEvent.nome_evento}</strong>. Esta aÃ§Ã£o
-                          tambÃ©m remove confirmados e presentes vinculados ao evento.
+                          Você está prestes a excluir <strong>{deletableSelectedEvent.nome_evento}</strong>. Esta ação
+                          também removerá os confirmados e presentes vinculados a este evento.
                         </div>
                         <div className="actions" style={{ marginTop: 12 }}>
                           <form action={deleteCampaignEventAction}>
@@ -271,7 +271,7 @@ export default async function CampaignEventManagementPage({
                             <input name="nomeEvento" type="hidden" value={deletableSelectedEvent.nome_evento} />
                             <input name="confirmouExclusao" type="hidden" value="sim" />
                             <button className="button" type="submit">
-                              Confirmar exclusÃ£o definitiva
+                              Excluir evento definitivamente
                             </button>
                           </form>
                           <Link
@@ -288,7 +288,7 @@ export default async function CampaignEventManagementPage({
                           className="button secondary"
                           href={`/gestor/candidato/${idCandidato}/eventos/gestao?evento=${deletableSelectedEvent.id}&status=${data.filtroParticipantes}&confirmarExclusao=${deletableSelectedEvent.id}`}
                         >
-                          Excluir evento
+                          Solicitar exclusão do evento
                         </Link>
                       </div>
                     )

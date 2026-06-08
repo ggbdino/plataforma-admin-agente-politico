@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
-import { registerEventAttendanceByPhone } from "@/lib/repositories/event-attendance";
+import {
+  findCampaignElectorByPhone,
+  registerEventAttendanceByPhone
+} from "@/lib/repositories/event-attendance";
 
 export async function registerEventAttendanceByPhoneAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
@@ -31,6 +34,34 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     redirectToEventScreen(redirectTo, {
       feedback: "erro",
       mensagem: "Selecione um evento antes de registrar a presença."
+    });
+  }
+
+  const electorLookup = await findCampaignElectorByPhone(idCandidato, telefone);
+  const normalizedLookupName = normalizeText(electorLookup?.nome);
+  const normalizedLookupCity = normalizeText(electorLookup?.cidade);
+  const normalizedName = normalizeText(nome);
+  const normalizedCity = normalizeText(cidade);
+
+  if (!electorLookup && (!normalizedName || !normalizedCity)) {
+    redirectToEventScreen(redirectTo, {
+      feedback: "erro",
+      mensagem: "Telefone não encontrado na base. Informe nome e cidade para concluir o novo cadastro.",
+      telefone
+    });
+  }
+
+  if (
+    electorLookup &&
+    (!normalizedLookupName || !normalizedLookupCity) &&
+    (!normalizedName || !normalizedCity)
+  ) {
+    redirectToEventScreen(redirectTo, {
+      feedback: "erro",
+      mensagem:
+        "Telefone localizado na base, mas o cadastro está incompleto. Informe nome e cidade para registrar a presença.",
+      telefone,
+      nome: normalizedLookupName ?? ""
     });
   }
 
@@ -69,10 +100,10 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
     redirectToEventScreen(redirectTo, {
       feedback: "sucesso",
       mensagem: result.linkedToEvent
-        ? `Presença registrada para ${result.nomeEleitor ?? "participante"}.`
+        ? `Presença registrada com sucesso para ${result.nomeEleitor ?? "participante"}.`
         : result.createdNewElector
           ? `Cadastro realizado para ${result.nomeEleitor ?? "novo participante"}, mas fora da janela do evento.`
-          : `Contato localizado na base para ${result.nomeEleitor ?? "participante"}, mas fora da janela do evento. Nenhuma presença foi computada.`,
+          : `Telefone localizado na base para ${result.nomeEleitor ?? "participante"}, mas fora da janela do evento. Nenhuma presença foi computada.`,
       telefone: result.telefone,
       nome: result.nomeEleitor ?? ""
     });
@@ -102,6 +133,11 @@ export async function registerEventAttendanceByPhoneAction(formData: FormData) {
       telefone
     });
   }
+}
+
+function normalizeText(value: string | null | undefined) {
+  const normalized = String(value ?? "").trim();
+  return normalized || null;
 }
 
 function redirectToEventScreen(

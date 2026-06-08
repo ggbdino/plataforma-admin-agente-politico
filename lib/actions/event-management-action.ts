@@ -118,7 +118,7 @@ export async function deleteCampaignEventAction(formData: FormData) {
   if (!confirmouExclusao) {
     redirect(
       `${redirectTo}?feedback=erro&mensagem=${encodeURIComponent(
-        "A exclusão do evento exige confirmação final da operação."
+        "A exclusão do evento exige uma confirmação final da operação."
       )}${eventoId ? `&evento=${encodeURIComponent(eventoId)}` : ""}`
     );
   }

@@ -49,6 +49,7 @@ export default async function CampaignEventAttendancePage({
   const selectedEventId = query?.evento || data.eventos[0]?.id || "";
   const selectedEvent = data.eventos.find((event) => event.id === selectedEventId) ?? data.eventos[0] ?? null;
   const typedPhone = String(query?.telefone ?? "").trim();
+  const justRegisteredAttendance = query?.feedback === "sucesso";
   const electorLookup =
     hasAccess && typedPhone ? await findCampaignElectorByPhone(idCandidato, typedPhone) : null;
   const needsElectorCompletion = Boolean(
@@ -179,8 +180,11 @@ export default async function CampaignEventAttendancePage({
                 </div>
               </div>
 
-              <div className="event-attendance-flow">
-                <div id="entrada-telefone" />
+              <section
+                className="event-attendance-flow"
+                id="entrada-telefone"
+                style={{ scrollMarginTop: 120 }}
+              >
                 <h2 className="section-title">Entrada por telefone</h2>
                 <p className="event-attendance-instruction">Solicite o telefone para registrar a presença.</p>
 
@@ -197,13 +201,19 @@ export default async function CampaignEventAttendancePage({
                   </section>
                 ) : null}
 
-                <form className="event-attendance-phone-form" method="get">
-                  <input name="evento" type="hidden" value={selectedEventId} />
+                <form action={registerEventAttendanceByPhoneAction} className="event-attendance-phone-form">
+                  <input name="idCandidato" type="hidden" value={idCandidato} />
+                  <input
+                    name="redirectTo"
+                    type="hidden"
+                    value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}#entrada-telefone`}
+                  />
+                  <input name="eventoId" type="hidden" value={selectedEventId} />
                   <label className="step-note" style={{ marginBottom: 0 }}>
                     <span>Telefone do participante</span>
                     <input
                       className="step-input event-attendance-phone-input"
-                      defaultValue={typedPhone}
+                      defaultValue={justRegisteredAttendance ? "" : typedPhone}
                       name="telefone"
                       placeholder="61999998888"
                       type="text"
@@ -214,19 +224,20 @@ export default async function CampaignEventAttendancePage({
                   </button>
                 </form>
 
-                {typedPhone ? (
+                {typedPhone && !justRegisteredAttendance ? (
                   electorLookup ? (
                     <article className="card event-attendance-result-card">
                       <span className="pill ok">Telefone encontrado na base</span>
                       <strong className="metric-title">{electorLookup.nome ?? "Participante sem nome"}</strong>
                       <div className="muted">
-                        {[electorLookup.cidade, electorLookup.uf].filter(Boolean).join(" / ") || "Cidade não informada"}
+                        {[electorLookup.cidade, electorLookup.uf].filter(Boolean).join(" / ") ||
+                          "Cidade não informada"}
                       </div>
                       {needsElectorCompletion ? (
                         <>
                           <div className="step-panel-callout">
-                            Antes de registrar a presença, complete os dados básicos para melhorar a
-                            qualidade do cadastro.
+                            Antes de registrar a presença, complete os dados básicos para melhorar a qualidade
+                            do cadastro.
                           </div>
                           <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
                             <input name="idCandidato" type="hidden" value={idCandidato} />
@@ -263,27 +274,10 @@ export default async function CampaignEventAttendancePage({
                           </form>
                         </>
                       ) : (
-                        <>
-                          <div className="step-panel-callout">
-                            Ao confirmar abaixo, a presença será registrada para{" "}
-                            <strong>{electorLookup.nome ?? "este participante"}</strong>.
-                          </div>
-                          <form action={registerEventAttendanceByPhoneAction} className="manager-auth-form">
-                            <input name="idCandidato" type="hidden" value={idCandidato} />
-                            <input
-                              name="redirectTo"
-                              type="hidden"
-                              value={`/gestor/candidato/${idCandidato}/eventos?evento=${encodeURIComponent(selectedEventId)}#entrada-telefone`}
-                            />
-                            <input name="eventoId" type="hidden" value={selectedEventId} />
-                            <input name="telefone" type="hidden" value={electorLookup.telefone} />
-                            <input name="nome" type="hidden" value={electorLookup.nome ?? ""} />
-                            <input name="cidade" type="hidden" value={electorLookup.cidade ?? ""} />
-                            <button className="button" type="submit">
-                              Registrar presença de {electorLookup.nome ?? "participante"}
-                            </button>
-                          </form>
-                        </>
+                        <div className="step-panel-callout">
+                          Cadastro completo localizado. Ao validar o telefone, a presença é registrada
+                          automaticamente para <strong>{electorLookup.nome ?? "este participante"}</strong>.
+                        </div>
                       )}
                     </article>
                   ) : (
@@ -321,8 +315,8 @@ export default async function CampaignEventAttendancePage({
                     <span className="pill">Fluxo rápido</span>
                     <strong className="metric-title">Atendimento focado no telefone</strong>
                     <div className="muted">
-                      Com o evento fixado, o atendente só precisa validar o telefone. Se o contato existir,
-                      a presença é confirmada no ato.
+                      Com o evento fixado, o atendente só precisa validar o telefone. Se o contato existir e
+                      estiver completo, a presença é confirmada no ato.
                     </div>
                   </article>
                 )}
@@ -332,7 +326,7 @@ export default async function CampaignEventAttendancePage({
                   <strong className="metric-value">{selectedEvent?.total_presentes ?? 0}</strong>
                   <div className="muted">Total de presenças computadas até este momento no evento selecionado.</div>
                 </article>
-              </div>
+              </section>
             </div>
 
             <aside className="event-attendance-self-service">
