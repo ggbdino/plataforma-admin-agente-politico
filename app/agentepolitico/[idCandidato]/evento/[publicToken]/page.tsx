@@ -7,8 +7,9 @@ import { getCampaignEventConfirmationContextByPublicLink } from "@/lib/repositor
 
 export const dynamic = "force-dynamic";
 
-type PublicEventConfirmationPageProps = {
+type PublicCandidateEventConfirmationPageProps = {
   params: Promise<{
+    idCandidato: string;
     publicToken: string;
   }>;
   searchParams?: Promise<{
@@ -20,16 +21,16 @@ type PublicEventConfirmationPageProps = {
   }>;
 };
 
-export default async function PublicEventConfirmationPage({
+export default async function PublicCandidateEventConfirmationPage({
   params,
   searchParams
-}: PublicEventConfirmationPageProps) {
-  const { publicToken } = await params;
+}: PublicCandidateEventConfirmationPageProps) {
+  const { idCandidato, publicToken } = await params;
   const query = searchParams ? await searchParams : undefined;
-  const publicLink = `/e/${publicToken}`;
+  const publicLink = `/agentepolitico/${idCandidato}/evento/${publicToken}`;
   const data = await getCampaignEventConfirmationContextByPublicLink(publicLink);
 
-  if (!data || !data.evento) {
+  if (!data || !data.evento || data.id_candidato !== idCandidato) {
     notFound();
   }
 
@@ -114,8 +115,9 @@ export default async function PublicEventConfirmationPage({
             <>
               <h2 className="section-title">Confirme sua participação</h2>
               <p className="subtitle">
-                Preencha o número do seu telefone e confirme sua presença se já estiver cadastrado conosco.
-                Caso não esteja, complemente com os demais dados e tecle para confirmar a presença no evento.
+                Preencha o número do seu telefone e confirme sua presença se já estiver cadastrado
+                conosco. Caso não esteja, complemente com os demais dados e tecle para confirmar a
+                presença no evento.
               </p>
 
               {query?.feedback && query?.mensagem ? (

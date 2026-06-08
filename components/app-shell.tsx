@@ -11,7 +11,8 @@ type AppShellProps = {
 
 export function AppShell({ appVersion, children }: AppShellProps) {
   const pathname = usePathname();
-  const isPublicEventPage = pathname.startsWith("/e/");
+  const isPublicEventPage =
+    pathname.startsWith("/e/") || pathname.startsWith("/agentepolitico/");
 
   if (isPublicEventPage) {
     return (

@@ -8,5 +8,16 @@ export function buildPublicEventUrl(path: string) {
 }
 
 function normalizeBaseUrl(value: string) {
-  return String(value || "https://n8n-plataforma-admin.kb0fgy.easypanel.host").replace(/\/+$/, "");
+  return String(value || "https://gapconsult.com.br").replace(/\/+$/, "");
+}
+
+export function isPublicEventConfirmationWindowOpen(
+  eventDate: string,
+  referenceTime = new Date()
+) {
+  const eventStart = new Date(eventDate).getTime();
+  const now = referenceTime.getTime();
+  const fifteenDaysInMs = 15 * 24 * 60 * 60 * 1000;
+
+  return now >= eventStart - fifteenDaysInMs && now < eventStart;
 }

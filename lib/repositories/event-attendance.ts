@@ -18,6 +18,7 @@ export async function getCampaignEventAttendanceContext(
   idCandidato: string
 ): Promise<CampaignEventAttendanceContext | null> {
   await ensureElectorEnrichmentColumns();
+  await normalizeEventPublicLinks();
 
   const candidateResult = await db.query<{
     id_candidato: string;
@@ -78,6 +79,7 @@ export async function getCampaignEventConfirmationContext(
   eventId: string
 ): Promise<CampaignEventConfirmationContext | null> {
   await ensureElectorEnrichmentColumns();
+  await normalizeEventPublicLinks();
 
   const result = await db.query<{
     id_candidato: string;
@@ -153,6 +155,7 @@ export async function getCampaignEventConfirmationContextByPublicLink(
   publicLink: string
 ): Promise<CampaignEventConfirmationContext | null> {
   await ensureElectorEnrichmentColumns();
+  await normalizeEventPublicLinks();
 
   const normalizedLink = normalizeText(publicLink);
 
@@ -233,6 +236,7 @@ export async function getActiveCampaignEvent(
   idCandidato: string,
   referenceTime = new Date()
 ): Promise<CampaignActiveEventSnapshot> {
+  await normalizeEventPublicLinks();
   const eventsResult = await db.query<EventRow>(
     `
       select
@@ -586,6 +590,7 @@ export async function getCampaignEventManagementContext(
   participantStatusFilter: CampaignEventParticipantStatusFilter = "todos"
 ): Promise<CampaignEventManagementContext | null> {
   await ensureElectorEnrichmentColumns();
+  await normalizeEventPublicLinks();
 
   const candidateResult = await db.query<{
     id_candidato: string;
@@ -674,7 +679,8 @@ export async function createCampaignEvent(input: {
 }) {
   const nomeEvento = normalizeText(input.nomeEvento);
   const dataEvento = normalizeText(input.dataEvento);
-  const publicLink = `/e/${crypto.randomUUID().replace(/-/g, "")}`;
+  const publicToken = crypto.randomUUID().replace(/-/g, "");
+  const publicLink = `/e/${publicToken}`;
 
   if (!nomeEvento || !dataEvento) {
     throw new Error("Informe pelo menos o nome e a data do evento para cadastrá-lo.");
@@ -978,6 +984,20 @@ function normalizePhone(value: string) {
 function normalizeText(value: string | undefined | null) {
   const normalized = String(value ?? "").trim();
   return normalized || null;
+}
+
+async function normalizeEventPublicLinks() {
+  await db.query(
+    `
+      update eventos_campanha
+      set link_confirmacao = regexp_replace(
+        link_confirmacao,
+        '^/agentepolitico/[^/]+/evento/([^/?#]+)$',
+        '/e/\\1'
+      )
+      where link_confirmacao ~ '^/agentepolitico/[^/]+/evento/([^/?#]+)$'
+    `
+  );
 }
 
 function isInsideAttendanceWindow(eventDate: string) {
