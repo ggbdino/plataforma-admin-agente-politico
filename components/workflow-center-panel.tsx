@@ -473,8 +473,9 @@ export function WorkflowCenterPanel({
                                 <span>Canal de confirmação</span>
                                 <input
                                   className="step-input"
-                                  defaultValue="https://sympla.com.br"
+                                  defaultValue="Link público gerado automaticamente pela plataforma"
                                   name="governanceCanalConfirmacao"
+                                  readOnly
                                   type="text"
                                 />
                               </label>

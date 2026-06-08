@@ -1046,6 +1046,16 @@ async function normalizeEventPublicLinks() {
       where link_confirmacao ~ '^/agentepolitico/[^/]+/evento/([^/?#]+)$'
     `
   );
+
+  await db.query(
+    `
+      update eventos_campanha
+      set link_confirmacao = '/e/' || md5(id::text || ':' || coalesce(id_candidato, ''))
+      where link_confirmacao is null
+         or btrim(link_confirmacao) = ''
+         or link_confirmacao !~ '^/e/[A-Za-z0-9]+$'
+    `
+  );
 }
 
 function isInsideAttendanceWindow(eventDate: string) {

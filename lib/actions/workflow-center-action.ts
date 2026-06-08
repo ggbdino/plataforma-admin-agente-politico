@@ -513,7 +513,7 @@ function buildGovernancePayload(input: {
       cidade: input.cidade,
       uf: input.uf,
       capacidade_estimada: Number(input.capacidade || 0),
-      link_confirmacao: input.canalConfirmacao,
+      link_confirmacao: null,
       status: input.status || "ativo",
       metadata
     };
