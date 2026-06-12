@@ -1,6 +1,7 @@
 export const env = {
   databaseUrl: process.env.DATABASE_URL,
   n8nBaseUrl: process.env.N8N_BASE_URL,
+  n8nWebhookBaseUrl: process.env.N8N_WEBHOOK_BASE_URL ?? process.env.N8N_BASE_URL,
   publicEventsBaseUrl:
     process.env.PUBLIC_EVENTS_BASE_URL ??
     process.env.NEXT_PUBLIC_EVENTS_BASE_URL ??
@@ -19,8 +20,7 @@ export const env = {
   metaWhatsAppPhoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID ?? "",
   adminBootstrapCode: process.env.ADMIN_BOOTSTRAP_CODE ?? "",
   n8nWebhookCandidateSync:
-    process.env.N8N_WEBHOOK_CANDIDATO_SYNC ??
-    "/webhook/bdb5c2b3-7308-4f19-993c-d111023bd41b",
+    process.env.N8N_WEBHOOK_CANDIDATO_SYNC ?? "/webhook/candidato-sync",
   n8nWebhookGovernancaBrunex:
     process.env.N8N_WEBHOOK_GOVERNANCA_BRUNEX ??
     "/webhook/agente-politico/governanca/atualizacao",

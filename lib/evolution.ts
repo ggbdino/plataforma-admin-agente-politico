@@ -79,7 +79,10 @@ function buildEvolutionInstanceName(idCandidato: string, nomeUrna: string) {
 }
 
 function buildN8nWebhookUrl(path: string) {
-  const baseUrl = getRequiredEnv("N8N_BASE_URL").replace(/\/+$/, "");
+  const baseUrl = (env.n8nWebhookBaseUrl?.trim() || getRequiredEnv("N8N_BASE_URL")).replace(
+    /\/+$/,
+    ""
+  );
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
   return `${baseUrl}${normalizedPath}`;

@@ -61,21 +61,21 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   const redirectBase = buildRedirectBase(redirectTo, idCandidato);
 
   if (!session || session.perfil !== "administrador") {
-    redirect(
-      `${redirectBase}&feedback=erro&mensagem=${encodeURIComponent(
-        "Apenas administradores podem iniciar workflows pela governança."
-      )}`
-    );
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Apenas administradores podem iniciar workflows pela governança."
+    });
   }
+
+  const adminSession = session as NonNullable<typeof session>;
 
   const config = resolveWorkflowConfig(workflow, idCandidato);
 
   if (!config) {
-    redirect(
-      `${redirectBase}&feedback=erro&mensagem=${encodeURIComponent(
-        "Workflow não identificado para execução."
-      )}`
-    );
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Workflow não identificado para execução."
+    });
   }
 
   const payload: Record<string, unknown> = {
@@ -107,32 +107,33 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       governanceStatus ||
       governanceCapacidade
     ) {
-      payload.payload_json = JSON.stringify(buildGovernancePayload({
-        recurso,
-        nome: governanceNome,
-        descricao: governanceDescricao,
-        dataInicio: governanceDataInicio,
-        dataFim: governanceDataFim,
-        localNome: governanceLocalNome,
-        enderecoOuUrl: governanceEnderecoOuUrl,
-        cidade: governanceCidade,
-        uf: governanceUf,
-        canalConfirmacao: governanceCanalConfirmacao,
-        tipo: governanceTipo,
-        status: governanceStatus,
-        capacidade: governanceCapacidade,
-        operador: session.email
-      }));
+      payload.payload_json = JSON.stringify(
+        buildGovernancePayload({
+          recurso,
+          nome: governanceNome,
+          descricao: governanceDescricao,
+          dataInicio: governanceDataInicio,
+          dataFim: governanceDataFim,
+          localNome: governanceLocalNome,
+          enderecoOuUrl: governanceEnderecoOuUrl,
+          cidade: governanceCidade,
+          uf: governanceUf,
+          canalConfirmacao: governanceCanalConfirmacao,
+          tipo: governanceTipo,
+          status: governanceStatus,
+          capacidade: governanceCapacidade,
+          operador: adminSession.email
+        })
+      );
     } else if (payloadJson) {
       try {
         const parsed = JSON.parse(payloadJson) as Record<string, unknown>;
         payload.payload_json = JSON.stringify(parsed);
       } catch {
-        redirect(
-            `${redirectBase}&feedback=erro&mensagem=${encodeURIComponent(
-            "Payload JSON inválido para o workflow de governança."
-          )}`
-        );
+        redirectWithParams(redirectBase, {
+          feedback: "erro",
+          mensagem: "Payload JSON inválido para o workflow de governança."
+        });
       }
     }
   }
@@ -154,7 +155,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
     await recordGovernanceEvent({
       idCandidato: idCandidato || null,
       escopo: "admin",
-      ator: session.email,
+      ator: adminSession.email,
       categoria: "workflow_n8n",
       acao: workflow,
       descricao: `${config.descricao} iniciada pela plataforma.`,
@@ -170,7 +171,7 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
     await recordGovernanceEvent({
       idCandidato: idCandidato || null,
       escopo: "admin",
-      ator: session.email,
+      ator: adminSession.email,
       categoria: "workflow_n8n",
       acao: `${workflow}_erro`,
       descricao: message,
@@ -178,17 +179,46 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       origem: "workflow-center"
     });
 
-    redirect(`${redirectBase}&feedback=erro&mensagem=${encodeURIComponent(message)}`);
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: message
+    });
   }
 
-  redirect(`${redirectBase}&feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`);
+  redirectWithParams(redirectBase, {
+    feedback: "sucesso",
+    mensagem: successMessage
+  });
 }
 
 function buildRedirectBase(redirectTo: string, idCandidato: string) {
-  const separator = redirectTo.includes("?") ? "&" : "?";
-  return idCandidato
-    ? `${redirectTo}${separator}candidato=${encodeURIComponent(idCandidato)}`
-    : redirectTo;
+  return appendSearchParams(
+    redirectTo,
+    idCandidato
+      ? {
+          candidato: idCandidato
+        }
+      : {}
+  );
+}
+
+function redirectWithParams(basePath: string, params: Record<string, string>) {
+  redirect(appendSearchParams(basePath, params));
+}
+
+function appendSearchParams(basePath: string, params: Record<string, string>) {
+  const [pathname, currentSearch = ""] = basePath.split("?");
+  const searchParams = new URLSearchParams(currentSearch);
+
+  for (const [key, value] of Object.entries(params)) {
+    const normalizedValue = value.trim();
+    if (normalizedValue) {
+      searchParams.set(key, normalizedValue);
+    }
+  }
+
+  const queryString = searchParams.toString();
+  return queryString ? `${pathname}?${queryString}` : pathname;
 }
 
 function resolveWorkflowConfig(
@@ -244,7 +274,7 @@ function buildWorkflowErrorMessage(
   rawMessage: string
 ) {
   if (workflow === "candidato_sync" && rawMessage.includes("requested webhook")) {
-    return "O workflow de sincronização de candidatos ainda não expõe uma URL de produção compatível com a plataforma. Confirme se o nó Webhook está ativo, publicado e com o mesmo path configurado em N8N_WEBHOOK_CANDIDATO_SYNC.";
+    return "O workflow de sincronização de candidatos ainda não expõe uma URL de produção compatível com a plataforma. Confirme se o nó Webhook está ativo, publicado com método GET, usando o path /webhook/candidato-sync e se a plataforma está apontando para N8N_WEBHOOK_BASE_URL no domínio do serviço n8n_webhook.";
   }
 
   if (workflow === "governanca" && rawMessage.includes("requested webhook")) {

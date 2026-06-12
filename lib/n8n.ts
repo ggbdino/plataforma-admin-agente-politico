@@ -11,14 +11,9 @@ export async function triggerN8nWebhook({
   payload,
   method = "POST"
 }: TriggerWebhookInput) {
-  const url = new URL(path, getRequiredEnv("N8N_BASE_URL")).toString();
-  const headers: HeadersInit = {
-    "Content-Type": "application/json"
-  };
-
-  if (env.n8nApiKey) {
-    headers["X-N8N-API-KEY"] = env.n8nApiKey;
-  }
+  const webhookBaseUrl = env.n8nWebhookBaseUrl?.trim() || getRequiredEnv("N8N_BASE_URL");
+  const url = new URL(path, webhookBaseUrl).toString();
+  const headers: HeadersInit = method === "POST" ? { "Content-Type": "application/json" } : {};
 
   const requestUrl =
     method === "GET"
@@ -36,7 +31,8 @@ export async function triggerN8nWebhook({
     method,
     headers,
     body: method === "POST" ? JSON.stringify(payload) : undefined,
-    cache: "no-store"
+    cache: "no-store",
+    signal: AbortSignal.timeout(45_000)
   });
 
   const text = await response.text();

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 import { createOrConnectEvolutionInstance } from "@/lib/evolution";
 import { triggerN8nWebhook } from "@/lib/n8n";
 import type { CampaignChannelOption, StepExecutionMode } from "@/lib/types";
@@ -19,7 +20,11 @@ const STEP_TO_WEBHOOK: Record<
     mode: StepExecutionMode;
   } | null
 > = {
-  cadastro_candidato: { path: "/webhook/candidato-sync", method: "POST", mode: "webhook" },
+  cadastro_candidato: {
+    path: env.n8nWebhookCandidateSync,
+    method: "GET",
+    mode: "webhook"
+  },
   configurar_canais: null,
   gerar_qrcode: { path: "/webhook/agente-politico/0001/qrcode/canais", method: "GET", mode: "webhook" },
   configurar_evolution: null,
