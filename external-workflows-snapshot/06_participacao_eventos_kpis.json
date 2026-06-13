@@ -1,0 +1,247 @@
+{
+  "name": "06_participacao_eventos_kpis",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "agente-politico/eventos/participacao",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_1",
+      "name": "Webhook Participação Evento",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        180,
+        300
+      ],
+      "webhookId": "agente-politico-eventos-participacao"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const b = item.json.body || item.json;\n  const idCandidato = String(b.id_candidato || '').trim();\n  const eleitorId = String(b.eleitor_id || b.telefone || '').trim();\n  return {\n    json: {\n      id_candidato: idCandidato,\n      evento_id: String(b.evento_id || '').trim(),\n      eleitor_id: eleitorId,\n      eleitor_uid: `${idCandidato}:${eleitorId}`,\n      status_participacao: String(b.status_participacao || 'interessado').trim(),\n      canal_registro: String(b.canal_registro || 'whatsapp').trim(),\n      origem_registro: String(b.origem_registro || 'eleitor').trim(),\n      lider_responsavel_id: String(b.lider_responsavel_id || '').trim(),\n      observacao: String(b.observacao || '').trim(),\n      metadata: b\n    }\n  };\n});"
+      },
+      "id": "Code_1",
+      "name": "Normalizar Participação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into participacoes_eventos (evento_id, eleitor_uid, eleitor_id, id_candidato, status_participacao, origem_registro, canal_registro, lider_responsavel_id, observacao, metadata, registrado_em) values ('{{$json.evento_id}}'::uuid,'{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','{{$json.status_participacao}}','{{$json.origem_registro}}','{{$json.canal_registro}}',nullif('{{$json.lider_responsavel_id}}','')::uuid,'{{$json.observacao.replace(/'/g, \"''\")}}','{{ JSON.stringify($json.metadata).replace(/'/g, \"''\") }}'::jsonb,now()) on conflict (evento_id, eleitor_uid) do update set status_participacao = excluded.status_participacao, origem_registro = excluded.origem_registro, canal_registro = excluded.canal_registro, lider_responsavel_id = excluded.lider_responsavel_id, observacao = excluded.observacao, metadata = excluded.metadata, registrado_em = now();"
+      },
+      "id": "Postgres_1",
+      "name": "Registrar Participação",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        700,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update eleitores set etapa_funil = case when '{{$json.status_participacao}}' in ('confirmado','presente') then 'engajado' else etapa_funil end, score_engajamento = coalesce(score_engajamento,0) + case when '{{$json.status_participacao}}' = 'interessado' then 5 when '{{$json.status_participacao}}' = 'confirmado' then 10 when '{{$json.status_participacao}}' = 'presente' then 20 else 0 end, ultimo_contato_em = now(), atualizado_em = now() where eleitor_uid = '{{$json.eleitor_uid}}';"
+      },
+      "id": "Postgres_2",
+      "name": "Atualizar Score do Eleitor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        700,
+        380
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into interacoes (eleitor_uid, eleitor_id, id_candidato, canal, direcao, mensagem, tema_classificado, etapa_sugerida, usa_ia, risco_compliance, status_envio, origem_execucao, metadata) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','{{$json.canal_registro}}','evento','Participacao registrada: {{$json.status_participacao}}','evento','engajado',false,'baixo','registrado','participacao_evento','{{ JSON.stringify($json.metadata).replace(/'/g, \"''\") }}'::jsonb);"
+      },
+      "id": "Postgres_3",
+      "name": "Registrar Interação de Evento",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        700,
+        540
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "ScheduleTrigger_1",
+      "name": "Schedule KPI Eventos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "with base as (select e.id_candidato, e.etapa_funil, e.origem_captacao, count(*) as total_leads, sum(case when e.etapa_funil = 'engajado' then 1 else 0 end) as total_engajados, sum(case when e.etapa_funil = 'indeciso' then 1 else 0 end) as total_indecisos, sum(case when e.etapa_funil in ('apoiador','mobilizador') then 1 else 0 end) as total_apoiadores, avg(coalesce(e.score_engajamento,0)) as score_engajamento_medio, avg(coalesce(e.score_propensao_voto,0)) as score_propensao_medio from eleitores e group by e.id_candidato, e.etapa_funil, e.origem_captacao), eventos as (select p.id_candidato, count(*) filter (where p.status_participacao = 'confirmado') as total_confirmacoes_evento, count(*) filter (where p.status_participacao = 'presente') as total_comparecimentos_evento from participacoes_eventos p group by p.id_candidato) insert into metricas_funil (id_candidato, data_referencia, etapa_funil, origem_captacao, total_leads, total_engajados, total_indecisos, total_apoiadores, total_confirmacoes_evento, total_comparecimentos_evento, score_engajamento_medio, score_propensao_medio) select b.id_candidato, now(), b.etapa_funil, b.origem_captacao, b.total_leads, b.total_engajados, b.total_indecisos, b.total_apoiadores, coalesce(ev.total_confirmacoes_evento,0), coalesce(ev.total_comparecimentos_evento,0), b.score_engajamento_medio, b.score_propensao_medio from base b left join eventos ev on ev.id_candidato = b.id_candidato;"
+      },
+      "id": "Postgres_4",
+      "name": "Consolidar KPIs com Eventos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        620
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"registrado\",\"evento_id\":\"{{$json.evento_id || ''}}\",\"eleitor_id\":\"{{$json.eleitor_id || ''}}\",\"participacao\":\"{{$json.status_participacao || ''}}\"}",
+        "options": {}
+      },
+      "id": "Respond_1",
+      "name": "Responder Participação",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Participação Evento": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Participação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Participação": {
+      "main": [
+        [
+          {
+            "node": "Registrar Participação",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Atualizar Score do Eleitor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Registrar Interação de Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Participação": {
+      "main": [
+        [
+          {
+            "node": "Responder Participação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Score do Eleitor": {
+      "main": [
+        [
+          {
+            "node": "Responder Participação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Interação de Evento": {
+      "main": [
+        [
+          {
+            "node": "Responder Participação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule KPI Eventos": {
+      "main": [
+        [
+          {
+            "node": "Consolidar KPIs com Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "eventos"
+    },
+    {
+      "name": "kpi"
+    }
+  ]
+}

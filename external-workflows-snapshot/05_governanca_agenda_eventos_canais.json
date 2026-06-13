@@ -1,0 +1,351 @@
+{
+  "name": "05_governanca_agenda_eventos_canais",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "agente-politico/governanca/atualizacao",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_1",
+      "name": "Webhook Governança",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        180,
+        320
+      ],
+      "webhookId": "agente-politico-governanca-atualizacao"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const b = item.json.body || item.json;\n  let payload = b.payload || {};\n  if ((!payload || typeof payload !== 'object' || Array.isArray(payload)) && typeof b.payload_json === 'string' && b.payload_json.trim()) {\n    try {\n      payload = JSON.parse(b.payload_json);\n    } catch {\n      payload = {};\n    }\n  }\n  return {\n    json: {\n      id_candidato: String(b.id_candidato || '').trim(),\n      lider_id: String(b.lider_id || '').trim(),\n      recurso: String(b.recurso || '').trim(),\n      acao: String(b.acao || 'upsert').trim(),\n      referencia_id: String(b.referencia_id || '').trim(),\n      payload,\n      observacao: String(b.observacao || '').trim()\n    }\n  };\n});"
+      },
+      "id": "Code_1",
+      "name": "Normalizar Solicitação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select pl.*, lc.nome as lider_nome from permissoes_lideres pl join lideres_campanha lc on lc.id = pl.lider_id where pl.lider_id = '{{$json.lider_id}}'::uuid and pl.id_candidato = '{{$json.id_candidato}}' and pl.recurso = '{{$json.recurso}}' and pl.ativo = true limit 1;"
+      },
+      "id": "Postgres_1",
+      "name": "Validar Permissão",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Array.isArray($json) ? $json.length > 0 : !!$json.id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_1",
+      "name": "Permissão OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const perm = Array.isArray($json) ? $json[0] : $json;\nconst src = $item(0).$node['Normalizar Solicitação'].json;\nconst p = src.payload || {};\nfunction esc(v){ return String(v ?? '').replace(/'/g, \"''\"); }\nlet selectBefore = '';\nlet upsertSql = '';\nif (src.recurso === 'agenda') {\n  selectBefore = `select row_to_json(t) as before_json from (select * from agendas_campanha where id = '${esc(src.referencia_id)}'::uuid) t;`;\n  upsertSql = `insert into agendas_campanha (id, id_candidato, titulo, descricao, data_inicio, data_fim, local_nome, endereco, cidade, uf, canal_confirmacao, status, origem_dados, criado_por_lider_id, atualizado_por_lider_id, metadata) values (coalesce(nullif('${esc(src.referencia_id)}','')::uuid, gen_random_uuid()), '${esc(src.id_candidato)}', '${esc(p.titulo)}', '${esc(p.descricao)}', '${esc(p.data_inicio)}'::timestamptz, nullif('${esc(p.data_fim)}','')::timestamptz, '${esc(p.local_nome)}', '${esc(p.endereco)}', '${esc(p.cidade)}', '${esc(p.uf)}', '${esc(p.canal_confirmacao)}', '${esc(p.status || 'planejado')}', 'lider_campanha', '${esc(src.lider_id)}'::uuid, '${esc(src.lider_id)}'::uuid, '${esc(JSON.stringify(p.metadata || {}))}'::jsonb) on conflict (id) do update set titulo = excluded.titulo, descricao = excluded.descricao, data_inicio = excluded.data_inicio, data_fim = excluded.data_fim, local_nome = excluded.local_nome, endereco = excluded.endereco, cidade = excluded.cidade, uf = excluded.uf, canal_confirmacao = excluded.canal_confirmacao, status = excluded.status, atualizado_por_lider_id = excluded.atualizado_por_lider_id, metadata = excluded.metadata, atualizado_em = now() returning id;`;\n} else if (src.recurso === 'evento') {\n  selectBefore = `select row_to_json(t) as before_json from (select * from eventos_campanha where id = '${esc(src.referencia_id)}'::uuid) t;`;\n  upsertSql = `insert into eventos_campanha (id, agenda_id, id_candidato, nome_evento, tipo_evento, descricao, data_evento, local_nome, endereco, cidade, uf, capacidade_estimada, link_confirmacao, status, origem_dados, criado_por_lider_id, atualizado_por_lider_id, metadata) values (coalesce(nullif('${esc(src.referencia_id)}','')::uuid, gen_random_uuid()), nullif('${esc(p.agenda_id)}','')::uuid, '${esc(src.id_candidato)}', '${esc(p.nome_evento)}', '${esc(p.tipo_evento)}', '${esc(p.descricao)}', '${esc(p.data_evento)}'::timestamptz, '${esc(p.local_nome)}', '${esc(p.endereco)}', '${esc(p.cidade)}', '${esc(p.uf)}', ${Number(p.capacidade_estimada || 0)}, '${esc(p.link_confirmacao)}', '${esc(p.status || 'ativo')}', 'lider_campanha', '${esc(src.lider_id)}'::uuid, '${esc(src.lider_id)}'::uuid, '${esc(JSON.stringify(p.metadata || {}))}'::jsonb) on conflict (id) do update set agenda_id = excluded.agenda_id, nome_evento = excluded.nome_evento, tipo_evento = excluded.tipo_evento, descricao = excluded.descricao, data_evento = excluded.data_evento, local_nome = excluded.local_nome, endereco = excluded.endereco, cidade = excluded.cidade, uf = excluded.uf, capacidade_estimada = excluded.capacidade_estimada, link_confirmacao = excluded.link_confirmacao, status = excluded.status, atualizado_por_lider_id = excluded.atualizado_por_lider_id, metadata = excluded.metadata, atualizado_em = now() returning id;`;\n} else {\n  selectBefore = `select row_to_json(t) as before_json from (select * from canais_integracao where id = '${esc(src.referencia_id)}'::uuid) t;`;\n  upsertSql = `insert into canais_integracao (id, id_candidato, nome_canal, tipo_canal, identificador_externo, url_canal, status, origem_dados, criado_por_lider_id, atualizado_por_lider_id, metadata) values (coalesce(nullif('${esc(src.referencia_id)}','')::uuid, gen_random_uuid()), '${esc(src.id_candidato)}', '${esc(p.nome_canal)}', '${esc(p.tipo_canal)}', '${esc(p.identificador_externo)}', '${esc(p.url_canal)}', '${esc(p.status || 'ativo')}', 'lider_campanha', '${esc(src.lider_id)}'::uuid, '${esc(src.lider_id)}'::uuid, '${esc(JSON.stringify(p.metadata || {}))}'::jsonb) on conflict (id) do update set nome_canal = excluded.nome_canal, tipo_canal = excluded.tipo_canal, identificador_externo = excluded.identificador_externo, url_canal = excluded.url_canal, status = excluded.status, atualizado_por_lider_id = excluded.atualizado_por_lider_id, metadata = excluded.metadata, atualizado_em = now() returning id;`;\n}\nreturn [{ json: { ...src, permissao: perm, select_before: selectBefore, upsert_sql: upsertSql } }];"
+      },
+      "id": "Code_2",
+      "name": "Montar SQL Governança",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.select_before }}"
+      },
+      "id": "Postgres_2",
+      "name": "Ler Estado Anterior",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1460,
+        120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.upsert_sql }}"
+      },
+      "id": "Postgres_3",
+      "name": "Aplicar Alteração",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1460,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const beforeRow = Array.isArray($item(0).$node['Ler Estado Anterior'].json) ? $item(0).$node['Ler Estado Anterior'].json[0] : $item(0).$node['Ler Estado Anterior'].json;\nconst afterRow = Array.isArray($json) ? $json[0] : $json;\nconst src = $item(0).$node['Montar SQL Governança'].json;\nreturn [{ json: { ...src, before_json: beforeRow?.before_json || null, after_id: afterRow?.id || src.referencia_id, after_json: src.payload || {} } }];"
+      },
+      "id": "Code_3",
+      "name": "Preparar Auditoria",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into auditoria_operacional (id_candidato, recurso, referencia_id, acao, lider_id, antes, depois, origem, observacao) values ('{{$json.id_candidato}}','{{$json.recurso}}','{{$json.after_id}}','{{$json.acao}}','{{$json.lider_id}}'::uuid,'{{ JSON.stringify($json.before_json).replace(/'/g, \"''\") }}'::jsonb,'{{ JSON.stringify($json.after_json).replace(/'/g, \"''\") }}'::jsonb,'n8n_governanca','{{$json.observacao.replace(/'/g, \"''\")}}');"
+      },
+      "id": "Postgres_4",
+      "name": "Registrar Auditoria",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1980,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into auditoria_operacional (id_candidato, recurso, referencia_id, acao, lider_id, antes, depois, origem, observacao) values ('{{$item(0).$node[\"Normalizar Solicitação\"].json.id_candidato}}','{{$item(0).$node[\"Normalizar Solicitação\"].json.recurso}}','{{$item(0).$node[\"Normalizar Solicitação\"].json.referencia_id || \"sem_referencia\"}}','bloqueado_sem_permissao','{{$item(0).$node[\"Normalizar Solicitação\"].json.lider_id}}'::uuid,null,'{{ JSON.stringify($item(0).$node[\"Normalizar Solicitação\"].json.payload).replace(/'/g, \"''\") }}'::jsonb,'n8n_governanca','Solicitacao bloqueada por falta de permissao');"
+      },
+      "id": "Postgres_5",
+      "name": "Auditar Bloqueio",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1200,
+        500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"ok\",\"recurso\":\"{{$json.recurso || ''}}\",\"referencia_id\":\"{{$json.after_id || $json.referencia_id || ''}}\",\"message\":\"Governança concluída para o recurso {{$json.recurso || ''}}{{$json.after_id || $json.referencia_id ? '. Referência: ' + ($json.after_id || $json.referencia_id) + '.' : '.'}}\"}",
+        "options": {}
+      },
+      "id": "Respond_1",
+      "name": "Responder Governança",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Governança": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Solicitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Solicitação": {
+      "main": [
+        [
+          {
+            "node": "Validar Permissão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Permissão": {
+      "main": [
+        [
+          {
+            "node": "Permissão OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Permissão OK?": {
+      "main": [
+        [
+          {
+            "node": "Montar SQL Governança",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auditar Bloqueio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar SQL Governança": {
+      "main": [
+        [
+          {
+            "node": "Ler Estado Anterior",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aplicar Alteração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Estado Anterior": {
+      "main": [
+        [
+          {
+            "node": "Preparar Auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aplicar Alteração": {
+      "main": [
+        [
+          {
+            "node": "Preparar Auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Auditoria": {
+      "main": [
+        [
+          {
+            "node": "Registrar Auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Auditoria": {
+      "main": [
+        [
+          {
+            "node": "Responder Governança",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar Bloqueio": {
+      "main": [
+        [
+          {
+            "node": "Responder Governança",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "governanca"
+    },
+    {
+      "name": "lideres"
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "name": "07_qrcode_canais_agentes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "id": "ScheduleTrigger_1",
+      "name": "Schedule QRCode",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "path": "agente-politico/qrcode/canais",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_1",
+      "name": "Webhook QRCode",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        180,
+        420
+      ],
+      "webhookId": "agente-politico-qrcode-canais"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id, id_candidato, nome_canal, tipo_canal, identificador_externo, url_canal, metadata from canais_integracao where status = 'ativo' and tipo_canal = 'whatsapp_agente' and coalesce((metadata ->> 'exibir_em_qrcode')::boolean, false) = true;"
+      },
+      "id": "Postgres_1",
+      "name": "Buscar Canais Elegíveis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        460,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const r = item.json;\n  const urlBase = String(r.url_canal || '').trim();\n  const numero = String(r.identificador_externo || '').replace(/\\D/g, '');\n  const wa = urlBase || (numero ? `https://wa.me/${numero}` : '');\n  const qr = wa ? `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(wa)}` : '';\n  return { json: { ...r, wa_link: wa, qr_code_url: qr } };\n});"
+      },
+      "id": "Code_1",
+      "name": "Montar Links QRCode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update canais_integracao set url_canal = '{{$json.wa_link}}', metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('qr_code_url', '{{$json.qr_code_url}}', 'qr_code_gerado_em', now()::text), atualizado_em = now() where id = '{{$json.id}}'::uuid; insert into auditoria_operacional (id_candidato, recurso, referencia_id, acao, antes, depois, origem, observacao) values ('{{$json.id_candidato}}','canal_integracao','{{$json.id}}','geracao_qrcode',null,jsonb_build_object('wa_link','{{$json.wa_link}}','qr_code_url','{{$json.qr_code_url}}'),'n8n_qrcode','Geracao ou atualizacao automatica de QR Code para canal do agente');"
+      },
+      "id": "Postgres_2",
+      "name": "Salvar QRCode no Canal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"ok\",\"qrcodes_processados\":true}",
+        "options": {}
+      },
+      "id": "Respond_1",
+      "name": "Responder QRCode",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1260,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule QRCode": {
+      "main": [
+        [
+          {
+            "node": "Buscar Canais Elegíveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook QRCode": {
+      "main": [
+        [
+          {
+            "node": "Buscar Canais Elegíveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Canais Elegíveis": {
+      "main": [
+        [
+          {
+            "node": "Montar Links QRCode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Links QRCode": {
+      "main": [
+        [
+          {
+            "node": "Salvar QRCode no Canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar QRCode no Canal": {
+      "main": [
+        [
+          {
+            "node": "Responder QRCode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "qrcode"
+    },
+    {
+      "name": "canais"
+    }
+  ]
+}

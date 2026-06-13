@@ -1,0 +1,564 @@
+﻿{
+    "name":  "01c_sync_candidato_webhook_incremental",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "path":  "candidato-sync",
+                                         "httpMethod":  "GET",
+                                         "responseMode":  "lastNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "Webhook_1",
+                      "name":  "Webhook Sync Candidato",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2.1,
+                      "position":  [
+                                       120,
+                                       140
+                                   ],
+                      "webhookId":  "candidato-sync"
+                  },
+                  {
+                      "parameters":  {
+                                         "rule":  {
+                                                      "interval":  [
+                                                                       {
+                                                                           "field":  "minutes",
+                                                                           "minutesInterval":  15
+                                                                       }
+                                                                   ]
+                                                  }
+                                     },
+                      "id":  "ScheduleTrigger_1",
+                      "name":  "Agendamento Sync Candidato",
+                      "type":  "n8n-nodes-base.scheduleTrigger",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       120,
+                                       380
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M",
+                                                            "mode":  "list",
+                                                            "cachedResultName":  "Dados dos Políticos",
+                                                            "cachedResultUrl":  "https://docs.google.com/spreadsheets/d/1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M/edit?usp=drivesdk"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  215487439,
+                                                           "mode":  "list",
+                                                           "cachedResultName":  "Respostas ao formulário 1",
+                                                           "cachedResultUrl":  "https://docs.google.com/spreadsheets/d/1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M/edit#gid=215487439"
+                                                       },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "GoogleSheets_Webhook",
+                      "name":  "Ler Planilha via Webhook",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       380,
+                                       140
+                                   ],
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "VFZGAHCMbOlZblRT",
+                                                                        "name":  "Google Sheets account"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M",
+                                                            "mode":  "list",
+                                                            "cachedResultName":  "Dados dos Políticos",
+                                                            "cachedResultUrl":  "https://docs.google.com/spreadsheets/d/1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M/edit?usp=drivesdk"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  215487439,
+                                                           "mode":  "list",
+                                                           "cachedResultName":  "Respostas ao formulário 1",
+                                                           "cachedResultUrl":  "https://docs.google.com/spreadsheets/d/1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M/edit#gid=215487439"
+                                                       },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "GoogleSheets_Agendamento",
+                      "name":  "Ler Planilha via Agendamento",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       380,
+                                       380
+                                   ],
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "VFZGAHCMbOlZblRT",
+                                                                        "name":  "Google Sheets account"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "function esc(v) { return String(v ?? \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\"); }\nfunction clean(v) { return String(v ?? \u0027\u0027).trim(); }\nfunction normalizeId(v) {\n  return String(v ?? \u0027\u0027)\n    .toLowerCase()\n    .normalize(\u0027NFD\u0027)\n    .replace(/[\\u0300-\\u036f]/g, \u0027\u0027)\n    .replace(/[^a-z0-9]+/g, \u0027-\u0027)\n    .replace(/^-|-$/g, \u0027\u0027);\n}\nfunction hashString(str) {\n  let hash = 5381;\n  for (let i = 0; i \u003c str.length; i += 1) {\n    hash = ((hash \u003c\u003c 5) + hash) + str.charCodeAt(i);\n    hash = hash \u003e\u003e\u003e 0;\n  }\n  return hash.toString(16);\n}\nfunction mapItem(r, origemExecucao, index) {\n  const mapped = {\n    nome_completo: clean(r[\u0027Nome do Candidato\u0027]),\n    numero_tre_tse: clean(r[\u0027Número no TRE/TSE\u0027] || r[\u0027NÃºmero no TRE/TSE\u0027]),\n    cargo_disputado: clean(r[\u0027Cargo que concorre? \u0027]),\n    partido: clean(r[\u0027Partido?\u0027]),\n    estado: clean(r[\u0027Estado (Quando Governador, Deputado Estadual) ou Distrital?\u0027]),\n    coligacao: clean(r[\u0027Coligação (se houver)\u0027] || r[\u0027ColigaÃ§Ã£o (se houver)\u0027]),\n    bio_curta: clean(r[\u0027Biografia resumida:\u0027]),\n    bandeiras: clean(r[\u0027Principais bandeiras de campanha?\u0027]),\n    telefone_candidato: clean(r[\u0027Telefone direto do candidato?\u0027]),\n    nome_urna: clean(r[\u0027Como o candidato quer ser chamado? (Nome utilizado no material de campanha)\u0027]),\n    tom_de_voz: clean(r[\u0027Qual o tom de comunicação desejado?\u0027] || r[\u0027Qual o tom de comunicaÃ§Ã£o desejado?\u0027]),\n    bordoes: clean(r[\u0027Quais as frases de efeito e/ou bordões característicos?\u0027] || r[\u0027Quais as frases de efeito e/ou bordÃµes caracterÃ­sticos?\u0027]),\n    palavras_proibidas: clean(r[\u0027Existe alguma palavra ou expressão que não deve ser utilizada?\u0027] || r[\u0027Existe alguma palavra ou expressÃ£o que nÃ£o deve ser utilizada?\u0027]),\n    pautas_sensiveis: clean(r[\u0027Existe alguma pauta que o candidato evita comentar?\u0027]),\n    site_campanha: clean(r[\u0027Qual o site da Campanha?\u0027]),\n    redes_sociais: clean(r[\u0027Quais a redes sociais ativas? (links?)\u0027]),\n    propostas_top5: clean(r[\u0027Apresente 5 principais propostas de campanha? \u0027]),\n    implementacao_propostas: clean(r[\u0027Descreva brevemente como serão implementadas? \u0027] || r[\u0027Descreva brevemente como serÃ£o implementadas? \u0027]),\n    areas_prioritarias: clean(r[\u0027Quais as áreas são prioritárias? \u0027] || r[\u0027Quais as Ã¡reas sÃ£o prioritÃ¡rias? \u0027]),\n    agenda_predefinida: clean(r[\u0027Existe agenda de Eventos pré-definida?\u0027] || r[\u0027Existe agenda de Eventos prÃ©-definida?\u0027]),\n    frequencia_agenda: clean(r[\u0027Com que frequência a agenda será atualizada? \u0027] || r[\u0027Com que frequÃªncia a agenda serÃ¡ atualizada? \u0027]),\n    numero_agente_candidato: clean(r[\u0027Qual o número que será utilizado pelo Agente do Candidato? \u0027] || r[\u0027Qual o nÃºmero que serÃ¡ utilizado pelo Agente do Candidato? \u0027]),\n    supervisor_agenda: clean(r[\u0027Quem é o supervisor de Agenda? \u0027] || r[\u0027Quem Ã© o supervisor de Agenda? \u0027]),\n    equipe_handoff: clean(r[\u0027Existe equipe para atendimento humano? (handoff)\u0027]),\n    horario_atendimento_humano: clean(r[\u0027Qual o horário de funcionamento do atendimento humano?\u0027] || r[\u0027Qual o horÃ¡rio de funcionamento do atendimento humano?\u0027]),\n    meta_contatos_whatsapp: Number(r[\u0027Qual a meta de contatos para o WhatsApp? (Agente de IA)\u0027] || 0),\n    meta_conversao_votos: Number(r[\u0027Qual é a meta de conversão em votos (%)?\u0027] || r[\u0027Qual Ã© a meta de conversÃ£o em votos (%)?\u0027] || 0),\n    canais_divulgacao_whatsapp: clean(r[\u0027Em quantos canais será divulgado o número do WhatsApp - Agente político???\u0027] || r[\u0027Em quantos canais serÃ¡ divulgado o nÃºmero do WhatsApp - Agente polÃ­tico???\u0027]),\n    estrategia_indecisos: clean(r[\u0027Qual a sua estratégia para identificar indecisos? \u0027] || r[\u0027Qual a sua estratÃ©gia para identificar indecisos? \u0027]),\n    porque_votar: clean(r[\u0027Por que devo votar em você?\u0027] || r[\u0027Por que devo votar em vocÃª?\u0027]),\n    financiamento_propostas: clean(r[\u0027Como vai financiar suas propostas?\u0027]),\n    aderencia_lgpd: clean(r[\u0027Quer que seu agente atenda a LGPD?\u0027]),\n    permitir_exclusao_dados: clean(r[\u0027Quer permitir ao seu eleitor que seus dados sejam deletados se ele desejar?\u0027]),\n    responsavel_conformidade: clean(r[\u0027Quem é o responsável pela conformidade legal da campanha? (nome e telefone)\u0027] || r[\u0027Quem Ã© o responsÃ¡vel pela conformidade legal da campanha? (nome e telefone)\u0027]),\n    responsavel_preenchimento: clean(r[\u0027Responsável pelo preenchimento?\u0027] || r[\u0027ResponsÃ¡vel pelo preenchimento?\u0027]),\n    telefone_responsavel: clean(r[\u0027Telefone do Responsável\u0027] || r[\u0027Telefone do ResponsÃ¡vel\u0027]),\n    email_responsavel: clean(r[\u0027Endereço de e-mail\u0027] || r[\u0027EndereÃ§o de e-mail\u0027])\n  };\n  const slugNomeUrna = normalizeId(mapped.nome_urna || \u0027\u0027);\n  const slugNomeCompleto = normalizeId(mapped.nome_completo || \u0027\u0027);\n  const id = normalizeId(mapped.numero_tre_tse || mapped.nome_urna || mapped.nome_completo || `candidato-${index + 1}`);\n  const perfilMarkdown = `# Perfil do Candidato\\n\\n## Identificação\\n- id_candidato: ${id}\\n- nome_completo: ${mapped.nome_completo}\\n- nome_urna: ${mapped.nome_urna}\\n- numero_tre_tse: ${mapped.numero_tre_tse}\\n- partido: ${mapped.partido}\\n- cargo_disputado: ${mapped.cargo_disputado}\\n- estado: ${mapped.estado}\\n- coligacao: ${mapped.coligacao}\\n\\n## Narrativa\\n- bio_curta: ${mapped.bio_curta}\\n- bandeiras: ${mapped.bandeiras}\\n- tom_de_voz: ${mapped.tom_de_voz}\\n- bordoes: ${mapped.bordoes}\\n- palavras_proibidas: ${mapped.palavras_proibidas}\\n- pautas_sensiveis: ${mapped.pautas_sensiveis}\\n\\n## Propostas\\n- propostas_top5: ${mapped.propostas_top5}\\n- implementacao_propostas: ${mapped.implementacao_propostas}\\n- areas_prioritarias: ${mapped.areas_prioritarias}\\n- porque_votar: ${mapped.porque_votar}\\n- financiamento_propostas: ${mapped.financiamento_propostas}\\n\\n## Operação\\n- numero_agente_candidato: ${mapped.numero_agente_candidato}\\n- agenda_predefinida: ${mapped.agenda_predefinida}\\n- frequencia_agenda: ${mapped.frequencia_agenda}\\n- supervisor_agenda: ${mapped.supervisor_agenda}\\n- equipe_handoff: ${mapped.equipe_handoff}\\n- horario_atendimento_humano: ${mapped.horario_atendimento_humano}\\n\\n## Metas\\n- meta_contatos_whatsapp: ${mapped.meta_contatos_whatsapp}\\n- meta_conversao_votos: ${mapped.meta_conversao_votos}\\n- estrategia_indecisos: ${mapped.estrategia_indecisos}\\n\\n## Compliance\\n- aderencia_lgpd: ${mapped.aderencia_lgpd}\\n- permitir_exclusao_dados: ${mapped.permitir_exclusao_dados}\\n- responsavel_conformidade: ${mapped.responsavel_conformidade}\\n`;\n  const perfilPrompt = `Voce e o Agente de Perfil da campanha de ${mapped.nome_urna}. Use apenas informacoes aprovadas. Nunca invente propostas, numeros ou apoios. Perfil base: ${perfilMarkdown}`;\n  const captacaoPrompt = `Voce e o Agente de Captacao da campanha de ${mapped.nome_urna}. Seu objetivo e atrair contatos para o WhatsApp oficial ${mapped.numero_agente_candidato}. Use o tom ${mapped.tom_de_voz}. Destaque as bandeiras: ${mapped.bandeiras}. Evite: ${mapped.palavras_proibidas}.`;\n  const relacionamentoPrompt = `Voce e o Agente de Relacionamento da campanha de ${mapped.nome_urna}. Nutra eleitores com base em ${mapped.propostas_top5}. Use o tom ${mapped.tom_de_voz}. Encaminhe para atendimento humano quando o assunto sair das propostas aprovadas ou tocar pautas sensiveis: ${mapped.pautas_sensiveis}.`;\n  const conversaoPrompt = `Voce e o Agente de Conversao da campanha de ${mapped.nome_urna}. Seu foco e identificar indecisos, apoiadores e mobilizadores. Use a estrategia declarada: ${mapped.estrategia_indecisos}. Nunca pressione de forma abusiva. Sempre registre sinais de intencao de voto.`;\n  const compliancePrompt = `Voce e o Agente de Compliance 2026 da campanha de ${mapped.nome_urna}. Exija rotulagem de IA quando aplicavel, respeite LGPD=${mapped.aderencia_lgpd}, direito de exclusao=${mapped.permitir_exclusao_dados} e encaminhe riscos para ${mapped.responsavel_conformidade}.`;\n  const prompts = [\n    [\u0027Agente_Perfil\u0027, \u0027Consolidar identidade do candidato\u0027, perfilPrompt],\n    [\u0027Agente_Captacao\u0027, \u0027Atrair novos eleitores para os canais proprios\u0027, captacaoPrompt],\n    [\u0027Agente_Relacionamento\u0027, \u0027Nutrir e qualificar eleitores\u0027, relacionamentoPrompt],\n    [\u0027Agente_Conversao\u0027, \u0027Converter interesse em apoio e voto\u0027, conversaoPrompt],\n    [\u0027Agente_Compliance_2026\u0027, \u0027Bloquear riscos juridicos e de dados\u0027, compliancePrompt]\n  ];\n  const values = prompts.map(([agente, objetivo, prompt]) =\u003e `(\u0027${esc(id)}\u0027,\u0027${esc(agente)}\u0027,\u0027${esc(objetivo)}\u0027,\u0027${esc(prompt)}\u0027,\u0027${esc(prompt)}\u0027)`).join(\u0027,\u0027);\n  const sourcePayload = {\n    id_candidato: id,\n    nome_completo: mapped.nome_completo,\n    numero_tre_tse: mapped.numero_tre_tse,\n    cargo_disputado: mapped.cargo_disputado,\n    partido: mapped.partido,\n    estado: mapped.estado,\n    coligacao: mapped.coligacao,\n    telefone_candidato: mapped.telefone_candidato,\n    nome_urna: mapped.nome_urna,\n    tom_de_voz: mapped.tom_de_voz,\n    bordoes: mapped.bordoes,\n    palavras_proibidas: mapped.palavras_proibidas,\n    pautas_sensiveis: mapped.pautas_sensiveis,\n    site_campanha: mapped.site_campanha,\n    redes_sociais: mapped.redes_sociais,\n    propostas_top5: mapped.propostas_top5,\n    implementacao_propostas: mapped.implementacao_propostas,\n    areas_prioritarias: mapped.areas_prioritarias,\n    agenda_predefinida: mapped.agenda_predefinida,\n    frequencia_agenda: mapped.frequencia_agenda,\n    numero_agente_candidato: mapped.numero_agente_candidato,\n    supervisor_agenda: mapped.supervisor_agenda,\n    equipe_handoff: mapped.equipe_handoff,\n    horario_atendimento_humano: mapped.horario_atendimento_humano,\n    meta_contatos_whatsapp: mapped.meta_contatos_whatsapp,\n    meta_conversao_votos: mapped.meta_conversao_votos,\n    canais_divulgacao_whatsapp: mapped.canais_divulgacao_whatsapp,\n    estrategia_indecisos: mapped.estrategia_indecisos,\n    porque_votar: mapped.porque_votar,\n    financiamento_propostas: mapped.financiamento_propostas,\n    aderencia_lgpd: mapped.aderencia_lgpd,\n    permitir_exclusao_dados: mapped.permitir_exclusao_dados,\n    responsavel_conformidade: mapped.responsavel_conformidade,\n    responsavel_preenchimento: mapped.responsavel_preenchimento,\n    telefone_responsavel: mapped.telefone_responsavel,\n    email_responsavel: mapped.email_responsavel\n  };\n  const sourceHash = hashString(JSON.stringify(sourcePayload));\n  return {\n    json: {\n      origem_execucao: origemExecucao,\n      id_candidato: id,\n      nome_urna: mapped.nome_urna,\n      source_hash: sourceHash,\n      slug_nome_urna: slugNomeUrna,\n      slug_nome_completo: slugNomeCompleto,\n      meta_contatos_whatsapp: mapped.meta_contatos_whatsapp,\n      meta_conversao_votos: mapped.meta_conversao_votos,\n      sql_slug_nome_urna: esc(slugNomeUrna),\n      sql_slug_nome_completo: esc(slugNomeCompleto),\n      sql_nome_completo: esc(mapped.nome_completo),\n      sql_nome_urna: esc(mapped.nome_urna),\n      sql_numero_tre_tse: esc(mapped.numero_tre_tse),\n      sql_partido: esc(mapped.partido),\n      sql_cargo_disputado: esc(mapped.cargo_disputado),\n      sql_estado: esc(mapped.estado),\n      sql_coligacao: esc(mapped.coligacao),\n      sql_telefone_candidato: esc(mapped.telefone_candidato),\n      sql_email_responsavel: esc(mapped.email_responsavel),\n      sql_responsavel_preenchimento: esc(mapped.responsavel_preenchimento),\n      sql_telefone_responsavel: esc(mapped.telefone_responsavel),\n      sql_perfil_markdown: esc(perfilMarkdown),\n      sql_dados_brutos: esc(JSON.stringify(r)),\n      sql_nome_campanha: esc(`Campanha ${mapped.nome_urna || mapped.nome_completo}`),\n      sql_canais_divulgacao: esc(String(mapped.canais_divulgacao_whatsapp || \u0027\u0027)),\n      sql_supervisor_agenda: esc(mapped.supervisor_agenda),\n      sql_responsavel_conformidade: esc(mapped.responsavel_conformidade),\n      sql_configuracao: esc(JSON.stringify({ numero_agente_candidato: mapped.numero_agente_candidato, site_campanha: mapped.site_campanha, redes_sociais: mapped.redes_sociais, equipe_handoff: mapped.equipe_handoff, horario_atendimento_humano: mapped.horario_atendimento_humano })),\n      sql_prompts_values: values,\n      sql_source_hash: esc(sourceHash)\n    }\n  };\n}\nreturn items.map((item, index) =\u003e mapItem(item.json, \u0027webhook\u0027, index));"
+                                     },
+                      "id":  "Code_Webhook",
+                      "name":  "Mapear via Webhook",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       660,
+                                       140
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "function esc(v) { return String(v ?? \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\"); }\nfunction clean(v) { return String(v ?? \u0027\u0027).trim(); }\nfunction normalizeId(v) {\n  return String(v ?? \u0027\u0027)\n    .toLowerCase()\n    .normalize(\u0027NFD\u0027)\n    .replace(/[\\u0300-\\u036f]/g, \u0027\u0027)\n    .replace(/[^a-z0-9]+/g, \u0027-\u0027)\n    .replace(/^-|-$/g, \u0027\u0027);\n}\nfunction hashString(str) {\n  let hash = 5381;\n  for (let i = 0; i \u003c str.length; i += 1) {\n    hash = ((hash \u003c\u003c 5) + hash) + str.charCodeAt(i);\n    hash = hash \u003e\u003e\u003e 0;\n  }\n  return hash.toString(16);\n}\nfunction mapItem(r, origemExecucao, index) {\n  const mapped = {\n    nome_completo: clean(r[\u0027Nome do Candidato\u0027]),\n    numero_tre_tse: clean(r[\u0027Número no TRE/TSE\u0027] || r[\u0027NÃºmero no TRE/TSE\u0027]),\n    cargo_disputado: clean(r[\u0027Cargo que concorre? \u0027]),\n    partido: clean(r[\u0027Partido?\u0027]),\n    estado: clean(r[\u0027Estado (Quando Governador, Deputado Estadual) ou Distrital?\u0027]),\n    coligacao: clean(r[\u0027Coligação (se houver)\u0027] || r[\u0027ColigaÃ§Ã£o (se houver)\u0027]),\n    bio_curta: clean(r[\u0027Biografia resumida:\u0027]),\n    bandeiras: clean(r[\u0027Principais bandeiras de campanha?\u0027]),\n    telefone_candidato: clean(r[\u0027Telefone direto do candidato?\u0027]),\n    nome_urna: clean(r[\u0027Como o candidato quer ser chamado? (Nome utilizado no material de campanha)\u0027]),\n    tom_de_voz: clean(r[\u0027Qual o tom de comunicação desejado?\u0027] || r[\u0027Qual o tom de comunicaÃ§Ã£o desejado?\u0027]),\n    bordoes: clean(r[\u0027Quais as frases de efeito e/ou bordões característicos?\u0027] || r[\u0027Quais as frases de efeito e/ou bordÃµes caracterÃ­sticos?\u0027]),\n    palavras_proibidas: clean(r[\u0027Existe alguma palavra ou expressão que não deve ser utilizada?\u0027] || r[\u0027Existe alguma palavra ou expressÃ£o que nÃ£o deve ser utilizada?\u0027]),\n    pautas_sensiveis: clean(r[\u0027Existe alguma pauta que o candidato evita comentar?\u0027]),\n    site_campanha: clean(r[\u0027Qual o site da Campanha?\u0027]),\n    redes_sociais: clean(r[\u0027Quais a redes sociais ativas? (links?)\u0027]),\n    propostas_top5: clean(r[\u0027Apresente 5 principais propostas de campanha? \u0027]),\n    implementacao_propostas: clean(r[\u0027Descreva brevemente como serão implementadas? \u0027] || r[\u0027Descreva brevemente como serÃ£o implementadas? \u0027]),\n    areas_prioritarias: clean(r[\u0027Quais as áreas são prioritárias? \u0027] || r[\u0027Quais as Ã¡reas sÃ£o prioritÃ¡rias? \u0027]),\n    agenda_predefinida: clean(r[\u0027Existe agenda de Eventos pré-definida?\u0027] || r[\u0027Existe agenda de Eventos prÃ©-definida?\u0027]),\n    frequencia_agenda: clean(r[\u0027Com que frequência a agenda será atualizada? \u0027] || r[\u0027Com que frequÃªncia a agenda serÃ¡ atualizada? \u0027]),\n    numero_agente_candidato: clean(r[\u0027Qual o número que será utilizado pelo Agente do Candidato? \u0027] || r[\u0027Qual o nÃºmero que serÃ¡ utilizado pelo Agente do Candidato? \u0027]),\n    supervisor_agenda: clean(r[\u0027Quem é o supervisor de Agenda? \u0027] || r[\u0027Quem Ã© o supervisor de Agenda? \u0027]),\n    equipe_handoff: clean(r[\u0027Existe equipe para atendimento humano? (handoff)\u0027]),\n    horario_atendimento_humano: clean(r[\u0027Qual o horário de funcionamento do atendimento humano?\u0027] || r[\u0027Qual o horÃ¡rio de funcionamento do atendimento humano?\u0027]),\n    meta_contatos_whatsapp: Number(r[\u0027Qual a meta de contatos para o WhatsApp? (Agente de IA)\u0027] || 0),\n    meta_conversao_votos: Number(r[\u0027Qual é a meta de conversão em votos (%)?\u0027] || r[\u0027Qual Ã© a meta de conversÃ£o em votos (%)?\u0027] || 0),\n    canais_divulgacao_whatsapp: clean(r[\u0027Em quantos canais será divulgado o número do WhatsApp - Agente político???\u0027] || r[\u0027Em quantos canais serÃ¡ divulgado o nÃºmero do WhatsApp - Agente polÃ­tico???\u0027]),\n    estrategia_indecisos: clean(r[\u0027Qual a sua estratégia para identificar indecisos? \u0027] || r[\u0027Qual a sua estratÃ©gia para identificar indecisos? \u0027]),\n    porque_votar: clean(r[\u0027Por que devo votar em você?\u0027] || r[\u0027Por que devo votar em vocÃª?\u0027]),\n    financiamento_propostas: clean(r[\u0027Como vai financiar suas propostas?\u0027]),\n    aderencia_lgpd: clean(r[\u0027Quer que seu agente atenda a LGPD?\u0027]),\n    permitir_exclusao_dados: clean(r[\u0027Quer permitir ao seu eleitor que seus dados sejam deletados se ele desejar?\u0027]),\n    responsavel_conformidade: clean(r[\u0027Quem é o responsável pela conformidade legal da campanha? (nome e telefone)\u0027] || r[\u0027Quem Ã© o responsÃ¡vel pela conformidade legal da campanha? (nome e telefone)\u0027]),\n    responsavel_preenchimento: clean(r[\u0027Responsável pelo preenchimento?\u0027] || r[\u0027ResponsÃ¡vel pelo preenchimento?\u0027]),\n    telefone_responsavel: clean(r[\u0027Telefone do Responsável\u0027] || r[\u0027Telefone do ResponsÃ¡vel\u0027]),\n    email_responsavel: clean(r[\u0027Endereço de e-mail\u0027] || r[\u0027EndereÃ§o de e-mail\u0027])\n  };\n  const slugNomeUrna = normalizeId(mapped.nome_urna || \u0027\u0027);\n  const slugNomeCompleto = normalizeId(mapped.nome_completo || \u0027\u0027);\n  const id = normalizeId(mapped.numero_tre_tse || mapped.nome_urna || mapped.nome_completo || `candidato-${index + 1}`);\n  const perfilMarkdown = `# Perfil do Candidato\\n\\n## Identificação\\n- id_candidato: ${id}\\n- nome_completo: ${mapped.nome_completo}\\n- nome_urna: ${mapped.nome_urna}\\n- numero_tre_tse: ${mapped.numero_tre_tse}\\n- partido: ${mapped.partido}\\n- cargo_disputado: ${mapped.cargo_disputado}\\n- estado: ${mapped.estado}\\n- coligacao: ${mapped.coligacao}\\n\\n## Narrativa\\n- bio_curta: ${mapped.bio_curta}\\n- bandeiras: ${mapped.bandeiras}\\n- tom_de_voz: ${mapped.tom_de_voz}\\n- bordoes: ${mapped.bordoes}\\n- palavras_proibidas: ${mapped.palavras_proibidas}\\n- pautas_sensiveis: ${mapped.pautas_sensiveis}\\n\\n## Propostas\\n- propostas_top5: ${mapped.propostas_top5}\\n- implementacao_propostas: ${mapped.implementacao_propostas}\\n- areas_prioritarias: ${mapped.areas_prioritarias}\\n- porque_votar: ${mapped.porque_votar}\\n- financiamento_propostas: ${mapped.financiamento_propostas}\\n\\n## Operação\\n- numero_agente_candidato: ${mapped.numero_agente_candidato}\\n- agenda_predefinida: ${mapped.agenda_predefinida}\\n- frequencia_agenda: ${mapped.frequencia_agenda}\\n- supervisor_agenda: ${mapped.supervisor_agenda}\\n- equipe_handoff: ${mapped.equipe_handoff}\\n- horario_atendimento_humano: ${mapped.horario_atendimento_humano}\\n\\n## Metas\\n- meta_contatos_whatsapp: ${mapped.meta_contatos_whatsapp}\\n- meta_conversao_votos: ${mapped.meta_conversao_votos}\\n- estrategia_indecisos: ${mapped.estrategia_indecisos}\\n\\n## Compliance\\n- aderencia_lgpd: ${mapped.aderencia_lgpd}\\n- permitir_exclusao_dados: ${mapped.permitir_exclusao_dados}\\n- responsavel_conformidade: ${mapped.responsavel_conformidade}\\n`;\n  const perfilPrompt = `Voce e o Agente de Perfil da campanha de ${mapped.nome_urna}. Use apenas informacoes aprovadas. Nunca invente propostas, numeros ou apoios. Perfil base: ${perfilMarkdown}`;\n  const captacaoPrompt = `Voce e o Agente de Captacao da campanha de ${mapped.nome_urna}. Seu objetivo e atrair contatos para o WhatsApp oficial ${mapped.numero_agente_candidato}. Use o tom ${mapped.tom_de_voz}. Destaque as bandeiras: ${mapped.bandeiras}. Evite: ${mapped.palavras_proibidas}.`;\n  const relacionamentoPrompt = `Voce e o Agente de Relacionamento da campanha de ${mapped.nome_urna}. Nutra eleitores com base em ${mapped.propostas_top5}. Use o tom ${mapped.tom_de_voz}. Encaminhe para atendimento humano quando o assunto sair das propostas aprovadas ou tocar pautas sensiveis: ${mapped.pautas_sensiveis}.`;\n  const conversaoPrompt = `Voce e o Agente de Conversao da campanha de ${mapped.nome_urna}. Seu foco e identificar indecisos, apoiadores e mobilizadores. Use a estrategia declarada: ${mapped.estrategia_indecisos}. Nunca pressione de forma abusiva. Sempre registre sinais de intencao de voto.`;\n  const compliancePrompt = `Voce e o Agente de Compliance 2026 da campanha de ${mapped.nome_urna}. Exija rotulagem de IA quando aplicavel, respeite LGPD=${mapped.aderencia_lgpd}, direito de exclusao=${mapped.permitir_exclusao_dados} e encaminhe riscos para ${mapped.responsavel_conformidade}.`;\n  const prompts = [\n    [\u0027Agente_Perfil\u0027, \u0027Consolidar identidade do candidato\u0027, perfilPrompt],\n    [\u0027Agente_Captacao\u0027, \u0027Atrair novos eleitores para os canais proprios\u0027, captacaoPrompt],\n    [\u0027Agente_Relacionamento\u0027, \u0027Nutrir e qualificar eleitores\u0027, relacionamentoPrompt],\n    [\u0027Agente_Conversao\u0027, \u0027Converter interesse em apoio e voto\u0027, conversaoPrompt],\n    [\u0027Agente_Compliance_2026\u0027, \u0027Bloquear riscos juridicos e de dados\u0027, compliancePrompt]\n  ];\n  const values = prompts.map(([agente, objetivo, prompt]) =\u003e `(\u0027${esc(id)}\u0027,\u0027${esc(agente)}\u0027,\u0027${esc(objetivo)}\u0027,\u0027${esc(prompt)}\u0027,\u0027${esc(prompt)}\u0027)`).join(\u0027,\u0027);\n  const sourcePayload = {\n    id_candidato: id,\n    nome_completo: mapped.nome_completo,\n    numero_tre_tse: mapped.numero_tre_tse,\n    cargo_disputado: mapped.cargo_disputado,\n    partido: mapped.partido,\n    estado: mapped.estado,\n    coligacao: mapped.coligacao,\n    telefone_candidato: mapped.telefone_candidato,\n    nome_urna: mapped.nome_urna,\n    tom_de_voz: mapped.tom_de_voz,\n    bordoes: mapped.bordoes,\n    palavras_proibidas: mapped.palavras_proibidas,\n    pautas_sensiveis: mapped.pautas_sensiveis,\n    site_campanha: mapped.site_campanha,\n    redes_sociais: mapped.redes_sociais,\n    propostas_top5: mapped.propostas_top5,\n    implementacao_propostas: mapped.implementacao_propostas,\n    areas_prioritarias: mapped.areas_prioritarias,\n    agenda_predefinida: mapped.agenda_predefinida,\n    frequencia_agenda: mapped.frequencia_agenda,\n    numero_agente_candidato: mapped.numero_agente_candidato,\n    supervisor_agenda: mapped.supervisor_agenda,\n    equipe_handoff: mapped.equipe_handoff,\n    horario_atendimento_humano: mapped.horario_atendimento_humano,\n    meta_contatos_whatsapp: mapped.meta_contatos_whatsapp,\n    meta_conversao_votos: mapped.meta_conversao_votos,\n    canais_divulgacao_whatsapp: mapped.canais_divulgacao_whatsapp,\n    estrategia_indecisos: mapped.estrategia_indecisos,\n    porque_votar: mapped.porque_votar,\n    financiamento_propostas: mapped.financiamento_propostas,\n    aderencia_lgpd: mapped.aderencia_lgpd,\n    permitir_exclusao_dados: mapped.permitir_exclusao_dados,\n    responsavel_conformidade: mapped.responsavel_conformidade,\n    responsavel_preenchimento: mapped.responsavel_preenchimento,\n    telefone_responsavel: mapped.telefone_responsavel,\n    email_responsavel: mapped.email_responsavel\n  };\n  const sourceHash = hashString(JSON.stringify(sourcePayload));\n  return {\n    json: {\n      origem_execucao: origemExecucao,\n      id_candidato: id,\n      nome_urna: mapped.nome_urna,\n      source_hash: sourceHash,\n      slug_nome_urna: slugNomeUrna,\n      slug_nome_completo: slugNomeCompleto,\n      meta_contatos_whatsapp: mapped.meta_contatos_whatsapp,\n      meta_conversao_votos: mapped.meta_conversao_votos,\n      sql_slug_nome_urna: esc(slugNomeUrna),\n      sql_slug_nome_completo: esc(slugNomeCompleto),\n      sql_nome_completo: esc(mapped.nome_completo),\n      sql_nome_urna: esc(mapped.nome_urna),\n      sql_numero_tre_tse: esc(mapped.numero_tre_tse),\n      sql_partido: esc(mapped.partido),\n      sql_cargo_disputado: esc(mapped.cargo_disputado),\n      sql_estado: esc(mapped.estado),\n      sql_coligacao: esc(mapped.coligacao),\n      sql_telefone_candidato: esc(mapped.telefone_candidato),\n      sql_email_responsavel: esc(mapped.email_responsavel),\n      sql_responsavel_preenchimento: esc(mapped.responsavel_preenchimento),\n      sql_telefone_responsavel: esc(mapped.telefone_responsavel),\n      sql_perfil_markdown: esc(perfilMarkdown),\n      sql_dados_brutos: esc(JSON.stringify(r)),\n      sql_nome_campanha: esc(`Campanha ${mapped.nome_urna || mapped.nome_completo}`),\n      sql_canais_divulgacao: esc(String(mapped.canais_divulgacao_whatsapp || \u0027\u0027)),\n      sql_supervisor_agenda: esc(mapped.supervisor_agenda),\n      sql_responsavel_conformidade: esc(mapped.responsavel_conformidade),\n      sql_configuracao: esc(JSON.stringify({ numero_agente_candidato: mapped.numero_agente_candidato, site_campanha: mapped.site_campanha, redes_sociais: mapped.redes_sociais, equipe_handoff: mapped.equipe_handoff, horario_atendimento_humano: mapped.horario_atendimento_humano })),\n      sql_prompts_values: values,\n      sql_source_hash: esc(sourceHash)\n    }\n  };\n}\nreturn items.map((item, index) =\u003e mapItem(item.json, \u0027agendamento\u0027, index));"
+                                     },
+                      "id":  "Code_Agendamento",
+                      "name":  "Mapear via Agendamento",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       660,
+                                       380
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "executeQuery",
+                                         "query":  "create table if not exists integracao_candidatos_sync ( id_candidato varchar(120) primary key, source_hash text not null, ultima_sincronizacao_em timestamptz not null default now(), ultima_acao text not null default \u0027novo\u0027, origem_execucao text, atualizado_em timestamptz not null default now() ); with payload as ( select \u0027{{$json.id_candidato}}\u0027::varchar as id_candidato, \u0027{{$json.sql_slug_nome_urna}}\u0027::text as slug_nome_urna, \u0027{{$json.sql_slug_nome_completo}}\u0027::text as slug_nome_completo, \u0027{{$json.sql_source_hash}}\u0027::text as source_hash, \u0027{{$json.sql_nome_completo}}\u0027::text as nome_completo, \u0027{{$json.sql_nome_urna}}\u0027::text as nome_urna, \u0027{{$json.sql_numero_tre_tse}}\u0027::text as numero_tre_tse, \u0027{{$json.sql_partido}}\u0027::text as partido, \u0027{{$json.sql_cargo_disputado}}\u0027::text as cargo_disputado, \u0027{{$json.sql_estado}}\u0027::text as estado, \u0027{{$json.sql_coligacao}}\u0027::text as coligacao, \u0027{{$json.sql_telefone_candidato}}\u0027::text as telefone_candidato, \u0027{{$json.sql_email_responsavel}}\u0027::text as email_responsavel, \u0027{{$json.sql_responsavel_preenchimento}}\u0027::text as responsavel_preenchimento, \u0027{{$json.sql_telefone_responsavel}}\u0027::text as telefone_responsavel, \u0027{{$json.sql_perfil_markdown}}\u0027::text as perfil_markdown, \u0027{{$json.sql_dados_brutos}}\u0027::jsonb as dados_brutos, \u0027{{$json.sql_nome_campanha}}\u0027::text as nome_campanha, {{$json.meta_contatos_whatsapp || 0}}::numeric as meta_contatos_whatsapp, {{$json.meta_conversao_votos || 0}}::numeric as meta_conversao_votos, \u0027{{$json.sql_canais_divulgacao}}\u0027::text as canais_divulgacao_whatsapp, \u0027{{$json.sql_supervisor_agenda}}\u0027::text as supervisor_agenda, \u0027{{$json.sql_responsavel_conformidade}}\u0027::text as responsavel_conformidade, \u0027{{$json.sql_configuracao}}\u0027::jsonb as configuracao, \u0027{{$json.origem_execucao}}\u0027::text as origem_execucao ), canonical as ( select coalesce( ( select c.id_candidato from candidatos c, payload p where p.numero_tre_tse \u003c\u003e \u0027\u0027 and ( c.numero_tre_tse = p.numero_tre_tse or c.id_candidato = p.slug_nome_urna or c.id_candidato = p.slug_nome_completo ) limit 1 ), (select id_candidato from payload) ) as id_candidato ), payload_final as ( select canonical.id_candidato, payload.source_hash, payload.nome_completo, payload.nome_urna, payload.numero_tre_tse, payload.partido, payload.cargo_disputado, payload.estado, payload.coligacao, payload.telefone_candidato, payload.email_responsavel, payload.responsavel_preenchimento, payload.telefone_responsavel, payload.perfil_markdown, payload.dados_brutos, payload.nome_campanha, payload.meta_contatos_whatsapp, payload.meta_conversao_votos, payload.canais_divulgacao_whatsapp, payload.supervisor_agenda, payload.responsavel_conformidade, payload.configuracao, payload.origem_execucao from payload cross join canonical ), estado as ( select source_hash from integracao_candidatos_sync where id_candidato = (select id_candidato from payload_final) ), decisao as ( select case when exists(select 1 from estado) and (select source_hash from estado) = (select source_hash from payload_final) then \u0027ignorado\u0027 when exists(select 1 from estado) then \u0027atualizado\u0027 else \u0027novo\u0027 end as acao ), upsert_candidato as ( insert into candidatos (id_candidato, nome_completo, nome_urna, numero_tre_tse, partido, cargo_disputado, estado, coligacao, telefone_candidato, email_responsavel, responsavel_preenchimento, telefone_responsavel, perfil_markdown, dados_brutos, atualizado_em) select id_candidato, nome_completo, nome_urna, numero_tre_tse, partido, cargo_disputado, estado, coligacao, telefone_candidato, email_responsavel, responsavel_preenchimento, telefone_responsavel, perfil_markdown, dados_brutos, now() from payload_final, decisao where decisao.acao \u003c\u003e \u0027ignorado\u0027 on conflict (id_candidato) do update set nome_completo = excluded.nome_completo, nome_urna = excluded.nome_urna, numero_tre_tse = excluded.numero_tre_tse, partido = excluded.partido, cargo_disputado = excluded.cargo_disputado, estado = excluded.estado, coligacao = excluded.coligacao, telefone_candidato = excluded.telefone_candidato, email_responsavel = excluded.email_responsavel, responsavel_preenchimento = excluded.responsavel_preenchimento, telefone_responsavel = excluded.telefone_responsavel, perfil_markdown = excluded.perfil_markdown, dados_brutos = excluded.dados_brutos, atualizado_em = now() ), upsert_campanha as ( insert into campanhas (id_candidato, nome_campanha, status, cargo_disputado, partido, uf, meta_contatos_whatsapp, meta_conversao_votos, canais_divulgacao_whatsapp, supervisor_agenda, responsavel_conformidade, configuracao, atualizado_em) select id_candidato, nome_campanha, \u0027em_preparacao\u0027, cargo_disputado, partido, estado, meta_contatos_whatsapp, meta_conversao_votos, canais_divulgacao_whatsapp, supervisor_agenda, responsavel_conformidade, configuracao, now() from payload_final, decisao where decisao.acao \u003c\u003e \u0027ignorado\u0027 on conflict (id_candidato) do update set nome_campanha = excluded.nome_campanha, status = case when campanhas.status = \u0027ativa\u0027 then campanhas.status else \u0027em_preparacao\u0027 end, cargo_disputado = excluded.cargo_disputado, partido = excluded.partido, uf = excluded.uf, meta_contatos_whatsapp = excluded.meta_contatos_whatsapp, meta_conversao_votos = excluded.meta_conversao_votos, canais_divulgacao_whatsapp = excluded.canais_divulgacao_whatsapp, supervisor_agenda = excluded.supervisor_agenda, responsavel_conformidade = excluded.responsavel_conformidade, configuracao = excluded.configuracao, atualizado_em = now() ), sync_state as ( insert into integracao_candidatos_sync (id_candidato, source_hash, ultima_sincronizacao_em, ultima_acao, origem_execucao, atualizado_em) select id_candidato, source_hash, now(), (select acao from decisao), origem_execucao, now() from payload_final on conflict (id_candidato) do update set source_hash = excluded.source_hash, ultima_sincronizacao_em = now(), ultima_acao = excluded.ultima_acao, origem_execucao = excluded.origem_execucao, atualizado_em = now() ) select (select acao from decisao) as acao, (select id_candidato from payload_final)::text as id_candidato, \u0027{{$json.nome_urna}}\u0027::text as nome_urna, \u0027{{$json.origem_execucao}}\u0027::text as origem_execucao, now()::text as processado_em;"
+                                     },
+                      "id":  "Postgres_Sync_Core",
+                      "name":  "Sincronizar Candidato e Campanha",
+                      "type":  "n8n-nodes-base.postgres",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       980,
+                                       260
+                                   ],
+                      "credentials":  {
+                                          "postgres":  {
+                                                           "id":  "jCQZf8kDUun26xzv",
+                                                           "name":  "Agente_Politico"
+                                                       }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  2
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "acao_mudou",
+                                                                                   "leftValue":  "={{ $json.acao }}",
+                                                                                   "rightValue":  "ignorado",
+                                                                                   "operator":  {
+                                                                                                    "type":  "string",
+                                                                                                    "operation":  "notEquals"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "IF_Mudou",
+                      "name":  "Mudou ou é novo?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.2,
+                      "position":  [
+                                       1240,
+                                       260
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "executeQuery",
+                                         "query":  "insert into perfis_candidato_md (id_candidato, conteudo_md, hash_conteudo) values (\u0027{{$item(0).$node[\"Mudou ou é novo?\"].json[\"id_candidato\"]}}\u0027,\u0027{{$item(0).$node[\"Mapear via Webhook\"].json[\"sql_perfil_markdown\"] || $item(0).$node[\"Mapear via Agendamento\"].json[\"sql_perfil_markdown\"]}}\u0027,md5(\u0027{{$item(0).$node[\"Mapear via Webhook\"].json[\"sql_perfil_markdown\"] || $item(0).$node[\"Mapear via Agendamento\"].json[\"sql_perfil_markdown\"]}}\u0027));"
+                                     },
+                      "id":  "Postgres_Perfil",
+                      "name":  "Versionar Perfil Markdown",
+                      "type":  "n8n-nodes-base.postgres",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       1500,
+                                       140
+                                   ],
+                      "credentials":  {
+                                          "postgres":  {
+                                                           "id":  "jCQZf8kDUun26xzv",
+                                                           "name":  "Agente_Politico"
+                                                       }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "executeQuery",
+                                         "query":  "insert into prompts_agentes (id_candidato, agente_nome, objetivo, system_prompt, prompt_template) values {{$item(0).$node[\"Mapear via Webhook\"].json[\"sql_prompts_values\"] || $item(0).$node[\"Mapear via Agendamento\"].json[\"sql_prompts_values\"]}} on conflict (id_candidato, agente_nome) do update set objetivo = excluded.objetivo, system_prompt = excluded.system_prompt, prompt_template = excluded.prompt_template;"
+                                     },
+                      "id":  "Postgres_Prompts",
+                      "name":  "Atualizar Prompts dos Agentes",
+                      "type":  "n8n-nodes-base.postgres",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       1760,
+                                       140
+                                   ],
+                      "credentials":  {
+                                          "postgres":  {
+                                                           "id":  "jCQZf8kDUun26xzv",
+                                                           "name":  "Agente_Politico"
+                                                       }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "assignments":  {
+                                                             "assignments":  [
+                                                                                 {
+                                                                                     "name":  "status_sync",
+                                                                                     "value":  "={{ $json.acao === \u0027novo\u0027 ? \u0027novo_sincronizado\u0027 : \u0027atualizado_sincronizado\u0027 }}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "payload_log",
+                                                                                     "value":  "={{ JSON.stringify({ id_candidato: $json.id_candidato, nome_urna: $json.nome_urna, acao: $json.acao, origem_execucao: $json.origem_execucao, processado_em: $json.processado_em }) }}",
+                                                                                     "type":  "string"
+                                                                                 }
+                                                                             ]
+                                                         },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "Set_Log_Sucesso",
+                      "name":  "Preparar Log de Sucesso",
+                      "type":  "n8n-nodes-base.set",
+                      "typeVersion":  3.4,
+                      "position":  [
+                                       2020,
+                                       140
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "assignments":  {
+                                                             "assignments":  [
+                                                                                 {
+                                                                                     "name":  "status_sync",
+                                                                                     "value":  "sem_alteracao",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "payload_log",
+                                                                                     "value":  "={{ JSON.stringify({ id_candidato: $json.id_candidato, nome_urna: $json.nome_urna, acao: $json.acao, origem_execucao: $json.origem_execucao, processado_em: $json.processado_em }) }}",
+                                                                                     "type":  "string"
+                                                                                 }
+                                                                             ]
+                                                         },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "Set_Log_Sem_Mudanca",
+                      "name":  "Preparar Log Sem Mudança",
+                      "type":  "n8n-nodes-base.set",
+                      "typeVersion":  3.4,
+                      "position":  [
+                                       1500,
+                                       380
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "append",
+                                         "documentId":  {
+                                                            "__rl":  true,
+                                                            "value":  "1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M",
+                                                            "mode":  "list",
+                                                            "cachedResultName":  "Dados dos Políticos",
+                                                            "cachedResultUrl":  "https://docs.google.com/spreadsheets/d/1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M/edit?usp=drivesdk"
+                                                        },
+                                         "sheetName":  {
+                                                           "__rl":  true,
+                                                           "value":  390030896,
+                                                           "mode":  "list",
+                                                           "cachedResultName":  "log_intake_candidato",
+                                                           "cachedResultUrl":  "https://docs.google.com/spreadsheets/d/1c9uVQ4uKoz1Q_nDHlhTEGl6rjDrguIgMxamRR9yyt5M/edit#gid=390030896"
+                                                       },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "timestamp":  "={{ $now }}",
+                                                                       "status":  "={{ $json.status_sync }}",
+                                                                       "payload":  "={{ $json.payload_log }}"
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "timestamp",
+                                                                            "displayName":  "timestamp",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "status",
+                                                                            "displayName":  "status",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        },
+                                                                        {
+                                                                            "id":  "payload",
+                                                                            "displayName":  "payload",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "canBeUsedToMatch":  true
+                                                                        }
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "GoogleSheets_Log",
+                      "name":  "Log de Sincronização",
+                      "type":  "n8n-nodes-base.googleSheets",
+                      "typeVersion":  4.5,
+                      "position":  [
+                                       2280,
+                                       260
+                                   ],
+                      "credentials":  {
+                                          "googleSheetsOAuth2Api":  {
+                                                                        "id":  "VFZGAHCMbOlZblRT",
+                                                                        "name":  "Google Sheets account"
+                                                                    }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const totais = { total_processados: items.length, novos: 0, atualizados: 0, ignorados: 0 };\nfor (const item of items) {\n  const status = String(item.json.status_sync ?? \u0027\u0027);\n  if (status === \u0027novo_sincronizado\u0027) totais.novos += 1;\n  else if (status === \u0027atualizado_sincronizado\u0027) totais.atualizados += 1;\n  else totais.ignorados += 1;\n}\nreturn [{ json: { ...totais, message: `Sincronização de candidatos concluída. ${totais.total_processados} registro(s) processado(s): ${totais.novos} novo(s), ${totais.atualizados} atualizado(s) e ${totais.ignorados} sem alteração.` } }];"
+                                     },
+                      "id":  "Code_Resumo",
+                      "name":  "Resumir Processamento",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2540,
+                                       260
+                                   ]
+                  }
+              ],
+    "connections":  {
+                        "Webhook Sync Candidato":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Ler Planilha via Webhook",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Agendamento Sync Candidato":  {
+                                                           "main":  [
+                                                                        [
+                                                                            {
+                                                                                "node":  "Ler Planilha via Agendamento",
+                                                                                "type":  "main",
+                                                                                "index":  0
+                                                                            }
+                                                                        ]
+                                                                    ]
+                                                       },
+                        "Ler Planilha via Webhook":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Mapear via Webhook",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     },
+                        "Ler Planilha via Agendamento":  {
+                                                             "main":  [
+                                                                          [
+                                                                              {
+                                                                                  "node":  "Mapear via Agendamento",
+                                                                                  "type":  "main",
+                                                                                  "index":  0
+                                                                              }
+                                                                          ]
+                                                                      ]
+                                                         },
+                        "Mapear via Webhook":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Sincronizar Candidato e Campanha",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Mapear via Agendamento":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Sincronizar Candidato e Campanha",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Sincronizar Candidato e Campanha":  {
+                                                                 "main":  [
+                                                                              [
+                                                                                  {
+                                                                                      "node":  "Mudou ou é novo?",
+                                                                                      "type":  "main",
+                                                                                      "index":  0
+                                                                                  }
+                                                                              ]
+                                                                          ]
+                                                             },
+                        "Mudou ou é novo?":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Versionar Perfil Markdown",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ],
+                                                              [
+                                                                  {
+                                                                      "node":  "Preparar Log Sem Mudança",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Versionar Perfil Markdown":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Atualizar Prompts dos Agentes",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      },
+                        "Atualizar Prompts dos Agentes":  {
+                                                              "main":  [
+                                                                           [
+                                                                               {
+                                                                                   "node":  "Preparar Log de Sucesso",
+                                                                                   "type":  "main",
+                                                                                   "index":  0
+                                                                               }
+                                                                           ]
+                                                                       ]
+                                                          },
+                        "Preparar Log de Sucesso":  {
+                                                        "main":  [
+                                                                     [
+                                                                         {
+                                                                             "node":  "Log de Sincronização",
+                                                                             "type":  "main",
+                                                                             "index":  0
+                                                                         }
+                                                                     ]
+                                                                 ]
+                                                    },
+                        "Preparar Log Sem Mudança":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Log de Sincronização",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     },
+                        "Log de Sincronização":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Resumir Processamento",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 }
+                    },
+    "active":  false,
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "callerPolicy":  "workflowsFromSameOwner",
+                     "availableInMCP":  false
+                 },
+    "versionId":  "01c",
+    "meta":  {
+                 "templateCredsSetupCompleted":  true
+             },
+    "pinData":  {
+
+                },
+    "tags":  [
+                 {
+                     "name":  "agente-politico"
+                 },
+                 {
+                     "name":  "postgres"
+                 },
+                 {
+                     "name":  "prompts"
+                 },
+                 {
+                     "name":  "webhook"
+                 }
+             ]
+}
+

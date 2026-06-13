@@ -1,0 +1,224 @@
+{
+  "name": "04_cadencia_segmentada_eleitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "ScheduleTrigger_1",
+      "name": "Schedule Cadência",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select e.eleitor_uid, e.eleitor_id, e.id_candidato, e.nome, e.telefone, e.tema_interesse, e.etapa_funil, e.intencao_voto, e.score_engajamento, c.nome_campanha, c.meta_conversao_votos, p.system_prompt from eleitores e join campanhas c on c.id_candidato = e.id_candidato left join prompts_agentes p on p.id_candidato = e.id_candidato and p.agente_nome = case when e.etapa_funil in ('novo_lead','qualificado') then 'Agente_Captacao' when e.etapa_funil in ('engajado','indeciso') then 'Agente_Relacionamento' else 'Agente_Conversao' end where c.status = 'ativa' and e.opt_out = false and e.consentimento_lgpd = true and (e.ultimo_contato_em is null or e.ultimo_contato_em < now() - interval '48 hours') limit 100;"
+      },
+      "id": "Postgres_1",
+      "name": "Buscar Eleitores Elegíveis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        460,
+        280
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4.1-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "{{$json.system_prompt || 'Você é um assistente virtual oficial de campanha. Seja objetivo, cordial e não invente fatos.'}}"
+            },
+            {
+              "role": "user",
+              "content": "Crie uma mensagem curta de campanha para o eleitor {{$json.nome || 'eleitor'}}. Tema de interesse: {{$json.tema_interesse}}. Etapa do funil: {{$json.etapa_funil}}. Intenção atual: {{$json.intencao_voto || 'não classificada'}}. Retorne apenas JSON com campos: mensagem, objetivo, etapa_destino, usa_ia, rotulo_ia."
+            }
+          ]
+        },
+        "simplify": true
+      },
+      "id": "OpenAI_1",
+      "name": "Gerar Cadência",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        760,
+        280
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output || $json.message || $json.text || '{}'; let parsed; try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { parsed = { mensagem: String(raw), objetivo: 'nurture', etapa_destino: 'engajado', usa_ia: true, rotulo_ia: 'Mensagem gerada por assistente virtual oficial da campanha.' }; } const src = $item(0).$node['Buscar Eleitores Elegíveis'].json; return [{ json: { ...src, ...parsed, mensagem_final: `Este atendimento é realizado por assistente virtual oficial da campanha.\\n\\n${parsed.mensagem || ''}` } }];"
+      },
+      "id": "Code_1",
+      "name": "Preparar Cadência Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.seu-provedor-whatsapp.example/send",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"candidate_id\":\"{{$json.id_candidato}}\",\"to\":\"{{$json.telefone}}\",\"message\":\"{{$json.mensagem_final}}\"}"
+      },
+      "id": "HTTP_1",
+      "name": "Disparar Mensagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into filas_envio (eleitor_uid, eleitor_id, id_candidato, agente_nome, canal, objetivo, payload, status, agendado_para, enviado_em) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','cadencia_automatica','whatsapp','{{$json.objetivo || 'nurture'}}','{{ JSON.stringify($json).replace(/'/g, \"''\") }}'::jsonb,'enviado',now(),now());"
+      },
+      "id": "Postgres_2",
+      "name": "Registrar Fila Enviada",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1280,
+        360
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update eleitores set etapa_funil = '{{$json.etapa_destino || $json.etapa_funil}}', ultimo_contato_em = now(), atualizado_em = now() where eleitor_uid = '{{$json.eleitor_uid}}'; insert into interacoes (eleitor_uid, eleitor_id, id_candidato, canal, direcao, mensagem, tema_classificado, etapa_sugerida, usa_ia, rotulo_ia, risco_compliance, status_envio, origem_execucao, metadata) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','whatsapp','outbound','{{$json.mensagem_final.replace(/'/g, \"''\")}}','{{$json.tema_interesse}}','{{$json.etapa_destino || $json.etapa_funil}}',{{$json.usa_ia ? 'true' : 'false'}},'{{$json.rotulo_ia.replace(/'/g, \"''\")}}','baixo','enviado','cadencia_automatica','{{ JSON.stringify($json).replace(/'/g, \"''\") }}'::jsonb);"
+      },
+      "id": "Postgres_3",
+      "name": "Atualizar Eleitor e Interação",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1280,
+        500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Cadência": {
+      "main": [
+        [
+          {
+            "node": "Buscar Eleitores Elegíveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Eleitores Elegíveis": {
+      "main": [
+        [
+          {
+            "node": "Gerar Cadência",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Cadência": {
+      "main": [
+        [
+          {
+            "node": "Preparar Cadência Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Cadência Final": {
+      "main": [
+        [
+          {
+            "node": "Disparar Mensagem",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Registrar Fila Enviada",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Atualizar Eleitor e Interação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "cadencia"
+    },
+    {
+      "name": "outbound"
+    }
+  ]
+}

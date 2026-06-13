@@ -1,0 +1,323 @@
+{
+  "name": "01_intake_candidato_google_forms",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "ScheduleTrigger_1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": "SUBSTITUIR_GOOGLE_SHEET_ID",
+        "sheetName": "Respostas ao formulário 1",
+        "options": {}
+      },
+      "id": "GoogleSheets_1",
+      "name": "Ler Respostas Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        260
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const r = item.json;\n  const mapped = {\n    timestamp_formulario: r['Carimbo de data/hora'] || '',\n    email_responsavel: r['Endereço de e-mail'] || '',\n    responsavel_preenchimento: r['Responsável pelo preenchimento?'] || '',\n    telefone_responsavel: r['Telefone do Responsável'] || '',\n    nome_completo: r['Nome do Candidato'] || '',\n    numero_tre_tse: r['Número no TRE/TSE'] || '',\n    cargo_disputado: r['Cargo que concorre? '] || '',\n    partido: r['Partido?'] || '',\n    estado_distrito: r['Estado (Quando Governador, Deputado Estadual) ou Distrital?'] || '',\n    coligacao: r['Coligação (se houver)'] || '',\n    bio_curta: r['Biografia resumida:'] || '',\n    causas_principais: r['Principais bandeiras de campanha?'] || '',\n    telefone_candidato: r['Telefone direto do candidato?'] || '',\n    nome_urna: r['Como o candidato quer ser chamado? (Nome utilizado no material de campanha)'] || '',\n    tom_de_voz: r['Qual o tom de comunicação desejado?'] || '',\n    bordoes: r['Quais as frases de efeito e/ou bordões caracteríticos?'] || '',\n    palavras_proibidas: r['Existe alguma palavra ou expressão que não deve ser utilizada?'] || '',\n    preferencia_comunicacao: r['Preferência por comunicação?'] || '',\n    pautas_sensiveis: r['Existe alguma pauta que o candidato evita comentar?'] || '',\n    video_apresentacao: r['Existe vídeo de apresentação do candidato? Qual o link?'] || '',\n    videos_propostas: r['Existem vídeos de explicação das propostas? (Links?)'] || '',\n    pdfs_propostas: r['Existem arquivos em PDF das propostas completas? (links?)'] || '',\n    site_campanha: r['Qual o site da Campanha?'] || '',\n    redes_sociais: r['Quais a redes sociais ativas? (links?)'] || '',\n    propostas_top5: r['Apresente 5 principais propostas de campanha? '] || '',\n    implementacao_propostas: r['Descreva brevemente como serão implementadas? '] || '',\n    areas_prioritarias: r['Quais as áreas são prioritárias? '] || '',\n    material_propostas: r['Existe material disponível sobre as propostas? (pdfs, vídeos, site)'] || '',\n    propostas_minorias: r['O candidato tem propostas específicas para grupos específicos ou minorias? '] || '',\n    diferenciais: r['O que diferencia o candidato de seus concorrentes? '] || '',\n    agenda_predefinida: r['Existe agenda de Eventos pré-definida?'] || '',\n    frequencia_agenda: r['Com que frequência a agenda será atualizada? '] || '',\n    debates: r['O candidato participa de debates? Quando? '] || '',\n    confirmacao_eventos: r['Onde o eleitor pode confirmar presença nos eventos?'] || '',\n    numero_agente_candidato: r['Qual o número que será utilizado pelo Agente do Candidato? '] || '',\n    supervisor_agenda: r['Quem é o supervisor de Agenda? '] || '',\n    equipe_handoff: r['Existe equipe para atendimento humano? (handoff)'] || '',\n    horario_atendimento_humano: r['Qual o horário de funcionamento do atendimento humano?'] || '',\n    comites_presenciais: r['Será(ão) montado(s) comitês presenciais? '] || '',\n    canais_ids: r['Quais são os canais de atuação e os respectivos Ids? '] || '',\n    numero_central_comite: r['Qual o número da central de atendimento ou comitê?'] || '',\n    meta_contatos_whatsapp: r['Qual a meta de contatos para o WhatsApp? (Agente de IA)'] || '',\n    meta_conversao_votos: r['Qual é a meta de conversão em votos (%)?'] || '',\n    canais_divulgacao_whatsapp: r['Em quantos canais será divulgado o número do WhatsApp - Agente político???'] || '',\n    base_contatos: r['Existe base de contatos? Quantos? '] || '',\n    estrategia_indecisos: r['Qual a sua estratégia para identificar indecisos? '] || '',\n    experiencia_politica: r['Qual a sua experiência política? '] || '',\n    porque_votar: r['Por que devo votar em você?'] || '',\n    financiamento_propostas: r['Como vai financiar suas propostas?'] || '',\n    posicao_governo_federal: r['Qual sua posição sobre o governo federal? '] || '',\n    posicao_governo_estadual: r['Qual sua posição sobre o governo estadual? '] || '',\n    opiniao_senadores: r['Qual sua opinião sobre o trabalho dos Senadores? '] || '',\n    opiniao_deputados: r['Qual sua opinião sobre o trabalho dos deputados (Estaduais/Distritais)'] || '',\n    opiniao_stf: r['Qual a sua opinião sobre o Supremo Tribunal Federal? '] || '',\n    historico_cassacao: r['Você já foi cassado? Por quê?'] || '',\n    participar_campanha: r['Como posso fazer parte de sua campanha? '] || '',\n    opiniao_cpis: r['Qual é sua opinião sobre o resultado das CPIs? '] || '',\n    diferenca_mandato: r['Em que você vai ser diferente durante seu mandato?'] || '',\n    aderencia_lgpd: r['Quer que seu agente atenda a LGPD?'] || '',\n    permitir_exclusao_dados: r['Quer permitir ao seu eleitor que seus dados sejam deletados se ele desejar?'] || '',\n    responsavel_conformidade: r['Quem é o responsável pela conformidade legal da campanha? (nome e telefone)'] || ''\n  };\n  const id = (mapped.numero_tre_tse || mapped.nome_urna || mapped.nome_completo || 'candidato').toString().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');\n  const perfil = `# Perfil do Candidato\\n\\n## Identificacao\\n- id_candidato: ${id}\\n- nome_completo: ${mapped.nome_completo}\\n- nome_urna: ${mapped.nome_urna}\\n- numero_tre_tse: ${mapped.numero_tre_tse}\\n- partido: ${mapped.partido}\\n- cargo_disputado: ${mapped.cargo_disputado}\\n- estado_distrito: ${mapped.estado_distrito}\\n- coligacao: ${mapped.coligacao}\\n\\n## Responsavel pelo Cadastro\\n- responsavel_preenchimento: ${mapped.responsavel_preenchimento}\\n- telefone_responsavel: ${mapped.telefone_responsavel}\\n- email_responsavel: ${mapped.email_responsavel}\\n\\n## Narrativa e Posicionamento\\n- bio_curta: ${mapped.bio_curta}\\n- causas_principais: ${mapped.causas_principais}\\n- tom_de_voz: ${mapped.tom_de_voz}\\n- bordoes: ${mapped.bordoes}\\n- palavras_proibidas: ${mapped.palavras_proibidas}\\n- preferencia_comunicacao: ${mapped.preferencia_comunicacao}\\n- pautas_sensiveis: ${mapped.pautas_sensiveis}\\n- diferenciais: ${mapped.diferenciais}\\n- experiencia_politica: ${mapped.experiencia_politica}\\n- porque_votar: ${mapped.porque_votar}\\n- diferenca_mandato: ${mapped.diferenca_mandato}\\n\\n## Propostas\\n- propostas_top5: ${mapped.propostas_top5}\\n- implementacao_propostas: ${mapped.implementacao_propostas}\\n- areas_prioritarias: ${mapped.areas_prioritarias}\\n- material_propostas: ${mapped.material_propostas}\\n- propostas_minorias: ${mapped.propostas_minorias}\\n- financiamento_propostas: ${mapped.financiamento_propostas}\\n\\n## Conteudos e Canais\\n- video_apresentacao: ${mapped.video_apresentacao}\\n- videos_propostas: ${mapped.videos_propostas}\\n- pdfs_propostas: ${mapped.pdfs_propostas}\\n- site_campanha: ${mapped.site_campanha}\\n- redes_sociais: ${mapped.redes_sociais}\\n\\n## Agenda e Operacao\\n- agenda_predefinida: ${mapped.agenda_predefinida}\\n- frequencia_agenda: ${mapped.frequencia_agenda}\\n- debates: ${mapped.debates}\\n- confirmacao_eventos: ${mapped.confirmacao_eventos}\\n- numero_agente_candidato: ${mapped.numero_agente_candidato}\\n- supervisor_agenda: ${mapped.supervisor_agenda}\\n- equipe_handoff: ${mapped.equipe_handoff}\\n- horario_atendimento_humano: ${mapped.horario_atendimento_humano}\\n- comites_presenciais: ${mapped.comites_presenciais}\\n- canais_ids: ${mapped.canais_ids}\\n- numero_central_comite: ${mapped.numero_central_comite}\\n\\n## Metas de Funil\\n- meta_contatos_whatsapp: ${mapped.meta_contatos_whatsapp}\\n- meta_conversao_votos: ${mapped.meta_conversao_votos}\\n- canais_divulgacao_whatsapp: ${mapped.canais_divulgacao_whatsapp}\\n- base_contatos: ${mapped.base_contatos}\\n- estrategia_indecisos: ${mapped.estrategia_indecisos}\\n\\n## Posicionamentos Sensiveis\\n- posicao_governo_federal: ${mapped.posicao_governo_federal}\\n- posicao_governo_estadual: ${mapped.posicao_governo_estadual}\\n- opiniao_senadores: ${mapped.opiniao_senadores}\\n- opiniao_deputados: ${mapped.opiniao_deputados}\\n- opiniao_stf: ${mapped.opiniao_stf}\\n- historico_cassacao: ${mapped.historico_cassacao}\\n- opiniao_cpis: ${mapped.opiniao_cpis}\\n\\n## Mobilizacao e Compliance\\n- participar_campanha: ${mapped.participar_campanha}\\n- aderencia_lgpd: ${mapped.aderencia_lgpd}\\n- permitir_exclusao_dados: ${mapped.permitir_exclusao_dados}\\n- responsavel_conformidade: ${mapped.responsavel_conformidade}\\n`;\n  return {\n    json: {\n      ...mapped,\n      raw_form_data: r,\n      id_candidato_normalizado: id,\n      arquivo_markdown: `${id}.md`,\n      perfil_markdown: perfil,\n      status_intake: 'normalizado'\n    }\n  };\n});"
+      },
+      "id": "Code_1",
+      "name": "Normalizar e Gerar Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ !!$json.nome_completo && !!$json.nome_urna && !!$json.partido && !!$json.cargo_disputado && !!$json.numero_agente_candidato && !!$json.responsavel_conformidade }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_1",
+      "name": "Checklist Minimo Completo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "fileName": "={{ 'agentes-politicos/perfis/' + $json.arquivo_markdown }}",
+        "fileContent": "={{ $json.perfil_markdown }}"
+      },
+      "id": "GoogleDrive_1",
+      "name": "Salvar Markdown no Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1220,
+        180
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Google Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4.1-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Voce transforma o perfil do candidato em instrucoes operacionais para agentes politicos. Gere JSON com campos: resumo_candidato, pilares, riscos, prompts_agentes."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.perfil_markdown }}"
+            }
+          ]
+        },
+        "simplify": true
+      },
+      "id": "OpenAI_1",
+      "name": "Gerar Instrucoes de Agentes",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1220,
+        360
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json.output || $json.message || $json.text || JSON.stringify($json); return [{ json: { status_intake: 'perfil_publicado', payload_agentes: source } }];"
+      },
+      "id": "Code_2",
+      "name": "Preparar Payload de Agentes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "SUBSTITUIR_GOOGLE_SHEET_ID",
+        "sheetName": "log_intake_candidato",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now }}",
+            "status": "={{ $json.status_intake }}",
+            "payload": "={{ JSON.stringify($json) }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "GoogleSheets_2",
+      "name": "Registrar Log de Intake",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1740,
+        260
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "subject": "Cadastro de candidato incompleto",
+        "message": "={{ 'O candidato ' + ($json.nome_urna || $json.nome_completo || 'sem identificacao') + ' precisa complementar campos obrigatorios para publicar o perfil.' }}",
+        "options": {}
+      },
+      "id": "Email_1",
+      "name": "Alertar Equipe",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1220,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ler Respostas Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Respostas Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Normalizar e Gerar Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar e Gerar Markdown": {
+      "main": [
+        [
+          {
+            "node": "Checklist Minimo Completo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checklist Minimo Completo?": {
+      "main": [
+        [
+          {
+            "node": "Salvar Markdown no Drive",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gerar Instrucoes de Agentes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alertar Equipe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Instrucoes de Agentes": {
+      "main": [
+        [
+          {
+            "node": "Preparar Payload de Agentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Markdown no Drive": {
+      "main": [
+        [
+          {
+            "node": "Registrar Log de Intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Payload de Agentes": {
+      "main": [
+        [
+          {
+            "node": "Registrar Log de Intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alertar Equipe": {
+      "main": [
+        [
+          {
+            "node": "Registrar Log de Intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "intake"
+    }
+  ]
+}

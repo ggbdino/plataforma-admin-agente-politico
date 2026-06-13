@@ -1085,8 +1085,10 @@ export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStat
         on is2.id_candidato = c.id_candidato
       where c.nome_urna is not null
         and btrim(c.nome_urna) <> ''
-        and c.id_candidato ~ '^[0-9]+$'
-      order by coalesce(is2.interacoes_24h, 0) desc, c.id_candidato
+      order by
+        coalesce(is2.interacoes_24h, 0) desc,
+        lower(coalesce(nullif(btrim(c.nome_urna), ''), c.nome_completo, c.id_candidato)),
+        c.id_candidato
     `
   );
 

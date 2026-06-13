@@ -1,0 +1,266 @@
+{
+  "name": "03_kpis_pipeline_politico",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "ScheduleTrigger_1",
+      "name": "Schedule KPI",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "with base as (select etapa_funil, origem_captacao, count(*) as total, avg(score_engajamento) as score_engajamento_medio, avg(score_propensao_voto) as score_voto_medio from eleitores group by etapa_funil, origem_captacao), inter as (select count(*) as total_interacoes, sum(case when status_envio = 'aprovado_para_envio' then 1 else 0 end) as aprovadas from interacoes) select json_build_object('funil', (select json_agg(base) from base), 'interacoes', (select row_to_json(inter) from inter)) as payload;"
+      },
+      "id": "Postgres_1",
+      "name": "Consolidar KPIs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        460,
+        260
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = items[0].json[0] || items[0].json; const payload = row.payload || row; const funil = payload.funil || []; const interacoes = payload.interacoes || {}; const totalLeads = funil.reduce((acc, item) => acc + Number(item.total || 0), 0); const apoiadores = funil.filter((i) => i.etapa_funil === 'apoiador').reduce((acc, item) => acc + Number(item.total || 0), 0); const indecisos = funil.filter((i) => i.etapa_funil === 'indeciso').reduce((acc, item) => acc + Number(item.total || 0), 0); return [{ json: { payload, total_leads: totalLeads, apoiadores, indecisos, taxa_apoiadores: totalLeads ? (apoiadores / totalLeads) : 0, taxa_indecisos: totalLeads ? (indecisos / totalLeads) : 0, total_interacoes: interacoes.total_interacoes || 0, aprovadas: interacoes.aprovadas || 0 } }];"
+      },
+      "id": "Code_1",
+      "name": "Calcular Scorecard Executivo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4.1-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Voce e um analista de BI politico. Gere um resumo executivo curto em portugues com foco no funil do eleitor e nos gargalos."
+            },
+            {
+              "role": "user",
+              "content": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "simplify": true
+      },
+      "id": "OpenAI_1",
+      "name": "Gerar Resumo Executivo",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        980,
+        260
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.taxa_indecisos > 0.35 || $json.taxa_apoiadores < 0.15 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_1",
+      "name": "Existe Gargalo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1240,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "SUBSTITUIR_GOOGLE_SHEET_ID",
+        "sheetName": "scorecard_funil",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now }}",
+            "total_leads": "={{ $json.total_leads }}",
+            "apoiadores": "={{ $json.apoiadores }}",
+            "indecisos": "={{ $json.indecisos }}",
+            "taxa_apoiadores": "={{ $json.taxa_apoiadores }}",
+            "taxa_indecisos": "={{ $json.taxa_indecisos }}",
+            "resumo": "={{ $json.output || $json.message || '' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "GoogleSheets_1",
+      "name": "Gravar Scorecard",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1500,
+        180
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "campanha-alertas",
+        "text": "={{ 'Alerta de gargalo no funil politico. Taxa de apoiadores: ' + $json.taxa_apoiadores + '. Taxa de indecisos: ' + $json.taxa_indecisos + '. Resumo: ' + ($json.output || $json.message || '') }}"
+      },
+      "id": "Slack_1",
+      "name": "Alertar Coordenacao",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        360
+      ],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Slack OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule KPI": {
+      "main": [
+        [
+          {
+            "node": "Consolidar KPIs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar KPIs": {
+      "main": [
+        [
+          {
+            "node": "Calcular Scorecard Executivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Scorecard Executivo": {
+      "main": [
+        [
+          {
+            "node": "Gerar Resumo Executivo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Existe Gargalo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Resumo Executivo": {
+      "main": [
+        [
+          {
+            "node": "Gravar Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existe Gargalo?": {
+      "main": [
+        [
+          {
+            "node": "Alertar Coordenacao",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gravar Scorecard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "kpi"
+    },
+    {
+      "name": "bi"
+    }
+  ]
+}

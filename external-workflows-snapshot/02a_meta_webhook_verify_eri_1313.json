@@ -1,0 +1,166 @@
+{
+  "name": "02a_meta_webhook_verify_eri_1313",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "agente-politico/1313/entrada-eleitor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_1313_Meta_GET",
+      "name": "Webhook Verificação Meta Eri 1313",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        180,
+        260
+      ],
+      "webhookId": "agente-politico-1313-entrada-eleitor-get"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const query = item.json.query || item.json;\n  return {\n    json: {\n      mode: String(query['hub.mode'] || '').trim(),\n      verifyToken: String(query['hub.verify_token'] || '').trim(),\n      challenge: String(query['hub.challenge'] || '').trim()\n    }\n  };\n});"
+      },
+      "id": "Code_Ler_Verificacao_Meta",
+      "name": "Ler Verificação Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.mode === 'subscribe' && $json.verifyToken === ($env.META_WHATSAPP_VERIFY_TOKEN || 'GAP_META_VERIFY_2026') && !!$json.challenge }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_Verificacao_Meta_Valida",
+      "name": "Verificação Meta válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{$json.challenge}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "Respond_Verificacao_Meta_OK",
+      "name": "Responder Challenge Meta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "Respond_Verificacao_Meta_Erro",
+      "name": "Responder Verificação Inválida",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Verificação Meta Eri 1313": {
+      "main": [
+        [
+          {
+            "node": "Ler Verificação Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Verificação Meta": {
+      "main": [
+        [
+          {
+            "node": "Verificação Meta válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificação Meta válida?": {
+      "main": [
+        [
+          {
+            "node": "Responder Challenge Meta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Verificação Inválida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1-meta-verify",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "eri-castro"
+    },
+    {
+      "name": "meta-cloud-api"
+    },
+    {
+      "name": "webhook-verify"
+    }
+  ]
+}

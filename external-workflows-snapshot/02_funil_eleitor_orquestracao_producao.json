@@ -1,0 +1,515 @@
+{
+  "name": "02_funil_eleitor_orquestracao_producao",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "agente-politico/producao/entrada-eleitor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_1",
+      "name": "Webhook Entrada Produção",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "agente-politico-producao-entrada-eleitor"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const b = item.json.body || item.json;\n  const idCandidato = (b.id_candidato || b.candidate_id || '').toString().trim();\n  const eleitorId = (b.eleitor_id || b.telefone || b.phone || b.email || Date.now().toString()).toString().trim();\n  const mensagem = (b.mensagem || b.message || b.text || '').toString();\n  const origem = (b.origem_captacao || b.origem || b.utm_source || 'whatsapp').toString();\n  return {\n    json: {\n      id_candidato: idCandidato,\n      eleitor_id: eleitorId,\n      eleitor_uid: `${idCandidato}:${eleitorId}`,\n      nome: b.nome || b.name || '',\n      telefone: b.telefone || b.phone || '',\n      email: b.email || '',\n      cidade: b.cidade || '',\n      bairro: b.bairro || '',\n      tema_interesse: (b.tema_interesse || b.interesse || 'geral').toString().toLowerCase(),\n      canal_preferido: b.canal_preferido || 'whatsapp',\n      mensagem_eleitor: mensagem,\n      consentimento_lgpd: !!b.consentimento_lgpd,\n      origem_captacao: origem,\n      metadata: b\n    }\n  };\n});"
+      },
+      "id": "Code_1",
+      "name": "Normalizar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !!$json.id_candidato && !!$json.eleitor_id && !!$json.telefone }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_1",
+      "name": "Payload Mínimo OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select c.id_candidato, c.nome_urna, c.partido, c.cargo_disputado, c.perfil_markdown, p.agente_nome, p.system_prompt from candidatos c left join prompts_agentes p on p.id_candidato = c.id_candidato and p.agente_nome in ('Agente_Relacionamento','Agente_Compliance_2026') where c.id_candidato = '{{$json.id_candidato}}';"
+      },
+      "id": "Postgres_1",
+      "name": "Buscar Contexto do Candidato",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        980,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = items.map(i => i.json);\nif (!rows.length) { return [{ json: { erro: 'candidato_nao_encontrado' } }]; }\nconst base = rows[0];\nconst prompts = {};\nfor (const row of rows) {\n  if (row.agente_nome) prompts[row.agente_nome] = row.system_prompt;\n}\nconst input = $item(0).$node['Normalizar Entrada'].json;\nreturn [{ json: { ...input, nome_urna: base.nome_urna, perfil_markdown: base.perfil_markdown, prompt_relacionamento: prompts['Agente_Relacionamento'] || '', prompt_compliance: prompts['Agente_Compliance_2026'] || '' } }];"
+      },
+      "id": "Code_2",
+      "name": "Consolidar Contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4.1-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Classifique a interação de um eleitor brasileiro e responda apenas JSON válido com os campos: tema_interesse, sentimento, intencao_voto, etapa_sugerida, score_delta, risco_compliance, precisa_humano."
+            },
+            {
+              "role": "user",
+              "content": "Perfil do candidato: {{$json.perfil_markdown}}\n\nMensagem do eleitor: {{$json.mensagem_eleitor}}\n\nTema inicial informado: {{$json.tema_interesse}}\n\nResponda só JSON."
+            }
+          ]
+        },
+        "simplify": true
+      },
+      "id": "OpenAI_1",
+      "name": "Classificar Interação",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1500,
+        220
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output || $json.message || $json.text || '{}';\nlet parsed;\ntry { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { parsed = { tema_interesse: 'geral', sentimento: 'neutro', intencao_voto: 'nao_classificada', etapa_sugerida: 'qualificado', score_delta: 5, risco_compliance: 'medio', precisa_humano: true }; }\nconst input = $item(0).$node['Consolidar Contexto'].json;\nreturn [{ json: { ...input, ...parsed } }];"
+      },
+      "id": "Code_3",
+      "name": "Preparar Classificação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4.1-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "{{$json.prompt_relacionamento || 'Você é um assistente virtual oficial de campanha. Nunca invente fatos. Sempre identifique que é um assistente virtual.'}}"
+            },
+            {
+              "role": "user",
+              "content": "Crie uma resposta curta de WhatsApp, em português do Brasil, com no máximo 500 caracteres. Contexto: nome do candidato {{$json.nome_urna}}, tema {{$json.tema_interesse}}, sentimento {{$json.sentimento}}, intenção {{$json.intencao_voto}}, etapa sugerida {{$json.etapa_sugerida}}, mensagem do eleitor: {{$json.mensagem_eleitor}}. Retorne apenas JSON com campos: mensagem, usa_ia, rotulo_ia."
+            }
+          ]
+        },
+        "simplify": true
+      },
+      "id": "OpenAI_2",
+      "name": "Gerar Resposta",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2020,
+        220
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output || $json.message || $json.text || '{}';\nlet parsed;\ntry { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { parsed = { mensagem: String(raw), usa_ia: true, rotulo_ia: 'Mensagem gerada por assistente virtual oficial da campanha.' }; }\nconst input = $item(0).$node['Preparar Classificação'].json;\nconst disclaimer = 'Este atendimento é realizado por assistente virtual oficial da campanha.';\nconst mensagemFinal = `${disclaimer}\\n\\n${parsed.mensagem || ''}`.trim();\nreturn [{ json: { ...input, mensagem_resposta: mensagemFinal, usa_ia: parsed.usa_ia !== false, rotulo_ia: parsed.rotulo_ia || 'Mensagem gerada por assistente virtual oficial da campanha.' } }];"
+      },
+      "id": "Code_4",
+      "name": "Preparar Resposta Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2280,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.consentimento_lgpd && $json.risco_compliance !== 'alto' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_2",
+      "name": "Compliance e LGPD OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2540,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into eleitores (eleitor_uid, eleitor_id, id_candidato, nome, telefone, email, cidade, bairro, origem_captacao, tema_interesse, consentimento_lgpd, etapa_funil, score_engajamento, score_propensao_voto, intencao_voto, sentimento, canal_preferido, ultimo_contato_em, ultima_resposta_em, atualizado_em) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','{{$json.nome}}','{{$json.telefone}}','{{$json.email}}','{{$json.cidade}}','{{$json.bairro}}','{{$json.origem_captacao}}','{{$json.tema_interesse}}',{{$json.consentimento_lgpd}},'{{$json.etapa_sugerida}}',{{$json.score_delta || 0}},{{$json.intencao_voto === 'apoio' ? 80 : $json.intencao_voto === 'indeciso' ? 40 : 20}},'{{$json.intencao_voto}}','{{$json.sentimento}}','{{$json.canal_preferido}}',now(),now(),now()) on conflict (eleitor_uid) do update set nome = excluded.nome, telefone = excluded.telefone, email = excluded.email, cidade = excluded.cidade, bairro = excluded.bairro, origem_captacao = excluded.origem_captacao, tema_interesse = excluded.tema_interesse, consentimento_lgpd = excluded.consentimento_lgpd, etapa_funil = excluded.etapa_funil, score_engajamento = coalesce(eleitores.score_engajamento,0) + excluded.score_engajamento, score_propensao_voto = excluded.score_propensao_voto, intencao_voto = excluded.intencao_voto, sentimento = excluded.sentimento, canal_preferido = excluded.canal_preferido, ultimo_contato_em = now(), ultima_resposta_em = now(), atualizado_em = now();"
+      },
+      "id": "Postgres_2",
+      "name": "Upsert Eleitor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2800,
+        120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into interacoes (eleitor_uid, eleitor_id, id_candidato, canal, direcao, mensagem, resposta_eleitor, tema_classificado, sentimento, intencao_voto, etapa_sugerida, usa_ia, rotulo_ia, risco_compliance, status_envio, origem_execucao, metadata) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','{{$json.canal_preferido}}','inbound','{{$json.mensagem_resposta.replace(/'/g, \"''\")}}','{{$json.mensagem_eleitor.replace(/'/g, \"''\")}}','{{$json.tema_interesse}}','{{$json.sentimento}}','{{$json.intencao_voto}}','{{$json.etapa_sugerida}}',{{$json.usa_ia ? 'true' : 'false'}},'{{$json.rotulo_ia.replace(/'/g, \"''\")}}','{{$json.risco_compliance}}','aprovado_para_envio','webhook_inbound','{{ JSON.stringify($json.metadata).replace(/'/g, \"''\") }}'::jsonb);"
+      },
+      "id": "Postgres_3",
+      "name": "Registrar Interação",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2800,
+        260
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.seu-provedor-whatsapp.example/send",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"candidate_id\":\"{{$json.id_candidato}}\",\"to\":\"{{$json.telefone}}\",\"message\":\"{{$json.mensagem_resposta}}\"}"
+      },
+      "id": "HTTP_1",
+      "name": "Enviar Mensagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2800,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into alertas_compliance (id_candidato, referencia_tipo, referencia_id, severidade, motivo, payload) values ('{{$json.id_candidato}}','interacao','{{$json.eleitor_id}}','alto','Bloqueado por falta de consentimento ou risco alto','{{ JSON.stringify($json).replace(/'/g, \"''\") }}'::jsonb);"
+      },
+      "id": "Postgres_4",
+      "name": "Registrar Alerta de Bloqueio",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2800,
+        560
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"ok\",\"id_candidato\":\"{{$json.id_candidato || ''}}\",\"eleitor_id\":\"{{$json.eleitor_id || ''}}\",\"etapa\":\"{{$json.etapa_sugerida || ''}}\"}",
+        "options": {}
+      },
+      "id": "Respond_1",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3060,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Entrada Produção": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Payload Mínimo OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload Mínimo OK?": {
+      "main": [
+        [
+          {
+            "node": "Buscar Contexto do Candidato",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Contexto do Candidato": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar Contexto": {
+      "main": [
+        [
+          {
+            "node": "Classificar Interação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classificar Interação": {
+      "main": [
+        [
+          {
+            "node": "Preparar Classificação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Classificação": {
+      "main": [
+        [
+          {
+            "node": "Gerar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resposta Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Resposta Final": {
+      "main": [
+        [
+          {
+            "node": "Compliance e LGPD OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance e LGPD OK?": {
+      "main": [
+        [
+          {
+            "node": "Upsert Eleitor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Registrar Interação",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enviar Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar Alerta de Bloqueio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Eleitor": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Interação": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Alerta de Bloqueio": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "producao"
+    },
+    {
+      "name": "inbound"
+    }
+  ]
+}

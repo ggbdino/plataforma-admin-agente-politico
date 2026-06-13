@@ -1,0 +1,580 @@
+{
+  "name": "02_funil_eleitor_orquestracao",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "agente-politico/entrada-eleitor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_1",
+      "name": "Webhook Entrada Eleitor",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        180,
+        320
+      ],
+      "webhookId": "agente-politico-entrada-eleitor"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const r = item.json.body || item.json;\n  const origem = r.origem || r.utm_source || 'nao_informada';\n  const interesse = (r.tema_interesse || r.interesse || '').toLowerCase();\n  const score = r.score_inicial || (origem.includes('evento') ? 35 : origem.includes('whatsapp') ? 30 : 20);\n  return {\n    json: {\n      eleitor_id: r.eleitor_id || r.telefone || r.email || Date.now().toString(),\n      nome: r.nome || 'nao informado',\n      telefone: r.telefone || '',\n      origem_captacao: origem,\n      cidade: r.cidade || '',\n      bairro: r.bairro || '',\n      tema_interesse: interesse || 'geral',\n      consentimento_lgpd: !!r.consentimento_lgpd,\n      etapa_funil: 'novo_lead',\n      score_engajamento: score,\n      score_propensao_voto: 0,\n      canal_preferido: r.canal_preferido || 'whatsapp'\n    }\n  };\n});"
+      },
+      "id": "Code_1",
+      "name": "Normalizar Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-lgpd",
+              "leftValue": "={{ $json.consentimento_lgpd }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_1",
+      "name": "Consentimento Valido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into eleitores (eleitor_id, nome, telefone, origem_captacao, cidade, bairro, tema_interesse, consentimento_lgpd, etapa_funil, score_engajamento, score_propensao_voto, canal_preferido) values ('{{$json.eleitor_id}}','{{$json.nome}}','{{$json.telefone}}','{{$json.origem_captacao}}','{{$json.cidade}}','{{$json.bairro}}','{{$json.tema_interesse}}',{{$json.consentimento_lgpd}},'{{$json.etapa_funil}}',{{$json.score_engajamento}},{{$json.score_propensao_voto}},'{{$json.canal_preferido}}') on conflict (eleitor_id) do update set nome = excluded.nome, telefone = excluded.telefone, origem_captacao = excluded.origem_captacao, tema_interesse = excluded.tema_interesse, score_engajamento = excluded.score_engajamento;"
+      },
+      "id": "Postgres_1",
+      "name": "Persistir Lead",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        960,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "switch": {
+          "cases": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.tema_interesse }}",
+                    "rightValue": "saude",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.tema_interesse }}",
+                    "rightValue": "educacao",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        }
+      },
+      "id": "Switch_1",
+      "name": "Roteador Tematico",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1220,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4.1-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Voce e um agente politico de nutricao de eleitores. Responda em JSON com campos: etapa_sugerida, mensagem, score_delta, usa_ia, rotulo_ia."
+            },
+            {
+              "role": "user",
+              "content": "Eleitor tema saude: {{ JSON.stringify($json) }}. Gere uma mensagem curta de relacionamento com CTA para proposta e pergunta de engajamento."
+            }
+          ]
+        },
+        "simplify": true
+      },
+      "id": "OpenAI_1",
+      "name": "Mensagem Saude",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1500,
+        160
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4.1-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Voce e um agente politico de nutricao de eleitores. Responda em JSON com campos: etapa_sugerida, mensagem, score_delta, usa_ia, rotulo_ia."
+            },
+            {
+              "role": "user",
+              "content": "Eleitor tema educacao: {{ JSON.stringify($json) }}. Gere uma mensagem curta de relacionamento com CTA para proposta e pergunta de engajamento."
+            }
+          ]
+        },
+        "simplify": true
+      },
+      "id": "OpenAI_2",
+      "name": "Mensagem Educacao",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1500,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4.1-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Voce e um agente politico de nutricao de eleitores. Responda em JSON com campos: etapa_sugerida, mensagem, score_delta, usa_ia, rotulo_ia."
+            },
+            {
+              "role": "user",
+              "content": "Eleitor tema geral: {{ JSON.stringify($json) }}. Gere uma mensagem curta de relacionamento com CTA para proposta e pergunta de engajamento."
+            }
+          ]
+        },
+        "simplify": true
+      },
+      "id": "OpenAI_3",
+      "name": "Mensagem Geral",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1500,
+        480
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output || $json.message || $json.text || '{}'; let parsed; try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { parsed = { mensagem: raw, etapa_sugerida: 'qualificado', score_delta: 5, usa_ia: true, rotulo_ia: 'Mensagem assistida por IA e revisada pela campanha.' }; } return [{ json: { ...$input.first().json, ...parsed } }];"
+      },
+      "id": "Code_2",
+      "name": "Preparar Conteudo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !$json.usa_ia || !!$json.rotulo_ia }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_2",
+      "name": "Checklist Compliance IA",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2020,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into interacoes (eleitor_id, canal, mensagem, etapa_sugerida, usa_ia, rotulo_ia, status_envio) values ('{{$json.eleitor_id}}','{{$json.canal_preferido}}','{{$json.mensagem}}','{{$json.etapa_sugerida}}',{{$json.usa_ia ? 'true' : 'false'}},'{{$json.rotulo_ia || ''}}','aprovado_para_envio');"
+      },
+      "id": "Postgres_2",
+      "name": "Registrar Interacao",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2280,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.seu-provedor-whatsapp.example/send",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"to\":\"{{$json.telefone}}\",\"message\":\"{{$json.mensagem}}\\n\\n{{$json.rotulo_ia || ''}}\"}"
+      },
+      "id": "HTTP_1",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2280,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"recebido\",\"eleitor_id\":\"{{$json.eleitor_id}}\",\"etapa\":\"{{$json.etapa_funil}}\"}",
+        "options": {}
+      },
+      "id": "Respond_1",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2550,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "subject": "Lead sem consentimento valido",
+        "message": "={{ 'Lead bloqueado por falta de consentimento: ' + JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "Email_1",
+      "name": "Alertar Falta de Consentimento",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        960,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "subject": "Conteudo bloqueado por compliance de IA",
+        "message": "={{ 'Conteudo sem rotulo adequado: ' + JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "Email_2",
+      "name": "Alertar Compliance",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2280,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Entrada Eleitor": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Lead": {
+      "main": [
+        [
+          {
+            "node": "Consentimento Valido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consentimento Valido?": {
+      "main": [
+        [
+          {
+            "node": "Persistir Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alertar Falta de Consentimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persistir Lead": {
+      "main": [
+        [
+          {
+            "node": "Roteador Tematico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteador Tematico": {
+      "main": [
+        [
+          {
+            "node": "Mensagem Saude",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensagem Educacao",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensagem Geral",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem Saude": {
+      "main": [
+        [
+          {
+            "node": "Preparar Conteudo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem Educacao": {
+      "main": [
+        [
+          {
+            "node": "Preparar Conteudo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem Geral": {
+      "main": [
+        [
+          {
+            "node": "Preparar Conteudo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Conteudo": {
+      "main": [
+        [
+          {
+            "node": "Checklist Compliance IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checklist Compliance IA": {
+      "main": [
+        [
+          {
+            "node": "Registrar Interacao",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alertar Compliance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Interacao": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alertar Falta de Consentimento": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alertar Compliance": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "funil"
+    },
+    {
+      "name": "whatsapp"
+    }
+  ]
+}

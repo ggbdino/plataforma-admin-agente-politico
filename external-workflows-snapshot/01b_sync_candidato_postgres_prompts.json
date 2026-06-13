@@ -1,0 +1,283 @@
+{
+  "name": "01b_sync_candidato_postgres_prompts",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "ScheduleTrigger_1",
+      "name": "Schedule Sync Candidato",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": "SUBSTITUIR_GOOGLE_SHEET_ID",
+        "sheetName": "Respostas ao formulário 1",
+        "options": {}
+      },
+      "id": "GoogleSheets_1",
+      "name": "Ler Planilha de Candidatos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        260
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function esc(v) { return String(v ?? '').replace(/'/g, \"''\"); }\nreturn items.map((item) => {\n  const r = item.json;\n  const mapped = {\n    nome_completo: r['Nome do Candidato'] || '',\n    numero_tre_tse: r['Número no TRE/TSE'] || '',\n    cargo_disputado: r['Cargo que concorre? '] || '',\n    partido: r['Partido?'] || '',\n    estado: r['Estado (Quando Governador, Deputado Estadual) ou Distrital?'] || '',\n    coligacao: r['Coligação (se houver)'] || '',\n    bio_curta: r['Biografia resumida:'] || '',\n    bandeiras: r['Principais bandeiras de campanha?'] || '',\n    telefone_candidato: r['Telefone direto do candidato?'] || '',\n    nome_urna: r['Como o candidato quer ser chamado? (Nome utilizado no material de campanha)'] || '',\n    tom_de_voz: r['Qual o tom de comunicação desejado?'] || '',\n    bordoes: r['Quais as frases de efeito e/ou bordões caracteríticos?'] || '',\n    palavras_proibidas: r['Existe alguma palavra ou expressão que não deve ser utilizada?'] || '',\n    pautas_sensiveis: r['Existe alguma pauta que o candidato evita comentar?'] || '',\n    site_campanha: r['Qual o site da Campanha?'] || '',\n    redes_sociais: r['Quais a redes sociais ativas? (links?)'] || '',\n    propostas_top5: r['Apresente 5 principais propostas de campanha? '] || '',\n    implementacao_propostas: r['Descreva brevemente como serão implementadas? '] || '',\n    areas_prioritarias: r['Quais as áreas são prioritárias? '] || '',\n    agenda_predefinida: r['Existe agenda de Eventos pré-definida?'] || '',\n    frequencia_agenda: r['Com que frequência a agenda será atualizada? '] || '',\n    numero_agente_candidato: r['Qual o número que será utilizado pelo Agente do Candidato? '] || '',\n    supervisor_agenda: r['Quem é o supervisor de Agenda? '] || '',\n    equipe_handoff: r['Existe equipe para atendimento humano? (handoff)'] || '',\n    horario_atendimento_humano: r['Qual o horário de funcionamento do atendimento humano?'] || '',\n    meta_contatos_whatsapp: Number(r['Qual a meta de contatos para o WhatsApp? (Agente de IA)'] || 0),\n    meta_conversao_votos: Number(r['Qual é a meta de conversão em votos (%)?'] || 0),\n    canais_divulgacao_whatsapp: r['Em quantos canais será divulgado o número do WhatsApp - Agente político???'] || '',\n    estrategia_indecisos: r['Qual a sua estratégia para identificar indecisos? '] || '',\n    porque_votar: r['Por que devo votar em você?'] || '',\n    financiamento_propostas: r['Como vai financiar suas propostas?'] || '',\n    aderencia_lgpd: r['Quer que seu agente atenda a LGPD?'] || '',\n    permitir_exclusao_dados: r['Quer permitir ao seu eleitor que seus dados sejam deletados se ele desejar?'] || '',\n    responsavel_conformidade: r['Quem é o responsável pela conformidade legal da campanha? (nome e telefone)'] || '',\n    responsavel_preenchimento: r['Responsável pelo preenchimento?'] || '',\n    telefone_responsavel: r['Telefone do Responsável'] || '',\n    email_responsavel: r['Endereço de e-mail'] || ''\n  };\n  const id = (mapped.numero_tre_tse || mapped.nome_urna || mapped.nome_completo || 'candidato').toString().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');\n  const perfilMarkdown = `# Perfil do Candidato\\n\\n## Identificacao\\n- id_candidato: ${id}\\n- nome_completo: ${mapped.nome_completo}\\n- nome_urna: ${mapped.nome_urna}\\n- numero_tre_tse: ${mapped.numero_tre_tse}\\n- partido: ${mapped.partido}\\n- cargo_disputado: ${mapped.cargo_disputado}\\n- estado: ${mapped.estado}\\n- coligacao: ${mapped.coligacao}\\n\\n## Narrativa\\n- bio_curta: ${mapped.bio_curta}\\n- bandeiras: ${mapped.bandeiras}\\n- tom_de_voz: ${mapped.tom_de_voz}\\n- bordoes: ${mapped.bordoes}\\n- palavras_proibidas: ${mapped.palavras_proibidas}\\n- pautas_sensiveis: ${mapped.pautas_sensiveis}\\n\\n## Propostas\\n- propostas_top5: ${mapped.propostas_top5}\\n- implementacao_propostas: ${mapped.implementacao_propostas}\\n- areas_prioritarias: ${mapped.areas_prioritarias}\\n- porque_votar: ${mapped.porque_votar}\\n- financiamento_propostas: ${mapped.financiamento_propostas}\\n\\n## Operacao\\n- numero_agente_candidato: ${mapped.numero_agente_candidato}\\n- agenda_predefinida: ${mapped.agenda_predefinida}\\n- frequencia_agenda: ${mapped.frequencia_agenda}\\n- supervisor_agenda: ${mapped.supervisor_agenda}\\n- equipe_handoff: ${mapped.equipe_handoff}\\n- horario_atendimento_humano: ${mapped.horario_atendimento_humano}\\n\\n## Metas\\n- meta_contatos_whatsapp: ${mapped.meta_contatos_whatsapp}\\n- meta_conversao_votos: ${mapped.meta_conversao_votos}\\n- estrategia_indecisos: ${mapped.estrategia_indecisos}\\n\\n## Compliance\\n- aderencia_lgpd: ${mapped.aderencia_lgpd}\\n- permitir_exclusao_dados: ${mapped.permitir_exclusao_dados}\\n- responsavel_conformidade: ${mapped.responsavel_conformidade}\\n`;\n  const perfilPrompt = `Voce e o Agente de Perfil da campanha de ${mapped.nome_urna}. Use apenas informacoes aprovadas. Nunca invente propostas, numeros ou apoios. Perfil base: ${perfilMarkdown}`;\n  const captacaoPrompt = `Voce e o Agente de Captacao da campanha de ${mapped.nome_urna}. Seu objetivo e atrair contatos para o WhatsApp oficial ${mapped.numero_agente_candidato}. Use o tom ${mapped.tom_de_voz}. Destaque as bandeiras: ${mapped.bandeiras}. Evite: ${mapped.palavras_proibidas}.`;\n  const relacionamentoPrompt = `Voce e o Agente de Relacionamento da campanha de ${mapped.nome_urna}. Nutra eleitores com base em ${mapped.propostas_top5}. Use o tom ${mapped.tom_de_voz}. Encaminhe para atendimento humano quando o assunto sair das propostas aprovadas ou tocar pautas sensiveis: ${mapped.pautas_sensiveis}.`;\n  const conversaoPrompt = `Voce e o Agente de Conversao da campanha de ${mapped.nome_urna}. Seu foco e identificar indecisos, apoiadores e mobilizadores. Use a estrategia declarada: ${mapped.estrategia_indecisos}. Nunca pressione de forma abusiva. Sempre registre sinais de intencao de voto.`;\n  const compliancePrompt = `Voce e o Agente de Compliance 2026 da campanha de ${mapped.nome_urna}. Exija rotulagem de IA quando aplicavel, respeite LGPD=${mapped.aderencia_lgpd}, direito de exclusao=${mapped.permitir_exclusao_dados} e encaminhe riscos para ${mapped.responsavel_conformidade}.`;\n  const prompts = [\n    ['Agente_Perfil', 'Consolidar identidade do candidato', perfilPrompt],\n    ['Agente_Captacao', 'Atrair novos eleitores para os canais proprios', captacaoPrompt],\n    ['Agente_Relacionamento', 'Nutrir e qualificar eleitores', relacionamentoPrompt],\n    ['Agente_Conversao', 'Converter interesse em apoio e voto', conversaoPrompt],\n    ['Agente_Compliance_2026', 'Bloquear riscos juridicos e de dados', compliancePrompt]\n  ];\n  const values = prompts.map(([agente, objetivo, prompt]) => `('${esc(id)}','${esc(agente)}','${esc(objetivo)}','${esc(prompt)}','${esc(prompt)}')`).join(',');\n  return {\n    json: {\n      id_candidato: id,\n      ...mapped,\n      perfil_markdown: perfilMarkdown,\n      raw_form_data: r,\n      sql_nome_completo: esc(mapped.nome_completo),\n      sql_nome_urna: esc(mapped.nome_urna),\n      sql_numero_tre_tse: esc(mapped.numero_tre_tse),\n      sql_partido: esc(mapped.partido),\n      sql_cargo_disputado: esc(mapped.cargo_disputado),\n      sql_estado: esc(mapped.estado),\n      sql_coligacao: esc(mapped.coligacao),\n      sql_telefone_candidato: esc(mapped.telefone_candidato),\n      sql_email_responsavel: esc(mapped.email_responsavel),\n      sql_responsavel_preenchimento: esc(mapped.responsavel_preenchimento),\n      sql_telefone_responsavel: esc(mapped.telefone_responsavel),\n      sql_perfil_markdown: esc(perfilMarkdown),\n      sql_dados_brutos: esc(JSON.stringify(r)),\n      sql_nome_campanha: esc(`Campanha ${mapped.nome_urna || mapped.nome_completo}`),\n      sql_canais_divulgacao: esc(String(mapped.canais_divulgacao_whatsapp || '')),\n      sql_supervisor_agenda: esc(mapped.supervisor_agenda),\n      sql_responsavel_conformidade: esc(mapped.responsavel_conformidade),\n      sql_configuracao: esc(JSON.stringify({ numero_agente_candidato: mapped.numero_agente_candidato, site_campanha: mapped.site_campanha, redes_sociais: mapped.redes_sociais, equipe_handoff: mapped.equipe_handoff, horario_atendimento_humano: mapped.horario_atendimento_humano })),\n      sql_prompts_values: values\n    }\n  };\n});"
+      },
+      "id": "Code_1",
+      "name": "Mapear Planilha e Montar Prompts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into candidatos (id_candidato, nome_completo, nome_urna, numero_tre_tse, partido, cargo_disputado, estado, coligacao, telefone_candidato, email_responsavel, responsavel_preenchimento, telefone_responsavel, perfil_markdown, dados_brutos, atualizado_em) values ('{{$json.id_candidato}}','{{$json.sql_nome_completo}}','{{$json.sql_nome_urna}}','{{$json.sql_numero_tre_tse}}','{{$json.sql_partido}}','{{$json.sql_cargo_disputado}}','{{$json.sql_estado}}','{{$json.sql_coligacao}}','{{$json.sql_telefone_candidato}}','{{$json.sql_email_responsavel}}','{{$json.sql_responsavel_preenchimento}}','{{$json.sql_telefone_responsavel}}','{{$json.sql_perfil_markdown}}','{{$json.sql_dados_brutos}}'::jsonb,now()) on conflict (id_candidato) do update set nome_completo = excluded.nome_completo, nome_urna = excluded.nome_urna, numero_tre_tse = excluded.numero_tre_tse, partido = excluded.partido, cargo_disputado = excluded.cargo_disputado, estado = excluded.estado, coligacao = excluded.coligacao, telefone_candidato = excluded.telefone_candidato, email_responsavel = excluded.email_responsavel, responsavel_preenchimento = excluded.responsavel_preenchimento, telefone_responsavel = excluded.telefone_responsavel, perfil_markdown = excluded.perfil_markdown, dados_brutos = excluded.dados_brutos, atualizado_em = now();"
+      },
+      "id": "Postgres_1",
+      "name": "Upsert Candidato",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1020,
+        120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into campanhas (id_candidato, nome_campanha, status, cargo_disputado, partido, uf, meta_contatos_whatsapp, meta_conversao_votos, canais_divulgacao_whatsapp, supervisor_agenda, responsavel_conformidade, configuracao, atualizado_em) values ('{{$json.id_candidato}}','{{$json.sql_nome_campanha}}','ativa','{{$json.sql_cargo_disputado}}','{{$json.sql_partido}}','{{$json.sql_estado}}',{{$json.meta_contatos_whatsapp || 0}},{{$json.meta_conversao_votos || 0}},'{{$json.sql_canais_divulgacao}}','{{$json.sql_supervisor_agenda}}','{{$json.sql_responsavel_conformidade}}','{{$json.sql_configuracao}}'::jsonb,now()) on conflict (id_candidato) do update set nome_campanha = excluded.nome_campanha, status = excluded.status, cargo_disputado = excluded.cargo_disputado, partido = excluded.partido, uf = excluded.uf, meta_contatos_whatsapp = excluded.meta_contatos_whatsapp, meta_conversao_votos = excluded.meta_conversao_votos, canais_divulgacao_whatsapp = excluded.canais_divulgacao_whatsapp, supervisor_agenda = excluded.supervisor_agenda, responsavel_conformidade = excluded.responsavel_conformidade, configuracao = excluded.configuracao, atualizado_em = now();"
+      },
+      "id": "Postgres_2",
+      "name": "Upsert Campanha",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1020,
+        260
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into perfis_candidato_md (id_candidato, conteudo_md, hash_conteudo) values ('{{$json.id_candidato}}','{{$json.sql_perfil_markdown}}',md5('{{$json.sql_perfil_markdown}}'));"
+      },
+      "id": "Postgres_3",
+      "name": "Versionar Perfil Markdown",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1020,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "delete from prompts_agentes where id_candidato = '{{$json.id_candidato}}'; insert into prompts_agentes (id_candidato, agente_nome, objetivo, system_prompt, prompt_template) values {{$json.sql_prompts_values}};"
+      },
+      "id": "Postgres_4",
+      "name": "Atualizar Prompts dos Agentes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1020,
+        540
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "SUBSTITUIR_GOOGLE_SHEET_ID",
+        "sheetName": "log_intake_candidato",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now }}",
+            "status": "sincronizado_postgres_prompts",
+            "payload": "={{ JSON.stringify({ id_candidato: $json.id_candidato, nome_urna: $json.nome_urna }) }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "GoogleSheets_2",
+      "name": "Log de Sincronizacao",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        260
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Sync Candidato": {
+      "main": [
+        [
+          {
+            "node": "Ler Planilha de Candidatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Planilha de Candidatos": {
+      "main": [
+        [
+          {
+            "node": "Mapear Planilha e Montar Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapear Planilha e Montar Prompts": {
+      "main": [
+        [
+          {
+            "node": "Upsert Candidato",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Upsert Campanha",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Versionar Perfil Markdown",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Atualizar Prompts dos Agentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Candidato": {
+      "main": [
+        [
+          {
+            "node": "Log de Sincronizacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Campanha": {
+      "main": [
+        [
+          {
+            "node": "Log de Sincronizacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Versionar Perfil Markdown": {
+      "main": [
+        [
+          {
+            "node": "Log de Sincronizacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Prompts dos Agentes": {
+      "main": [
+        [
+          {
+            "node": "Log de Sincronizacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "postgres"
+    },
+    {
+      "name": "prompts"
+    }
+  ]
+}
