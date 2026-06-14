@@ -25,6 +25,9 @@ export default async function GovernanceAdminPage() {
           <Link className="button secondary" href="/estatisticas/governanca/workflows">
             Central de workflows
           </Link>
+          <Link className="button secondary" href="/admin/candidatos">
+            Excluir candidatos
+          </Link>
           <Link className="button secondary" href="/admin/usuarios">
             Usuários e perfis
           </Link>
