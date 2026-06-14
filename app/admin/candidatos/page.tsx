@@ -138,6 +138,7 @@ export default async function AdminCandidatesPage({ searchParams }: AdminCandida
             <tbody>
               <SummaryRow label="Campanhas" total={globalSummary.campanhas} />
               <SummaryRow label="Canais de integracao" total={globalSummary.canais_integracao} />
+              <SummaryRow label="Perfis markdown do candidato" total={globalSummary.perfis_candidato_md} />
               <SummaryRow label="Implantacoes" total={globalSummary.implantacoes_candidato} />
               <SummaryRow label="Etapas de implantacao" total={globalSummary.implantacao_etapas_candidato} />
               <SummaryRow label="Execucoes de implantacao" total={globalSummary.execucoes_implantacao} />

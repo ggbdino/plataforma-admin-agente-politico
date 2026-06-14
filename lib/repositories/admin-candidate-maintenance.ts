@@ -4,6 +4,7 @@ type CandidateDeletionSummary = {
   candidatos: number;
   campanhas: number;
   canais_integracao: number;
+  perfis_candidato_md: number;
   implantacoes_candidato: number;
   implantacao_etapas_candidato: number;
   execucoes_implantacao: number;
@@ -29,6 +30,7 @@ export async function getCandidateDeletionSummary(idCandidato: string | null) {
     candidatos,
     campanhas,
     canaisIntegracao,
+    perfisMarkdown,
     implantacoes,
     etapas,
     execucoes,
@@ -42,6 +44,7 @@ export async function getCandidateDeletionSummary(idCandidato: string | null) {
     countRows(`select count(*)::int as total from candidatos${where}`, params),
     countRows(`select count(*)::int as total from campanhas${where}`, params),
     countRows(`select count(*)::int as total from canais_integracao${where}`, params),
+    countRows(`select count(*)::int as total from perfis_candidato_md${where}`, params),
     countRows(`select count(*)::int as total from implantacoes_candidato${where}`, params),
     countRows(`select count(*)::int as total from implantacao_etapas_candidato${where}`, params),
     countRows(`select count(*)::int as total from execucoes_implantacao${where}`, params),
@@ -57,6 +60,7 @@ export async function getCandidateDeletionSummary(idCandidato: string | null) {
     candidatos,
     campanhas,
     canais_integracao: canaisIntegracao,
+    perfis_candidato_md: perfisMarkdown,
     implantacoes_candidato: implantacoes,
     implantacao_etapas_candidato: etapas,
     execucoes_implantacao: execucoes,
@@ -114,6 +118,7 @@ async function deleteCascadeInternal(idCandidato: string | null): Promise<Candid
     await client.query(`delete from implantacao_etapas_candidato${where}`, params);
     await client.query(`delete from implantacoes_candidato${where}`, params);
     await client.query(`delete from canais_integracao${where}`, params);
+    await client.query(`delete from perfis_candidato_md${where}`, params);
     await client.query(`delete from campanhas${where}`, params);
     await client.query(`delete from paines_admin_permissoes${candidateScopedWhere}`, params);
     await client.query(`delete from candidatos${where}`, params);
