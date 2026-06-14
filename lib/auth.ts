@@ -4,6 +4,8 @@ import { env } from "@/lib/env";
 import {
   clearPlatformSession,
   getPlatformSessionByToken,
+  getPermittedCandidateIdsForUser,
+  getPlatformUserPermissions,
   hasAnyPlatformUser,
   type PlatformUserSession,
   userHasCampaignPermission
@@ -87,6 +89,79 @@ export async function requireAdminBootstrap() {
   }
 
   return { mode: "session" as const, session };
+}
+
+export async function requireAuthenticatedPlatformSession() {
+  const session = await getCurrentPlatformSession();
+
+  if (!session) {
+    redirect("/");
+  }
+
+  return session;
+}
+
+export async function getDefaultPlatformRoute(session: {
+  userId: string;
+  perfil: PlatformUserSession["perfil"];
+}) {
+  if (session.perfil === "administrador") {
+    return "/estatisticas/governanca";
+  }
+
+  const candidateIds = await getPermittedCandidateIdsForUser(session.userId);
+  const firstCandidateId = candidateIds[0];
+
+  if (!firstCandidateId) {
+    return "/sem-acesso";
+  }
+
+  if (session.perfil === "gestor_campanha") {
+    return `/gestor/candidato/${firstCandidateId}`;
+  }
+
+  return `/campanhas/${firstCandidateId}`;
+}
+
+export async function getVisibleCandidateIdsForSession(session: PlatformUserSession | null) {
+  if (!session) {
+    return [];
+  }
+
+  if (session.perfil === "administrador") {
+    return null;
+  }
+
+  return getPermittedCandidateIdsForUser(session.userId);
+}
+
+export async function canManagePlatformUsers(session: PlatformUserSession | null) {
+  return session?.perfil === "administrador" || session?.perfil === "gestor_campanha";
+}
+
+export async function getManageableProfilesForSession(session: PlatformUserSession | null) {
+  if (!session) {
+    return [];
+  }
+
+  if (session.perfil === "administrador") {
+    return ["administrador", "gestor_campanha", "operador", "analista"] as const;
+  }
+
+  if (session.perfil === "gestor_campanha") {
+    return ["operador", "analista"] as const;
+  }
+
+  return [] as const;
+}
+
+export async function getPrimaryCandidateIdForSession(session: PlatformUserSession | null) {
+  if (!session || session.perfil === "administrador") {
+    return null;
+  }
+
+  const permissions = await getPlatformUserPermissions(session.userId);
+  return permissions.find((permission) => permission.id_candidato)?.id_candidato ?? null;
 }
 
 export async function setAdminBootstrapAllowed() {

@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
+  canManagePlatformUsers,
+  getDefaultPlatformRoute,
   getCurrentPlatformSession,
   logoutCurrentPlatformSession,
   requireAdminBootstrap,
@@ -14,6 +16,9 @@ import {
   authenticatePlatformUser,
   createPlatformSession,
   createPlatformUser,
+  getPermittedCandidateIdsForUser,
+  hasAnyPlatformUser,
+  type PlatformUserPermissionInput,
   type PlatformUserProfile
 } from "@/lib/repositories/platform-users";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
@@ -39,13 +44,25 @@ export async function authenticateAdminBootstrapAction(formData: FormData) {
 }
 
 export async function createPlatformUserAction(formData: FormData) {
-  await requireAdminBootstrap();
+  const hasUsers = await hasAnyPlatformUser();
+  let actingSession = await getCurrentPlatformSession();
+
+  if (!hasUsers) {
+    const access = await requireAdminBootstrap();
+    actingSession = access.mode === "session" ? access.session : null;
+  } else if (!(await canManagePlatformUsers(actingSession))) {
+    redirect(
+      `/admin/usuarios?feedback=erro&mensagem=${encodeURIComponent(
+        "Seu perfil não possui permissão para cadastrar usuários."
+      )}`
+    );
+  }
 
   const nome = String(formData.get("nome") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const senha = String(formData.get("senha") ?? "").trim();
   const perfil = String(formData.get("perfil") ?? "operador").trim() as PlatformUserProfile;
-  const permissoesRaw = String(formData.get("permissoes") ?? "").trim();
+  const idCandidato = String(formData.get("idCandidato") ?? "").trim();
 
   if (!nome || !email || !senha) {
     redirect(
@@ -55,22 +72,42 @@ export async function createPlatformUserAction(formData: FormData) {
     );
   }
 
-  const permissoes = permissoesRaw
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [idCandidato, escopo] = line.split(":").map((value) => value.trim());
-      const isGestor = escopo === "gestor";
-      return {
-        idCandidato: idCandidato || null,
-        podeVisualizar: true,
-        podeImplantar: isGestor || perfil === "administrador",
-        podeOperarFunil: true,
-        podeOperarEventos: isGestor || perfil === "administrador",
-        podeVerKpis: true
-      };
-    });
+  if (!hasUsers && perfil !== "administrador") {
+    redirect(
+      `/admin/usuarios?feedback=erro&mensagem=${encodeURIComponent(
+        "No primeiro cadastro da plataforma, crie inicialmente um usuário administrador."
+      )}`
+    );
+  }
+
+  if (actingSession?.perfil === "gestor_campanha" && !["operador", "analista"].includes(perfil)) {
+    redirect(
+      `/admin/usuarios?feedback=erro&mensagem=${encodeURIComponent(
+        "O gestor da campanha só pode cadastrar operador ou analista."
+      )}`
+    );
+  }
+
+  if (perfil !== "administrador" && !idCandidato) {
+    redirect(
+      `/admin/usuarios?feedback=erro&mensagem=${encodeURIComponent(
+        "Selecione o candidato vinculado para esse perfil."
+      )}`
+    );
+  }
+
+  if (actingSession?.perfil === "gestor_campanha") {
+    const candidateIds = await getPermittedCandidateIdsForUser(actingSession.userId);
+    if (!candidateIds.includes(idCandidato)) {
+      redirect(
+        `/admin/usuarios?feedback=erro&mensagem=${encodeURIComponent(
+          "O gestor só pode cadastrar usuários vinculados ao próprio candidato."
+        )}`
+      );
+    }
+  }
+
+  const permissoes = buildPermissionsForProfile(perfil, idCandidato || null);
 
   try {
     const userId = await createPlatformUser({
@@ -142,11 +179,12 @@ export async function authenticatePlatformAreaAction(formData: FormData) {
     origem: "platform-auth"
   });
 
-  redirect(
-    `${redirectTo}?feedback=sucesso&mensagem=${encodeURIComponent(
-      "Acesso autenticado com sucesso."
-    )}`
-  );
+  const targetRoute =
+    redirectTo === "/" || redirectTo === "/acesso"
+      ? await getDefaultPlatformRoute({ userId: user.id, perfil: user.perfil })
+      : redirectTo;
+
+  redirect(`${targetRoute}?feedback=sucesso&mensagem=${encodeURIComponent("Acesso autenticado com sucesso.")}`);
 }
 
 export async function logoutPlatformAreaAction() {
@@ -167,4 +205,54 @@ export async function logoutPlatformAreaAction() {
 
   await logoutCurrentPlatformSession();
   redirect("/");
+}
+
+function buildPermissionsForProfile(
+  perfil: PlatformUserProfile,
+  idCandidato: string | null
+): PlatformUserPermissionInput[] {
+  if (perfil === "administrador") {
+    return [];
+  }
+
+  if (!idCandidato) {
+    return [];
+  }
+
+  if (perfil === "gestor_campanha") {
+    return [
+      {
+        idCandidato,
+        podeVisualizar: true,
+        podeImplantar: true,
+        podeOperarFunil: true,
+        podeOperarEventos: true,
+        podeVerKpis: true
+      }
+    ];
+  }
+
+  if (perfil === "operador") {
+    return [
+      {
+        idCandidato,
+        podeVisualizar: true,
+        podeImplantar: false,
+        podeOperarFunil: true,
+        podeOperarEventos: true,
+        podeVerKpis: true
+      }
+    ];
+  }
+
+  return [
+    {
+      idCandidato,
+      podeVisualizar: true,
+      podeImplantar: false,
+      podeOperarFunil: false,
+      podeOperarEventos: false,
+      podeVerKpis: true
+    }
+  ];
 }

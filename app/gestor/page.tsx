@@ -1,11 +1,24 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentPlatformSession, getVisibleCandidateIdsForSession } from "@/lib/auth";
 import { listCandidates } from "@/lib/repositories/candidates";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 
 export const dynamic = "force-dynamic";
 
 export default async function GestorDashboardPage() {
-  const candidates = await listCandidates();
+  const session = await getCurrentPlatformSession();
+
+  if (!session) {
+    redirect("/");
+  }
+
+  const visibleCandidateIds = await getVisibleCandidateIdsForSession(session);
+  const allCandidates = await listCandidates();
+  const candidates =
+    visibleCandidateIds === null
+      ? allCandidates
+      : allCandidates.filter((candidate) => visibleCandidateIds.includes(candidate.id_candidato));
 
   const total = candidates.length;
   const ativos = candidates.filter((candidate) => candidate.status_implantacao === "ativo").length;

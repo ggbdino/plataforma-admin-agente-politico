@@ -54,6 +54,9 @@ export default async function CampaignManagerPage({
           <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
             Voltar para implantação
           </Link>
+          <Link className="button secondary" href="/admin/usuarios">
+            Equipe da campanha
+          </Link>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/eventos/gestao`}>
             Gerir eventos da campanha
           </Link>

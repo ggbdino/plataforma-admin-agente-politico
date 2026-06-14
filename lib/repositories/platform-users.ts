@@ -38,6 +38,15 @@ export type PlatformUserSession = {
   perfil: PlatformUserProfile;
 };
 
+export type PlatformUserPermissionInput = {
+  idCandidato: string | null;
+  podeVisualizar: boolean;
+  podeImplantar: boolean;
+  podeOperarFunil: boolean;
+  podeOperarEventos: boolean;
+  podeVerKpis: boolean;
+};
+
 let tablesReady: Promise<void> | null = null;
 
 export async function ensurePlatformUserTables() {
@@ -152,14 +161,7 @@ export async function createPlatformUser(input: {
   email: string;
   senha: string;
   perfil: PlatformUserProfile;
-  permissoes: Array<{
-    idCandidato: string | null;
-    podeVisualizar: boolean;
-    podeImplantar: boolean;
-    podeOperarFunil: boolean;
-    podeOperarEventos: boolean;
-    podeVerKpis: boolean;
-  }>;
+  permissoes: PlatformUserPermissionInput[];
 }) {
   await ensurePlatformUserTables();
 
@@ -228,6 +230,23 @@ export async function createPlatformUser(input: {
   } finally {
     client.release();
   }
+}
+
+export async function getPermittedCandidateIdsForUser(userId: string) {
+  await ensurePlatformUserTables();
+  const result = await db.query<{ id_candidato: string }>(
+    `
+      select distinct id_candidato
+      from paines_admin_permissoes
+      where admin_usuario_id = $1
+        and ativo = true
+        and id_candidato is not null
+      order by id_candidato
+    `,
+    [userId]
+  );
+
+  return result.rows.map((row) => row.id_candidato);
 }
 
 export async function authenticatePlatformUser(email: string, senha: string) {

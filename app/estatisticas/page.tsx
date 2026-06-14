@@ -1,12 +1,17 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
-import { getCurrentPlatformSession } from "@/lib/auth";
+import { getCurrentPlatformSession, getDefaultPlatformRoute } from "@/lib/auth";
 import { getAdminCampaignStatsSnapshot } from "@/lib/repositories/campaign-analytics";
 
 export const dynamic = "force-dynamic";
 
 export default async function StatisticsAdminPage() {
   const session = await getCurrentPlatformSession();
+
+  if (session && session.perfil !== "administrador") {
+    redirect(await getDefaultPlatformRoute(session));
+  }
 
   if (!session) {
     return (
