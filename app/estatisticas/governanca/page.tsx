@@ -1,9 +1,20 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import {
+  getDefaultPlatformRoute,
+  requireAuthenticatedPlatformSession
+} from "@/lib/auth";
 import { getAdminGovernanceSnapshot } from "@/lib/repositories/governance";
 
 export const dynamic = "force-dynamic";
 
 export default async function GovernanceAdminPage() {
+  const session = await requireAuthenticatedPlatformSession();
+
+  if (session.perfil !== "administrador") {
+    redirect(await getDefaultPlatformRoute(session));
+  }
+
   const snapshot = await getAdminGovernanceSnapshot();
 
   return (

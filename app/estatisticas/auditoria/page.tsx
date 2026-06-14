@@ -1,9 +1,20 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import {
+  getDefaultPlatformRoute,
+  requireAuthenticatedPlatformSession
+} from "@/lib/auth";
 import { getAdminCampaignStatsSnapshot } from "@/lib/repositories/campaign-analytics";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminAuditPage() {
+  const session = await requireAuthenticatedPlatformSession();
+
+  if (session.perfil !== "administrador") {
+    redirect(await getDefaultPlatformRoute(session));
+  }
+
   const snapshot = await getAdminCampaignStatsSnapshot();
 
   return (

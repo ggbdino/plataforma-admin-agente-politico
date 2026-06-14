@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { getCurrentPlatformSession } from "@/lib/auth";
+import { getDefaultPlatformRoute } from "@/lib/auth";
 import { triggerGovernanceWorkflowAction } from "@/lib/actions/workflow-center-action";
 import { WorkflowCenterPanel } from "@/components/workflow-center-panel";
 import { listCandidates } from "@/lib/repositories/candidates";
@@ -16,6 +18,15 @@ export const dynamic = "force-dynamic";
 export default async function WorkflowCenterPage({ searchParams }: WorkflowCenterPageProps) {
   const query = searchParams ? await searchParams : undefined;
   const session = await getCurrentPlatformSession();
+
+  if (!session) {
+    redirect("/");
+  }
+
+  if (session.perfil !== "administrador") {
+    redirect(await getDefaultPlatformRoute(session));
+  }
+
   const candidates = await listCandidates();
   const requestedCandidateId = query?.candidato?.trim();
   const defaultCandidateId =

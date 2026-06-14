@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { requireAdminBootstrap } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import {
+  getDefaultPlatformRoute,
+  getCurrentPlatformSession,
+  requireAdminBootstrap
+} from "@/lib/auth";
 import {
   deleteAllCandidatesAction,
   deleteCandidateAction
@@ -18,7 +23,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminCandidatesPage({ searchParams }: AdminCandidatesPageProps) {
   const query = searchParams ? await searchParams : undefined;
+  const hasSession = await getCurrentPlatformSession();
   const access = await requireAdminBootstrap();
+
+  if (hasSession && hasSession.perfil !== "administrador") {
+    redirect(await getDefaultPlatformRoute(hasSession));
+  }
+
   const candidates = await listCandidates();
   const globalSummary = await getCandidateDeletionSummary(null);
 
