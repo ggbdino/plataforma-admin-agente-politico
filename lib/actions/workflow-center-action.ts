@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { createOrConnectEvolutionInstance } from "@/lib/evolution";
 import { triggerN8nWebhook } from "@/lib/n8n";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
+import { generateCandidateWorkflowBundle } from "@/lib/services/candidate-workflow-generator";
 
 const WORKFLOW_METADATA = {
   candidato_sync: {
@@ -189,6 +190,118 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
     feedback: "sucesso",
     mensagem: successMessage
   });
+}
+
+export async function generateCandidateWorkflowPackageAction(formData: FormData) {
+  const idCandidato = String(formData.get("idCandidato") ?? "").trim();
+  const redirectTo =
+    String(formData.get("redirectTo") ?? "/estatisticas/governanca/workflows").trim();
+  const redirectBase = buildRedirectBase(redirectTo, idCandidato);
+  const session = await getCurrentPlatformSession();
+
+  if (!session || session.perfil !== "administrador") {
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Apenas administradores podem gerar os pacotes de workflows por candidato."
+    });
+  }
+
+  if (!idCandidato) {
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Selecione um candidato válido antes de gerar o pacote de workflows."
+    });
+  }
+
+  const adminSession = session as NonNullable<typeof session>;
+
+  const candidateResult = await db.query<{
+    id_candidato: string;
+    nome_urna: string | null;
+    nome_completo: string | null;
+  }>(
+    `
+      select
+        id_candidato,
+        nome_urna,
+        nome_completo
+      from candidatos
+      where id_candidato = $1
+      limit 1
+    `,
+    [idCandidato]
+  );
+
+  const candidate = candidateResult.rows[0];
+
+  if (!candidate) {
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Candidato não localizado na base para geração dos workflows."
+    });
+  }
+
+  const candidateName =
+    String(candidate.nome_urna ?? "").trim() ||
+    String(candidate.nome_completo ?? "").trim() ||
+    candidate.id_candidato;
+
+  try {
+    const result = await generateCandidateWorkflowBundle({
+      id: candidate.id_candidato,
+      nome: candidateName
+    });
+
+    const generatedFileNames = result.generatedFiles.map((file) => file.fileName);
+    const successMessage =
+      `Pacote de workflows do candidato ${candidateName} gerado com sucesso. ` +
+      `Foram preparados ${generatedFileNames.length} arquivo(s) nos diretórios workflows e external-workflows-snapshot do repositório local. ` +
+      `Próximo passo: importar no n8n os fluxos ${generatedFileNames.join(", ")}.`;
+
+    await recordGovernanceEvent({
+      idCandidato: candidate.id_candidato,
+      escopo: "admin",
+      ator: adminSession.email,
+      categoria: "workflow_templates",
+      acao: "gerar_workflows_candidato",
+      descricao: `Pacote local de workflows preparado para ${candidateName}.`,
+      status: "sucesso",
+      origem: "workflow-center",
+      detalhes: {
+        candidato: result.candidate,
+        arquivos: generatedFileNames,
+        manifesto: result.manifestPath,
+        diretorio_workflows: result.workflowsDir,
+        diretorio_snapshot: result.snapshotDir
+      }
+    });
+
+    redirectWithParams(redirectBase, {
+      feedback: "sucesso",
+      mensagem: successMessage
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Falha ao gerar os workflows locais do candidato.";
+
+    await recordGovernanceEvent({
+      idCandidato: candidate.id_candidato,
+      escopo: "admin",
+      ator: adminSession.email,
+      categoria: "workflow_templates",
+      acao: "gerar_workflows_candidato_erro",
+      descricao: message,
+      status: "erro",
+      origem: "workflow-center"
+    });
+
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: message
+    });
+  }
 }
 
 function buildRedirectBase(redirectTo: string, idCandidato: string) {

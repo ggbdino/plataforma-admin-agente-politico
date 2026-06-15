@@ -1,0 +1,223 @@
+{
+  "name": "07_qrcode_canais_agentes_ricardo_vale_ricardo-vale",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "id": "350d129d-37d8-4b83-97cb-bc840241f7aa",
+      "name": "Schedule QRCode",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "path": "agente-politico/ricardo-vale/qrcode/canais",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8fe6b684-af2c-426e-afee-eb283d4ff46f",
+      "name": "Webhook QRCode",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        160
+      ],
+      "webhookId": "agente-politico-ricardo-vale-qrcode-canais"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id, id_candidato, nome_canal, tipo_canal, identificador_externo, url_canal, metadata from canais_integracao where status = 'ativo' and id_candidato = 'ricardo-vale' and tipo_canal = 'whatsapp_agente' and coalesce((metadata ->> 'exibir_em_qrcode')::boolean, false) = true order by atualizado_em desc;",
+        "options": {}
+      },
+      "id": "44a5923a-ec5b-4c92-b354-34550f4a101d",
+      "name": "Buscar Canais Elegiveis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        288,
+        112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "jCQZf8kDUun26xzv",
+          "name": "Agente_Politico"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const r = item.json;\n  const urlBase = String(r.url_canal || '').trim();\n  const numero = String(r.identificador_externo || '').replace(/\\D/g, '');\n  const wa = urlBase || (numero ? `https://wa.me/${numero}` : '');\n  const qr = wa ? `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(wa)}` : '';\n  return {\n    json: {\n      ...r,\n      wa_link: wa,\n      qr_code_url: qr\n    }\n  };\n});"
+      },
+      "id": "ddc8355e-b034-49ec-8d2f-4693269f5c49",
+      "name": "Montar Links QRCode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update canais_integracao set url_canal = '{{$json.wa_link}}', metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('qr_code_url', '{{$json.qr_code_url}}', 'qr_code_gerado_em', now()::text, 'exibir_em_qrcode', true), atualizado_em = now() where id = '{{$json.id}}'::uuid returning id, id_candidato, nome_canal, tipo_canal, identificador_externo, url_canal, metadata, atualizado_em;",
+        "options": {}
+      },
+      "id": "1e1c3db7-68c3-45b4-a8c2-0ccf7cdae4b0",
+      "name": "Salvar QRCode no Canal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        832,
+        112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "jCQZf8kDUun26xzv",
+          "name": "Agente_Politico"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into auditoria_operacional (id_candidato, recurso, referencia_id, acao, antes, depois, origem, observacao) values ('{{$json.id_candidato}}', 'canal_integracao', '{{$json.id}}', 'geracao_qrcode', null, jsonb_build_object('wa_link', '{{$json.url_canal}}', 'qr_code_url', '{{$json.metadata.qr_code_url}}'), 'n8n_qrcode', 'Geracao ou atualizacao automatica de QR Code para canal do agente');",
+        "options": {}
+      },
+      "id": "7c780d59-5921-4375-a181-efef01356d1c",
+      "name": "Auditar QRCode",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1088,
+        112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "jCQZf8kDUun26xzv",
+          "name": "Agente_Politico"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"ok\",\"id_candidato\":\"ricardo-vale\",\"qrcodes_processados\":true}",
+        "options": {}
+      },
+      "id": "1aa0dde3-963d-4e0a-bf8a-8ecc07ca2cdf",
+      "name": "Responder QRCode",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        112
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule QRCode": {
+      "main": [
+        [
+          {
+            "node": "Buscar Canais Elegiveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook QRCode": {
+      "main": [
+        [
+          {
+            "node": "Buscar Canais Elegiveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Canais Elegiveis": {
+      "main": [
+        [
+          {
+            "node": "Montar Links QRCode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Links QRCode": {
+      "main": [
+        [
+          {
+            "node": "Salvar QRCode no Canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar QRCode no Canal": {
+      "main": [
+        [
+          {
+            "node": "Auditar QRCode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar QRCode": {
+      "main": [
+        [
+          {
+            "node": "Responder QRCode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "00000000-0000-0000-0000-000000000701",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    {
+      "name": "qrcode"
+    },
+    {
+      "name": "canais"
+    },
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "ricardo-vale"
+    }
+  ]
+}

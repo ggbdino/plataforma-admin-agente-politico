@@ -1,0 +1,20 @@
+[
+  {
+    "id": "0001",
+    "nome": "Brunex",
+    "slug": "brunex",
+    "slug_underscore": "brunex"
+  },
+  {
+    "id": "1313",
+    "nome": "Eri Castro",
+    "slug": "eri-castro",
+    "slug_underscore": "eri_castro"
+  },
+  {
+    "id": "ricardo-vale",
+    "nome": "Ricardo Vale",
+    "slug": "ricardo-vale",
+    "slug_underscore": "ricardo_vale"
+  }
+]

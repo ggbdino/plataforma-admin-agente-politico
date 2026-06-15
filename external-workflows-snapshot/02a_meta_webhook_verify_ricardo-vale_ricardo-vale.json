@@ -1,0 +1,166 @@
+{
+  "name": "02a_meta_webhook_verify_ricardo-vale_ricardo-vale",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "agente-politico/ricardo-vale/entrada-eleitor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_ricardo-vale_Meta_GET",
+      "name": "Webhook VerificaÃ§Ã£o Meta Ricardo Vale ricardo-vale",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        180,
+        260
+      ],
+      "webhookId": "agente-politico-ricardo-vale-entrada-eleitor-get"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const query = item.json.query || item.json;\n  return {\n    json: {\n      mode: String(query['hub.mode'] || '').trim(),\n      verifyToken: String(query['hub.verify_token'] || '').trim(),\n      challenge: String(query['hub.challenge'] || '').trim()\n    }\n  };\n});"
+      },
+      "id": "Code_Ler_Verificacao_Meta",
+      "name": "Ler VerificaÃ§Ã£o Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.mode === 'subscribe' && $json.verifyToken === ($env.META_WHATSAPP_VERIFY_TOKEN || 'GAP_META_VERIFY_2026') && !!$json.challenge }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_Verificacao_Meta_Valida",
+      "name": "VerificaÃ§Ã£o Meta vÃ¡lida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{$json.challenge}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "Respond_Verificacao_Meta_OK",
+      "name": "Responder Challenge Meta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "Respond_Verificacao_Meta_Erro",
+      "name": "Responder VerificaÃ§Ã£o InvÃ¡lida",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook VerificaÃ§Ã£o Meta Ricardo Vale ricardo-vale": {
+      "main": [
+        [
+          {
+            "node": "Ler VerificaÃ§Ã£o Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler VerificaÃ§Ã£o Meta": {
+      "main": [
+        [
+          {
+            "node": "VerificaÃ§Ã£o Meta vÃ¡lida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VerificaÃ§Ã£o Meta vÃ¡lida?": {
+      "main": [
+        [
+          {
+            "node": "Responder Challenge Meta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder VerificaÃ§Ã£o InvÃ¡lida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1-meta-verify",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "ricardo-vale"
+    },
+    {
+      "name": "meta-cloud-api"
+    },
+    {
+      "name": "webhook-verify"
+    }
+  ]
+}

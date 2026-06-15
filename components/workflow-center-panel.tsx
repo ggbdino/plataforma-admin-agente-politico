@@ -13,6 +13,7 @@ type WorkflowCenterPanelProps = {
   defaultCandidateId: string;
   isAdmin: boolean;
   feedback?: WorkflowFeedback;
+  generateAction: (payload: FormData) => void;
   triggerAction: (payload: FormData) => void;
 };
 
@@ -29,7 +30,7 @@ const BATCH_WORKFLOWS = [
 
 const CANDIDATE_WORKFLOWS = [
   {
-    ordem: "2",
+    ordem: "3",
     workflow: "qrcode_canais",
     title: "Gerar QR de conexão do WhatsApp",
     description:
@@ -37,7 +38,7 @@ const CANDIDATE_WORKFLOWS = [
     buttonLabel: "Gerar QR code"
   },
   {
-    ordem: "3",
+    ordem: "4",
     workflow: "governanca",
     title: "Atualizar eventos/canais",
     description:
@@ -45,7 +46,7 @@ const CANDIDATE_WORKFLOWS = [
     buttonLabel: "Atualizar eventos/canais"
   },
   {
-    ordem: "4",
+    ordem: "5",
     workflow: "entrada_eleitor",
     title: "Simular diálogo do Eleitor",
     description:
@@ -53,7 +54,7 @@ const CANDIDATE_WORKFLOWS = [
     buttonLabel: "Simular diálogo do Eleitor"
   },
   {
-    ordem: "5",
+    ordem: "6",
     workflow: "cadencia",
     title: "Cadenciar relacionamento",
     description: "Inicia o workflow de cadência e reativação controlada do candidato selecionado.",
@@ -87,6 +88,7 @@ export function WorkflowCenterPanel({
   defaultCandidateId,
   isAdmin,
   feedback,
+  generateAction,
   triggerAction
 }: WorkflowCenterPanelProps) {
   const [selectedCandidateId, setSelectedCandidateId] = useState(defaultCandidateId);
@@ -105,7 +107,7 @@ export function WorkflowCenterPanel({
     <main className="page-shell">
       {feedback?.feedback && feedback?.mensagem ? (
         <section className={`feedback-banner ${feedback.feedback === "sucesso" ? "ok" : "error"}`}>
-          <strong>{feedback.feedback === "sucesso" ? "Workflow iniciado." : "Falha ao iniciar workflow."}</strong>
+          <strong>{feedback.feedback === "sucesso" ? "Operação concluída." : "Falha operacional."}</strong>
           <div style={{ marginTop: 6 }}>{feedback.mensagem}</div>
         </section>
       ) : null}
@@ -235,6 +237,45 @@ export function WorkflowCenterPanel({
           <h2 className="section-title" style={{ marginBottom: 0 }}>
             {`Fluxos do candidato ${selectedCandidateName}`}
           </h2>
+        </div>
+        <div className="grid grid-2" style={{ marginBottom: 16 }}>
+          <article className="card analytics-panel workflow-flow-card">
+            <div className="workflow-card-head">
+              <span className="workflow-order">Etapa 2</span>
+              <h3 className="section-title workflow-card-title">Gerar workflows do candidato</h3>
+            </div>
+            <p className="subtitle">
+              Prepara o pacote local dos fluxos específicos do candidato usando o identificador e o nome
+              já registrados na base da plataforma.
+            </p>
+            <form action={generateAction} className="manager-auth-form workflow-flow-form">
+              <input name="redirectTo" type="hidden" value="/estatisticas/governanca/workflows" />
+              <input name="idCandidato" type="hidden" value={selectedCandidateId} />
+              <div className="step-panel-callout">
+                Esta etapa gera no repositório local os JSONs candidatos-específicos que depois serão
+                importados no n8n. O pacote já nasce com os dados do candidato selecionado para uso nos
+                fluxos de webhook, funil, cadência, governança, eventos e QR code.
+              </div>
+              <div className="workflow-empty-state" style={{ textAlign: "left" }}>
+                <strong>Destino dos arquivos</strong>
+                <div style={{ marginTop: 8 }}>
+                  `n8n-agente-politico/workflows`
+                </div>
+                <div style={{ marginTop: 4 }}>
+                  `plataforma-admin/external-workflows-snapshot`
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  Depois da geração, abra os arquivos do candidato no seu ambiente n8n e importe os
+                  workflows correspondentes.
+                </div>
+              </div>
+              <div className="workflow-card-footer">
+                <button className="button workflow-action-button" type="submit">
+                  Gerar pacote local
+                </button>
+              </div>
+            </form>
+          </article>
         </div>
         <div className="grid grid-2">
           {CANDIDATE_WORKFLOWS.map(({ workflow, ordem, title, description, buttonLabel }) => {

@@ -1,0 +1,305 @@
+{
+  "name": "04b_cadencia_ricardo-vale_ricardo-vale",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "agente-politico/ricardo-vale/cadencia",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_ricardo-vale_Cadencia",
+      "name": "Webhook CadÃªncia Ricardo Vale ricardo-vale",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        180,
+        280
+      ],
+      "webhookId": "agente-politico-ricardo-vale-cadencia"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.query || $input.first().json.body || $input.first().json;\nreturn [{\n  json: {\n    id_candidato: 'ricardo-vale',\n    limite: Number(body.limite || 25),\n    origem_execucao: 'cadencia_webhook_ricardo_vale',\n    referencia: (body.referencia || 'validacao_manual').toString().trim()\n  }\n}];"
+      },
+      "id": "Code_Normalizar_Cadencia",
+      "name": "Normalizar ExecuÃ§Ã£o",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select eleitor_uid, eleitor_id, id_candidato, nome, telefone, tema_interesse, etapa_funil, intencao_voto, score_engajamento from eleitores where id_candidato = 'ricardo-vale' and coalesce(opt_out,false) = false and consentimento_lgpd = true and coalesce(telefone,'') <> '' and (ultimo_contato_em is null or ultimo_contato_em < now() - interval '48 hours') order by coalesce(ultimo_contato_em, to_timestamp(0)) asc limit {{$json.limite}};"
+      },
+      "id": "Postgres_Buscar_Elegiveis",
+      "name": "Buscar Eleitores ElegÃ­veis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        700,
+        280
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $items(\"Buscar Eleitores ElegÃ­veis\").length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_Ha_Elegiveis",
+      "name": "HÃ¡ elegÃ­veis?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const nome = (item.json.nome || 'eleitor').toString().trim();\n  const tema = (item.json.tema_interesse || 'geral').toString().trim();\n  const etapaDestino = item.json.etapa_funil === 'novo_lead' ? 'qualificado' : item.json.etapa_funil || 'engajado';\n  const objetivo = etapaDestino === 'qualificado' ? 'qualificar' : 'relacionar';\n  return {\n    json: {\n      ...item.json,\n      etapa_destino: etapaDestino,\n      objetivo,\n      usa_ia: true,\n      rotulo_ia: 'Mensagem de cadÃªncia gerada para validaÃ§Ã£o operacional.',\n      mensagem_final: `Este atendimento Ã© realizado por assistente virtual oficial da campanha.\\n\\nOlÃ¡, ${nome}. A campanha do Ricardo Vale registrou seu interesse em ${tema} e mantÃ©m este canal aberto para relacionamento e atualizaÃ§Ã£o da agenda.`\n    }\n  };\n});"
+      },
+      "id": "Code_Preparar_Cadencia",
+      "name": "Preparar CadÃªncia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into filas_envio (eleitor_uid, eleitor_id, id_candidato, agente_nome, canal, objetivo, payload, status, agendado_para) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','cadencia_ricardo-vale_ricardo-vale','whatsapp','{{$json.objetivo}}','{{ JSON.stringify($json) }}'::jsonb,'gerado_para_validacao',now());"
+      },
+      "id": "Postgres_Registrar_Fila",
+      "name": "Registrar Fila de ValidaÃ§Ã£o",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1480,
+        140
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update eleitores set etapa_funil = '{{$json.etapa_destino}}', ultimo_contato_em = now(), atualizado_em = now() where eleitor_uid = '{{$json.eleitor_uid}}'; insert into interacoes (eleitor_uid, eleitor_id, id_candidato, canal, direcao, mensagem, tema_classificado, etapa_sugerida, usa_ia, rotulo_ia, risco_compliance, status_envio, origem_execucao, metadata) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','whatsapp','outbound','{{$json.mensagem_final}}','{{$json.tema_interesse}}','{{$json.etapa_destino}}',true,'{{$json.rotulo_ia}}','baixo','gerado_para_validacao','cadencia_webhook_ricardo_vale','{{ JSON.stringify($json) }}'::jsonb);"
+      },
+      "id": "Postgres_Atualizar_Interacao",
+      "name": "Atualizar Eleitor e InteraÃ§Ã£o",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1480,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUIR_CREDENCIAL",
+          "name": "Postgres Campaign DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const total = items.length;\nreturn [{\n  json: {\n    status: 'ok',\n    id_candidato: 'ricardo-vale',\n    total_processados: total,\n    enviados: total,\n    message: `CadÃªncia executada para o candidato ricardo-vale. ${total} registro(s) processado(s), ${total} pronto(s) para aÃ§Ã£o.`\n  }\n}];"
+      },
+      "id": "Code_Resumo_Cadencia",
+      "name": "Resumir Processamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "Respond_Cadencia_OK",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"ok\",\"id_candidato\":\"ricardo-vale\",\"total_processados\":0,\"enviados\":0,\"message\":\"CadÃªncia executada para o candidato ricardo-vale. Nenhum eleitor elegÃ­vel encontrado para a rodada atual.\"}",
+        "options": {}
+      },
+      "id": "Respond_Cadencia_Vazia",
+      "name": "Responder Sem ElegÃ­veis",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1220,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook CadÃªncia Ricardo Vale ricardo-vale": {
+      "main": [
+        [
+          {
+            "node": "Normalizar ExecuÃ§Ã£o",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar ExecuÃ§Ã£o": {
+      "main": [
+        [
+          {
+            "node": "Buscar Eleitores ElegÃ­veis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Eleitores ElegÃ­veis": {
+      "main": [
+        [
+          {
+            "node": "HÃ¡ elegÃ­veis?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HÃ¡ elegÃ­veis?": {
+      "main": [
+        [
+          {
+            "node": "Preparar CadÃªncia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Sem ElegÃ­veis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar CadÃªncia": {
+      "main": [
+        [
+          {
+            "node": "Registrar Fila de ValidaÃ§Ã£o",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Atualizar Eleitor e InteraÃ§Ã£o",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Fila de ValidaÃ§Ã£o": {
+      "main": [
+        [
+          {
+            "node": "Resumir Processamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Eleitor e InteraÃ§Ã£o": {
+      "main": [
+        [
+          {
+            "node": "Resumir Processamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumir Processamento": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "agente-politico"
+    },
+    {
+      "name": "ricardo-vale"
+    },
+    {
+      "name": "cadencia"
+    }
+  ]
+}

@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentPlatformSession } from "@/lib/auth";
 import { getDefaultPlatformRoute } from "@/lib/auth";
-import { triggerGovernanceWorkflowAction } from "@/lib/actions/workflow-center-action";
+import {
+  generateCandidateWorkflowPackageAction,
+  triggerGovernanceWorkflowAction
+} from "@/lib/actions/workflow-center-action";
 import { WorkflowCenterPanel } from "@/components/workflow-center-panel";
 import { listCandidates } from "@/lib/repositories/candidates";
 
@@ -40,6 +43,7 @@ export default async function WorkflowCenterPage({ searchParams }: WorkflowCente
       defaultCandidateId={defaultCandidateId}
       feedback={query}
       isAdmin={session?.perfil === "administrador"}
+      generateAction={generateCandidateWorkflowPackageAction}
       triggerAction={triggerGovernanceWorkflowAction}
     />
   );
