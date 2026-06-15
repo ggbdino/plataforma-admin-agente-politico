@@ -24,6 +24,7 @@ export type CandidateWorkflowGenerationResult = {
   manifestPath: string;
   workflowsDir: string;
   snapshotDir: string;
+  templateDir: string;
 };
 
 const TEMPLATE_FILES: Record<string, string> = {
@@ -41,14 +42,21 @@ const GENERATION_PREFIXES = ["02a", "02b", "04b", "05b", "06b", "07"] as const;
 export async function generateCandidateWorkflowBundle(
   input: CandidateWorkflowGenerationInput
 ): Promise<CandidateWorkflowGenerationResult> {
-  const repoRoot = process.cwd();
-  const workflowsDir = path.resolve(repoRoot, "..", "workflows");
-  const snapshotDir = path.resolve(repoRoot, "external-workflows-snapshot");
-  const manifestPath = path.resolve(repoRoot, "scripts", "candidatos-workflows.json");
+  const appRoot = await resolveApplicationRoot();
+  const snapshotDir = path.resolve(appRoot, "external-workflows-snapshot");
+  const manifestPath = path.resolve(appRoot, "scripts", "candidatos-workflows.json");
+  const preferredWorkflowsDir = path.resolve(appRoot, "..", "workflows");
+  const workflowsDir = (await pathExists(preferredWorkflowsDir))
+    ? preferredWorkflowsDir
+    : snapshotDir;
+  const templateDir = (await pathExists(preferredWorkflowsDir))
+    ? preferredWorkflowsDir
+    : snapshotDir;
 
-  await ensurePathExists(workflowsDir, "Pasta de workflows não encontrada");
   await fs.mkdir(snapshotDir, { recursive: true });
-  await ensurePathExists(manifestPath, "Manifesto de candidatos não encontrado");
+  await fs.mkdir(workflowsDir, { recursive: true });
+  await ensurePathExists(templateDir, "Pasta de templates de workflows nao encontrada");
+  await ensurePathExists(manifestPath, "Manifesto de candidatos nao encontrado");
 
   const candidate = buildManifestEntry(input);
   const manifest = await upsertCandidateManifest(manifestPath, candidate);
@@ -60,7 +68,7 @@ export async function generateCandidateWorkflowBundle(
 
   for (const prefix of GENERATION_PREFIXES) {
     const templateName = TEMPLATE_FILES[prefix];
-    const templatePath = path.resolve(workflowsDir, templateName);
+    const templatePath = path.resolve(templateDir, templateName);
     await ensurePathExists(templatePath, "Template de workflow ausente");
 
     const templateContent = await fs.readFile(templatePath, "utf8");
@@ -81,14 +89,53 @@ export async function generateCandidateWorkflowBundle(
     generatedFiles,
     manifestPath,
     workflowsDir,
-    snapshotDir
+    snapshotDir,
+    templateDir
   };
 }
 
-async function ensurePathExists(targetPath: string, errorPrefix: string) {
+async function resolveApplicationRoot() {
+  const candidates = [
+    process.cwd(),
+    path.resolve(process.cwd(), "plataforma-admin"),
+    path.resolve(process.cwd(), "..", "plataforma-admin"),
+    path.resolve(process.cwd(), ".next", "standalone", "plataforma-admin")
+  ];
+
+  for (const candidatePath of candidates) {
+    if (await hasApplicationMarkers(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  throw new Error(
+    `Nao foi possivel localizar a raiz da aplicacao para gerar workflows. CWD atual: ${process.cwd()}`
+  );
+}
+
+async function hasApplicationMarkers(candidatePath: string) {
+  const packageJsonPath = path.resolve(candidatePath, "package.json");
+  const scriptsPath = path.resolve(candidatePath, "scripts", "candidatos-workflows.json");
+  const snapshotPath = path.resolve(candidatePath, "external-workflows-snapshot");
+
+  return (
+    (await pathExists(packageJsonPath)) &&
+    (await pathExists(scriptsPath)) &&
+    (await pathExists(snapshotPath))
+  );
+}
+
+async function pathExists(targetPath: string) {
   try {
     await fs.access(targetPath);
+    return true;
   } catch {
+    return false;
+  }
+}
+
+async function ensurePathExists(targetPath: string, errorPrefix: string) {
+  if (!(await pathExists(targetPath))) {
     throw new Error(`${errorPrefix}: ${targetPath}`);
   }
 }
@@ -98,7 +145,7 @@ function buildManifestEntry(input: CandidateWorkflowGenerationInput): CandidateW
   const nome = String(input.nome).trim();
 
   if (!id || !nome) {
-    throw new Error("Não foi possível gerar os workflows: candidato sem identificador ou nome.");
+    throw new Error("Nao foi possivel gerar os workflows: candidato sem identificador ou nome.");
   }
 
   const slug = normalizeForSlug(nome || id);
@@ -162,7 +209,7 @@ function buildFlowName(prefix: string, candidate: CandidateWorkflowManifestEntry
     case "07":
       return `07_qrcode_canais_agentes_${candidate.slug_underscore}_${candidate.id}`;
     default:
-      throw new Error(`Prefixo de workflow não suportado: ${prefix}`);
+      throw new Error(`Prefixo de workflow nao suportado: ${prefix}`);
   }
 }
 
@@ -219,7 +266,7 @@ function buildFlowContent(
         .replaceAll("'0001'", `'${candidate.id}'`)
         .replaceAll("0001", candidate.id);
     default:
-      throw new Error(`Prefixo de workflow não suportado: ${prefix}`);
+      throw new Error(`Prefixo de workflow nao suportado: ${prefix}`);
   }
 }
 
