@@ -32,9 +32,9 @@ const PROFILE_SUMMARY = {
   gestor_campanha:
     "Acesso integral apenas ao candidato vinculado, incluindo implantação, eventos, funil e cadastro de operadores e analistas.",
   operador:
-    "Operação diária do candidato vinculado, com atuação em relacionamento, funil e eventos, sem governança global.",
+    "Visualiza conversas, opera relacionamento e funil, controla entrada em eventos e telão, sem acesso aos dados estatísticos.",
   analista:
-    "Consulta de indicadores e leitura analítica do candidato vinculado, sem implantação e sem operação administrativa."
+    "Consulta gráficos e indicadores estatísticos do candidato vinculado, sem eventos, conversas nominais ou operação administrativa."
 } as const;
 
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {

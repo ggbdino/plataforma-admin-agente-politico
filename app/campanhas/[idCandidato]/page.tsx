@@ -32,6 +32,10 @@ export default async function CampaignOperationalPage({
   const selectedPeriodDays = parsePeriodDays(query?.periodo);
   const session = await getCurrentPlatformSession();
   const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_ver_kpis");
+  const canOperateFunnel = await hasCampaignAccess(session, idCandidato, "pode_operar_funil");
+  const canImplantCampaign = await hasCampaignAccess(session, idCandidato, "pode_implantar");
+  const canExportExecutive =
+    hasAccess && (session?.perfil === "administrador" || session?.perfil === "gestor_campanha");
   const snapshot = await getCampaignAnalyticsSnapshot(idCandidato, selectedPeriodDays);
   const governance = await getCampaignGovernanceSnapshot(idCandidato);
 
@@ -147,22 +151,29 @@ export default async function CampaignOperationalPage({
           {session ? <span className="pill">Usuário {session.nome}</span> : null}
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
-          <Link className="button secondary" href={`/campanhas/${idCandidato}/conversas`}>
-            Abrir console de conversas
-          </Link>
-          <Link
-            className="button secondary"
-            href={`/api/campanhas/${idCandidato}/exportar?periodo=${snapshot.periodoSelecionadoDias}`}
-          >
-            Exportar executivo
-          </Link>
-          <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
-            Voltar para implantação
-          </Link>
+          {canOperateFunnel ? (
+            <Link className="button secondary" href={`/campanhas/${idCandidato}/conversas`}>
+              Abrir console de conversas
+            </Link>
+          ) : null}
+          {canExportExecutive ? (
+            <Link
+              className="button secondary"
+              href={`/api/campanhas/${idCandidato}/exportar?periodo=${snapshot.periodoSelecionadoDias}`}
+            >
+              Exportar executivo
+            </Link>
+          ) : null}
+          {canImplantCampaign ? (
+            <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
+              Voltar para implantação
+            </Link>
+          ) : null}
         </div>
       </section>
 
-      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+      {canOperateFunnel ? (
+        <section className="card analytics-panel" style={{ marginBottom: 20 }}>
         <div className="section-heading">
           <div>
             <h2 className="section-title">Importação controlada da base de eleitores</h2>
@@ -214,9 +225,11 @@ export default async function CampaignOperationalPage({
             </button>
           </div>
         </form>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+      {canOperateFunnel ? (
+        <section className="card analytics-panel" style={{ marginBottom: 20 }}>
         <div className="section-heading">
           <div>
             <h2 className="section-title">Completar ciclo do funil</h2>
@@ -267,7 +280,8 @@ export default async function CampaignOperationalPage({
             </button>
           </div>
         </form>
-      </section>
+        </section>
+      ) : null}
 
       <section className="card" style={{ marginBottom: 20 }}>
         <div className="section-heading">
@@ -677,7 +691,7 @@ export default async function CampaignOperationalPage({
             <span className="pill ok">Drill-down por etapa</span>
           </div>
           <div className="analytics-stack">
-            {snapshot.funil.map((item) => (
+            {snapshot.funil.map((item, index) => (
               <div className="analytics-bar-row" key={item.etapa_funil}>
                 <div className="analytics-bar-label">
                   <strong>{labelStage(item.etapa_funil)}</strong>
@@ -686,7 +700,10 @@ export default async function CampaignOperationalPage({
                 <div className="analytics-bar-track">
                   <div
                     className="analytics-bar-fill"
-                    style={{ width: `${Math.max((item.total / maxFunil) * 100, 6)}%` }}
+                    style={{
+                      width: `${Math.max((item.total / maxFunil) * 100, 6)}%`,
+                      background: getCampaignChartColor(index)
+                    }}
                   />
                 </div>
               </div>
@@ -705,7 +722,7 @@ export default async function CampaignOperationalPage({
             <span className="pill">Drill-up por canal</span>
           </div>
           <div className="analytics-stack">
-            {snapshot.origens.map((item) => (
+            {snapshot.origens.map((item, index) => (
               <div className="analytics-bar-row" key={item.origem_captacao}>
                 <div className="analytics-bar-label">
                   <strong>{item.origem_captacao}</strong>
@@ -714,7 +731,10 @@ export default async function CampaignOperationalPage({
                 <div className="analytics-bar-track">
                   <div
                     className="analytics-bar-fill analytics-bar-fill-soft"
-                    style={{ width: `${Math.max((item.total / maxOrigem) * 100, 6)}%` }}
+                    style={{
+                      width: `${Math.max((item.total / maxOrigem) * 100, 6)}%`,
+                      background: getCampaignChartColor(index + 2)
+                    }}
                   />
                 </div>
               </div>
@@ -736,7 +756,7 @@ export default async function CampaignOperationalPage({
             <span className="pill">Inteligência de mensagem</span>
           </div>
           <div className="analytics-stack">
-            {snapshot.temas.map((item) => (
+            {snapshot.temas.map((item, index) => (
               <div className="analytics-bar-row" key={item.tema}>
                 <div className="analytics-bar-label">
                   <strong>{item.tema.replace(/_/g, " ")}</strong>
@@ -749,7 +769,8 @@ export default async function CampaignOperationalPage({
                       width: `${Math.max(
                         (item.total / Math.max(...snapshot.temas.map((theme) => theme.total), 1)) * 100,
                         6
-                      )}%`
+                      )}%`,
+                      background: getCampaignChartColor(index + 4)
                     }}
                   />
                 </div>
@@ -977,10 +998,11 @@ export default async function CampaignOperationalPage({
         </div>
       </section>
 
-      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
-        <div className="section-heading">
-          <div>
-            <h2 className="section-title">Governança operacional da campanha</h2>
+      {canOperateFunnel ? (
+        <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Governança operacional da campanha</h2>
             <p className="subtitle">
               Trilha recente das ações críticas desta campanha para acompanhamento administrativo
               e operacional.
@@ -1041,7 +1063,9 @@ export default async function CampaignOperationalPage({
           </table>
         </div>
       </section>
+      ) : null}
 
+      {canOperateFunnel ? (
       <section className="card">
         <div className="section-heading">
           <div>
@@ -1090,6 +1114,7 @@ export default async function CampaignOperationalPage({
           </table>
         </div>
       </section>
+      ) : null}
     </main>
   );
 }
@@ -1186,6 +1211,20 @@ function buildGrowthPoints(
 
 function formatShortDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(value));
+}
+
+function getCampaignChartColor(index: number) {
+  const palette = [
+    "#ff7a59",
+    "#ffa94d",
+    "#ffd43b",
+    "#69db7c",
+    "#38d9a9",
+    "#4dabf7",
+    "#748ffc",
+    "#da77f2"
+  ];
+  return palette[index % palette.length];
 }
 
 function getRegionalColor(index: number) {

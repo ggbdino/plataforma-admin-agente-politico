@@ -328,6 +328,17 @@ export async function userHasCampaignPermission(
     return true;
   }
 
+  if (perfil === "operador" && capability === "pode_ver_kpis") {
+    return false;
+  }
+
+  if (
+    perfil === "analista" &&
+    !["pode_visualizar", "pode_ver_kpis"].includes(capability)
+  ) {
+    return false;
+  }
+
   await ensurePlatformUserTables();
 
   const result = await db.query<{ allowed: boolean }>(

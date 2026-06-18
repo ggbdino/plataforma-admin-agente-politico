@@ -240,7 +240,7 @@ function buildPermissionsForProfile(
         podeImplantar: false,
         podeOperarFunil: true,
         podeOperarEventos: true,
-        podeVerKpis: true
+        podeVerKpis: false
       }
     ];
   }

@@ -123,7 +123,7 @@ export default async function StatisticsAdminPage() {
           <span className="pill">Drill-down por candidato</span>
         </div>
         <div className="analytics-stack">
-          {snapshot.campanhas.map((campaign) => (
+          {snapshot.campanhas.map((campaign, index) => (
             <div className="analytics-bar-row" key={campaign.id_candidato}>
               <div className="analytics-bar-label">
                 <strong>{campaign.nome_urna}</strong>
@@ -132,7 +132,13 @@ export default async function StatisticsAdminPage() {
                 </span>
               </div>
               <div className="analytics-bar-track">
-                <div className="analytics-bar-fill" style={{ width: `${Math.max((campaign.total_eleitores / maxEleitores) * 100, 6)}%` }} />
+                <div
+                  className="analytics-bar-fill"
+                  style={{
+                    width: `${Math.max((campaign.total_eleitores / maxEleitores) * 100, 6)}%`,
+                    background: getCampaignChartColor(index)
+                  }}
+                />
               </div>
             </div>
           ))}
@@ -152,7 +158,7 @@ export default async function StatisticsAdminPage() {
             <span className="pill">Meta vs realizado</span>
           </div>
           <div className="analytics-stack">
-            {snapshot.campanhas.map((campaign) => (
+            {snapshot.campanhas.map((campaign, index) => (
               <div className="analytics-bar-row" key={`${campaign.id_candidato}-meta`}>
                 <div className="analytics-bar-label">
                   <strong>{campaign.nome_urna}</strong>
@@ -161,7 +167,10 @@ export default async function StatisticsAdminPage() {
                 <div className="analytics-bar-track">
                   <div
                     className="analytics-bar-fill analytics-bar-fill-soft"
-                    style={{ width: `${Math.max((Number(campaign.meta_contatos_percentual) / maxMetaCoverage) * 100, 6)}%` }}
+                    style={{
+                      width: `${Math.max((Number(campaign.meta_contatos_percentual) / maxMetaCoverage) * 100, 6)}%`,
+                      background: getCampaignChartColor(index + 3)
+                    }}
                   />
                 </div>
               </div>
@@ -264,4 +273,18 @@ export default async function StatisticsAdminPage() {
       </section>
     </main>
   );
+}
+
+function getCampaignChartColor(index: number) {
+  const palette = [
+    "#ff7a59",
+    "#ffa94d",
+    "#ffd43b",
+    "#69db7c",
+    "#38d9a9",
+    "#4dabf7",
+    "#748ffc",
+    "#da77f2"
+  ];
+  return palette[index % palette.length];
 }

@@ -106,7 +106,7 @@ export async function getDefaultPlatformRoute(session: {
   perfil: PlatformUserSession["perfil"];
 }) {
   if (session.perfil === "administrador") {
-    return "/estatisticas/governanca";
+    return "/estatisticas";
   }
 
   const candidateIds = await getPermittedCandidateIdsForUser(session.userId);
@@ -118,6 +118,10 @@ export async function getDefaultPlatformRoute(session: {
 
   if (session.perfil === "gestor_campanha") {
     return `/gestor/candidato/${firstCandidateId}`;
+  }
+
+  if (session.perfil === "operador") {
+    return `/campanhas/${firstCandidateId}/conversas`;
   }
 
   return `/campanhas/${firstCandidateId}`;

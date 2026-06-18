@@ -14,8 +14,10 @@ export async function GET(request: Request, context: RouteContext) {
   const { idCandidato } = await context.params;
   const session = await getCurrentPlatformSession();
   const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_ver_kpis");
+  const canExport =
+    hasAccess && (session?.perfil === "administrador" || session?.perfil === "gestor_campanha");
 
-  if (!hasAccess) {
+  if (!canExport) {
     await recordGovernanceEvent({
       idCandidato,
       escopo: "campanha",

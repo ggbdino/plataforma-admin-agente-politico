@@ -28,7 +28,7 @@ export default async function CampaignConversationsPage({
   const { idCandidato } = await params;
   const query = searchParams ? await searchParams : undefined;
   const session = await getCurrentPlatformSession();
-  const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_ver_kpis");
+  const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_operar_funil");
   const explorer = await getCampaignConversationExplorer(idCandidato, {
     busca: query?.busca,
     etapa: query?.etapa,
