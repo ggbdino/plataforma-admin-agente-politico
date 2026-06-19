@@ -3,6 +3,8 @@ import type { QueryResultRow } from "pg";
 import type {
   AdminCampaignStatItem,
   AdminCampaignStatsSnapshot,
+  AdminCampaignGrowthPoint,
+  AdminCampaignStageMetric,
   AdminRankingItem,
   CampaignConversationExplorer,
   CampaignConversationFilters,
@@ -18,6 +20,7 @@ import type {
   CampaignDailyMetric,
   CampaignOperationalAlert,
   CampaignOriginMetric,
+  CampaignOutsideThemeMetric,
   CampaignRegionalMetric,
   CampaignRecentConversation,
   CampaignStageMetric
@@ -466,6 +469,57 @@ export async function getCampaignAnalyticsSnapshot(
     []
   );
 
+  const allThemesResult = await queryOrDefault<CampaignOutsideThemeMetric>(
+    "campaign-all-themes",
+    `
+      select
+        tema,
+        count(*)::int as total
+      from (
+        select coalesce(nullif(i.tema_classificado, ''), nullif(e.tema_interesse, ''), 'nao_classificado') as tema
+        from eleitores e
+        left join lateral (
+          select tema_classificado
+          from interacoes
+          where id_candidato = $1
+            and eleitor_uid = e.eleitor_uid
+            and nullif(tema_classificado, '') is not null
+          order by criado_em desc
+          limit 1
+        ) i on true
+        where e.id_candidato = $1
+      ) themes
+      group by tema
+      order by total desc, tema asc
+      limit 20
+    `,
+    [idCandidato],
+    []
+  );
+
+  const platformTextResult = await queryOrDefault<{ plataforma_texto: string }>(
+    "campaign-platform-text",
+    `
+      select concat_ws(
+        ' ',
+        c.perfil_markdown,
+        c.dados_brutos::text,
+        camp.configuracao::text
+      ) as plataforma_texto
+      from candidatos c
+      left join campanhas camp
+        on camp.id_candidato = c.id_candidato
+      where c.id_candidato = $1
+    `,
+    [idCandidato],
+    [{ plataforma_texto: "" }]
+  );
+
+  const temasForaPlataforma = buildOutsidePlatformThemes(
+    allThemesResult.rows,
+    platformTextResult.rows[0]?.plataforma_texto ?? ""
+  );
+
   const regionalResult = await queryOrDefault<CampaignRegionalMetric>(
     "campaign-regional",
     `
@@ -670,6 +724,7 @@ export async function getCampaignAnalyticsSnapshot(
     funil: funilResult.rows,
     origens: originsResult.rows,
     temas: themesResult.rows,
+    temasForaPlataforma,
     distribuicaoRegional: regionalResult.rows,
     evolucaoDiaria: dailyResult.rows,
     crescimentoBase: growthResult.rows,
@@ -1131,6 +1186,50 @@ export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStat
     confiabilidade: buildRanking(campaignRows.rows, "confiabilidade_percentual", "confiabilidade")
   };
 
+  const funnelRows = await queryOrDefault<AdminCampaignStageMetric>(
+    "admin-campaign-funnel-total",
+    `
+      select
+        coalesce(etapa_funil, 'nao_classificado') as etapa_funil,
+        count(*)::int as total
+      from eleitores
+      group by coalesce(etapa_funil, 'nao_classificado')
+      order by total desc, etapa_funil asc
+    `,
+    [],
+    []
+  );
+
+  const growthRows = await queryOrDefault<AdminCampaignGrowthPoint>(
+    "admin-campaign-growth-total",
+    `
+      with limites as (
+        select
+          coalesce(date_trunc('day', min(criado_em))::date, current_date) as inicio,
+          current_date as fim
+        from eleitores
+      ),
+      dias as (
+        select generate_series(limites.inicio, limites.fim, interval '1 day')::date as ref
+        from limites
+      ),
+      base_dia as (
+        select date_trunc('day', criado_em)::date as ref, count(*)::int as total
+        from eleitores
+        group by 1
+      )
+      select
+        dias.ref::text as data_referencia,
+        coalesce(sum(base_dia.total) over (order by dias.ref rows between unbounded preceding and current row), 0)::int as total_acumulado
+      from dias
+      left join base_dia
+        on base_dia.ref = dias.ref
+      order by dias.ref
+    `,
+    [],
+    buildEmptyGrowthSeries()
+  );
+
   return {
     totais: {
       campanhas: totals.campanhas,
@@ -1149,6 +1248,8 @@ export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStat
       email_disponivel: hasElectorEmailColumn
     },
     campanhas: campaignRows.rows,
+    funilTotal: funnelRows.rows,
+    crescimentoBase: growthRows.rows,
     rankings
   };
 }
@@ -1235,6 +1336,39 @@ function buildRanking(
       valor: Number(campaign[field]),
       rotulo
     }));
+}
+
+function buildOutsidePlatformThemes(
+  themes: CampaignOutsideThemeMetric[],
+  platformText: string
+) {
+  const normalizedPlatformText = normalizeComparableText(platformText);
+
+  if (!normalizedPlatformText) {
+    return [];
+  }
+
+  return themes
+    .filter((theme) => {
+      const normalizedTheme = normalizeComparableText(theme.tema);
+
+      if (!normalizedTheme || normalizedTheme === "nao classificado") {
+        return false;
+      }
+
+      return !normalizedPlatformText.includes(normalizedTheme);
+    })
+    .slice(0, 8);
+}
+
+function normalizeComparableText(value: string | null | undefined) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 async function hasTableColumn(tableName: string, columnName: string) {

@@ -129,6 +129,12 @@ export default async function CandidatesPage() {
                       >
                         Campanha
                       </Link>
+                      <Link
+                        className="button secondary"
+                        href={`/campanhas/${candidate.id_candidato}/inteligencia`}
+                      >
+                        Inteligência
+                      </Link>
                     </div>
                   </td>
                 </tr>

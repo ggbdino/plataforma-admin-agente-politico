@@ -127,6 +127,9 @@ export default async function GestorDashboardPage() {
                         <Link className="button secondary" href={`/campanhas/${candidate.id_candidato}`}>
                           Campanha
                         </Link>
+                        <Link className="button secondary" href={`/campanhas/${candidate.id_candidato}/inteligencia`}>
+                          Inteligência
+                        </Link>
                       </div>
                     </td>
                   </tr>

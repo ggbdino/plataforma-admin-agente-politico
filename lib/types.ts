@@ -248,6 +248,11 @@ export type CampaignThemeMetric = {
   total: number;
 };
 
+export type CampaignOutsideThemeMetric = {
+  tema: string;
+  total: number;
+};
+
 export type CampaignRegionalMetric = {
   uf: string;
   cidade_destaque: string | null;
@@ -357,6 +362,7 @@ export type CampaignAnalyticsSnapshot = {
   funil: CampaignStageMetric[];
   origens: CampaignOriginMetric[];
   temas: CampaignThemeMetric[];
+  temasForaPlataforma: CampaignOutsideThemeMetric[];
   distribuicaoRegional: CampaignRegionalMetric[];
   evolucaoDiaria: CampaignDailyMetric[];
   crescimentoBase: CampaignBaseGrowthPoint[];
@@ -395,6 +401,16 @@ export type AdminRankingItem = {
   rotulo: string;
 };
 
+export type AdminCampaignStageMetric = {
+  etapa_funil: string;
+  total: number;
+};
+
+export type AdminCampaignGrowthPoint = {
+  data_referencia: string;
+  total_acumulado: number;
+};
+
 export type AdminCampaignStatsSnapshot = {
   totais: {
     campanhas: number;
@@ -412,6 +428,8 @@ export type AdminCampaignStatsSnapshot = {
     email_disponivel: boolean;
   };
   campanhas: AdminCampaignStatItem[];
+  funilTotal: AdminCampaignStageMetric[];
+  crescimentoBase: AdminCampaignGrowthPoint[];
   rankings: {
     conversao: AdminRankingItem[];
     atividade_24h: AdminRankingItem[];

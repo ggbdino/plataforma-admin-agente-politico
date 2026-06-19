@@ -151,6 +151,9 @@ export default async function CampaignOperationalPage({
           {session ? <span className="pill">Usuário {session.nome}</span> : null}
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
+          <Link className="button secondary" href={`/campanhas/${idCandidato}/inteligencia`}>
+            Inteligência da campanha
+          </Link>
           {canOperateFunnel ? (
             <Link className="button secondary" href={`/campanhas/${idCandidato}/conversas`}>
               Abrir console de conversas

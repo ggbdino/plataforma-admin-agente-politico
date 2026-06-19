@@ -2,11 +2,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, getDefaultPlatformRoute } from "@/lib/auth";
-import { getAdminCampaignStatsSnapshot } from "@/lib/repositories/campaign-analytics";
+import {
+  getAdminCampaignStatsSnapshot,
+  getCampaignAnalyticsSnapshot
+} from "@/lib/repositories/campaign-analytics";
+import { APP_VERSION } from "@/lib/version";
 
 export const dynamic = "force-dynamic";
 
-export default async function StatisticsAdminPage() {
+type StatisticsAdminPageProps = {
+  searchParams?: Promise<{
+    candidato?: string;
+  }>;
+};
+
+export default async function StatisticsAdminPage({ searchParams }: StatisticsAdminPageProps) {
+  const query = searchParams ? await searchParams : undefined;
   const session = await getCurrentPlatformSession();
 
   if (session && session.perfil !== "administrador") {
@@ -48,8 +59,17 @@ export default async function StatisticsAdminPage() {
   }
 
   const snapshot = await getAdminCampaignStatsSnapshot();
+  const selectedCandidateId = query?.candidato || snapshot.campanhas[0]?.id_candidato || "";
+  const selectedCandidate = selectedCandidateId
+    ? await getCampaignAnalyticsSnapshot(selectedCandidateId)
+    : null;
   const maxEleitores = Math.max(...snapshot.campanhas.map((item) => item.total_eleitores), 1);
   const maxMetaCoverage = Math.max(...snapshot.campanhas.map((item) => item.meta_contatos_percentual), 1);
+  const maxMessages = Math.max(...snapshot.campanhas.map((item) => item.interacoes_total), 1);
+  const globalGrowthMax = Math.max(...snapshot.crescimentoBase.map((item) => item.total_acumulado), 1);
+  const globalGrowthPoints = buildGrowthPoints(snapshot.crescimentoBase, globalGrowthMax);
+  const globalFunnelTotal = Math.max(snapshot.funilTotal.reduce((acc, item) => acc + item.total, 0), 1);
+  const globalPieSegments = buildPieSegments(snapshot.funilTotal);
 
   return (
     <main className="page-shell">
@@ -63,6 +83,7 @@ export default async function StatisticsAdminPage() {
         <div className="hero-meta">
           <span className="pill">Usuário {session.nome}</span>
           <span className="pill">Perfil {session.perfil}</span>
+          <span className="pill">{APP_VERSION}</span>
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/">
@@ -109,6 +130,128 @@ export default async function StatisticsAdminPage() {
           <strong className="metric-value">
             {snapshot.totais.campanhas === 0 ? 0 : Math.round(snapshot.totais.eleitores / snapshot.totais.campanhas)}
           </strong>
+        </article>
+      </section>
+
+      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+        <div className="section-heading">
+          <div>
+            <h2 className="section-title">Selecionar candidato</h2>
+            <p className="subtitle">
+              O administrador pode alternar a leitura individual e abrir a Inteligência completa de cada campanha.
+            </p>
+          </div>
+          {selectedCandidate ? (
+            <Link className="button secondary" href={`/campanhas/${selectedCandidate.cabecalho.id_candidato}/inteligencia`}>
+              Abrir inteligência de {selectedCandidate.cabecalho.nome_urna}
+            </Link>
+          ) : null}
+        </div>
+        <div className="actions">
+          {snapshot.campanhas.map((campaign) => (
+            <Link
+              className={`button ${campaign.id_candidato === selectedCandidateId ? "" : "secondary"}`}
+              href={`/estatisticas?candidato=${campaign.id_candidato}`}
+              key={campaign.id_candidato}
+            >
+              {campaign.nome_urna}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {selectedCandidate ? (
+        <section className="grid grid-3" style={{ marginBottom: 20 }}>
+          <article className="card metric-card">
+            <span className="metric-label">Candidato selecionado</span>
+            <strong className="metric-value">{selectedCandidate.cabecalho.nome_urna}</strong>
+          </article>
+          <article className="card metric-card">
+            <span className="metric-label">Base do candidato</span>
+            <strong className="metric-value">{selectedCandidate.resumo.total_eleitores}</strong>
+          </article>
+          <article className="card metric-card">
+            <span className="metric-label">Mensagens tratadas</span>
+            <strong className="metric-value">{selectedCandidate.resumo.interacoes_total}</strong>
+          </article>
+        </section>
+      ) : null}
+
+      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+        <div className="section-heading">
+          <div>
+            <h2 className="section-title">Crescimento de usuários da plataforma</h2>
+            <p className="subtitle">Série acumulada considerando todas as campanhas.</p>
+          </div>
+          <span className="pill">Todas as campanhas</span>
+        </div>
+        {renderLineChart(globalGrowthPoints)}
+      </section>
+
+      <section className="grid grid-2" style={{ marginBottom: 20 }}>
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Estágio de conversão da plataforma</h2>
+              <p className="subtitle">Total geral dos usuários em cada estágio de KPI/funil.</p>
+            </div>
+            <span className="pill ok">{globalFunnelTotal} usuário(s)</span>
+          </div>
+          <div className="campaign-pie-layout">
+            <div
+              className="campaign-pie-chart"
+              style={{
+                background: `conic-gradient(${globalPieSegments
+                  .map((segment) => `${segment.color} ${segment.start}% ${segment.end}%`)
+                  .join(", ")})`
+              }}
+            >
+              <div className="campaign-pie-core">
+                <strong>{snapshot.totais.eleitores}</strong>
+                <span>usuários</span>
+              </div>
+            </div>
+            <div className="campaign-pie-legend">
+              {globalPieSegments.map((segment) => (
+                <div className="campaign-pie-legend-item" key={segment.label}>
+                  <span className="campaign-pie-legend-swatch" style={{ background: segment.color }} />
+                  <div>
+                    <strong>{segment.label}</strong>
+                    <div className="muted">{segment.total} usuário(s)</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </article>
+
+        <article className="card analytics-panel">
+          <div className="section-heading">
+            <div>
+              <h2 className="section-title">Mensagens tratadas por candidato</h2>
+              <p className="subtitle">Volume total de interações processadas por campanha.</p>
+            </div>
+            <span className="pill">Mensagens</span>
+          </div>
+          <div className="analytics-stack">
+            {snapshot.campanhas.map((campaign, index) => (
+              <div className="analytics-bar-row" key={`${campaign.id_candidato}-messages`}>
+                <div className="analytics-bar-label">
+                  <strong>{campaign.nome_urna}</strong>
+                  <span className="muted">{campaign.interacoes_total} mensagem(ns)</span>
+                </div>
+                <div className="analytics-bar-track">
+                  <div
+                    className="analytics-bar-fill"
+                    style={{
+                      width: `${Math.max((campaign.interacoes_total / maxMessages) * 100, 6)}%`,
+                      background: getCampaignChartColor(index + 5)
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </article>
       </section>
 
@@ -260,6 +403,9 @@ export default async function StatisticsAdminPage() {
                       <Link className="button secondary" href={`/campanhas/${campaign.id_candidato}`}>
                         Abrir campanha
                       </Link>
+                      <Link className="button secondary" href={`/campanhas/${campaign.id_candidato}/inteligencia`}>
+                        Inteligência
+                      </Link>
                       <Link className="button secondary" href={`/campanhas/${campaign.id_candidato}/conversas`}>
                         Conversas
                       </Link>
@@ -287,4 +433,65 @@ function getCampaignChartColor(index: number) {
     "#da77f2"
   ];
   return palette[index % palette.length];
+}
+
+function renderLineChart(points: Array<{ x: number; y: number; data_referencia: string; total_acumulado: number }>) {
+  if (points.length === 0) {
+    return <div className="step-panel-callout">Sem série de crescimento disponível.</div>;
+  }
+
+  return (
+    <div className="campaign-line-chart">
+      <div className="campaign-line-axis campaign-line-axis-y">Qtd</div>
+      <div className="campaign-line-grid" />
+      <svg aria-label="Crescimento acumulado da plataforma" className="campaign-line-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline className="campaign-line-path" fill="none" points={points.map((item) => `${item.x},${item.y}`).join(" ")} />
+        {points.map((item) => (
+          <circle className="campaign-line-point" cx={item.x} cy={item.y} key={item.data_referencia} r={1.8}>
+            <title>{`${formatShortDate(item.data_referencia)}: ${item.total_acumulado} usuário(s)`}</title>
+          </circle>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function buildGrowthPoints(
+  growth: { data_referencia: string; total_acumulado: number }[],
+  maxGrowth: number
+) {
+  return growth.map((item, index, array) => {
+    const x = array.length === 1 ? 50 : (index / (array.length - 1)) * 100;
+    const y = 100 - (item.total_acumulado / maxGrowth) * 88 - 6;
+
+    return {
+      ...item,
+      x,
+      y: Math.max(y, 6)
+    };
+  });
+}
+
+function buildPieSegments(funil: { etapa_funil: string; total: number }[]) {
+  const total = Math.max(funil.reduce((acc, item) => acc + item.total, 0), 1);
+  let cursor = 0;
+
+  return funil.map((item, index) => {
+    const slice = (item.total / total) * 100;
+    const start = cursor;
+    const end = cursor + slice;
+    cursor = end;
+
+    return {
+      label: item.etapa_funil.replace(/_/g, " "),
+      total: item.total,
+      color: getCampaignChartColor(index),
+      start,
+      end
+    };
+  });
+}
+
+function formatShortDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(value));
 }

@@ -124,7 +124,7 @@ export async function getDefaultPlatformRoute(session: {
     return `/campanhas/${firstCandidateId}/conversas`;
   }
 
-  return `/campanhas/${firstCandidateId}`;
+  return `/campanhas/${firstCandidateId}/inteligencia`;
 }
 
 export async function getVisibleCandidateIdsForSession(session: PlatformUserSession | null) {

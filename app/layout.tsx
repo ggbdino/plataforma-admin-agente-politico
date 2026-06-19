@@ -1,14 +1,13 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
+import { APP_VERSION } from "@/lib/version";
 
 export const metadata: Metadata = {
   title: "GAP Consult Tecnologia | Plataforma Administrativa",
   description:
     "Painel administrativo da GAP Consult Tecnologia para operação do agente político"
 };
-
-const APP_VERSION = "V.14.5.18";
 
 export default function RootLayout({
   children
