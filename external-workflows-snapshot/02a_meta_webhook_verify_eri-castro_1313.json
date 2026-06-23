@@ -9,7 +9,7 @@
         "options": {}
       },
       "id": "Webhook_1313_Meta_GET",
-      "name": "Webhook VerificaÃ§Ã£o Meta Eri Castro 1313",
+      "name": "Webhook Verificação Meta Eri Castro 1313",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
@@ -23,7 +23,7 @@
         "jsCode": "return items.map((item) => {\n  const query = item.json.query || item.json;\n  return {\n    json: {\n      mode: String(query['hub.mode'] || '').trim(),\n      verifyToken: String(query['hub.verify_token'] || '').trim(),\n      challenge: String(query['hub.challenge'] || '').trim()\n    }\n  };\n});"
       },
       "id": "Code_Ler_Verificacao_Meta",
-      "name": "Ler VerificaÃ§Ã£o Meta",
+      "name": "Ler Verificação Meta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -55,7 +55,7 @@
         }
       },
       "id": "If_Verificacao_Meta_Valida",
-      "name": "VerificaÃ§Ã£o Meta vÃ¡lida?",
+      "name": "Verificação Meta válida?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -89,7 +89,7 @@
         }
       },
       "id": "Respond_Verificacao_Meta_Erro",
-      "name": "Responder VerificaÃ§Ã£o InvÃ¡lida",
+      "name": "Responder Verificação Inválida",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
@@ -99,29 +99,29 @@
     }
   ],
   "connections": {
-    "Webhook VerificaÃ§Ã£o Meta Eri Castro 1313": {
+    "Webhook Verificação Meta Eri Castro 1313": {
       "main": [
         [
           {
-            "node": "Ler VerificaÃ§Ã£o Meta",
+            "node": "Ler Verificação Meta",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ler VerificaÃ§Ã£o Meta": {
+    "Ler Verificação Meta": {
       "main": [
         [
           {
-            "node": "VerificaÃ§Ã£o Meta vÃ¡lida?",
+            "node": "Verificação Meta válida?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "VerificaÃ§Ã£o Meta vÃ¡lida?": {
+    "Verificação Meta válida?": {
       "main": [
         [
           {
@@ -132,7 +132,7 @@
         ],
         [
           {
-            "node": "Responder VerificaÃ§Ã£o InvÃ¡lida",
+            "node": "Responder Verificação Inválida",
             "type": "main",
             "index": 0
           }

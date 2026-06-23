@@ -9,7 +9,7 @@
         "options": {}
       },
       "id": "Webhook_Governanca_0001",
-      "name": "Webhook GovernanÃ§a Brunex 0001",
+      "name": "Webhook Governança Brunex 0001",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
@@ -23,7 +23,7 @@
         "jsCode": "return items.map((item) => {\n  const body = item.json.query || item.json.body || item.json;\n  let payload = body.payload || {};\n  if ((!payload || typeof payload !== 'object' || Array.isArray(payload)) && typeof body.payload_json === 'string' && body.payload_json.trim()) {\n    try {\n      payload = JSON.parse(body.payload_json);\n    } catch {\n      payload = {};\n    }\n  }\n  return {\n    json: {\n      id_candidato: '0001',\n      lider_id: String(body.lider_id || '').trim(),\n      recurso: String(body.recurso || 'agenda').trim(),\n      acao: String(body.acao || 'upsert').trim(),\n      referencia_id: String(body.referencia_id || '').trim(),\n      payload,\n      observacao: String(body.observacao || '').trim()\n    }\n  };\n});"
       },
       "id": "Code_Normalizar_Governanca",
-      "name": "Normalizar SolicitaÃ§Ã£o",
+      "name": "Normalizar Solicitação",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -36,7 +36,7 @@
         "jsCode": "const src = $input.first().json;\nconst p = src.payload || {};\nfunction esc(v){ return String(v ?? '').replace(/'/g, \"''\"); }\nlet query = '';\nif (src.recurso === 'evento') {\n  query = `insert into eventos_campanha (id, id_candidato, nome_evento, tipo_evento, descricao, data_evento, local_nome, endereco, cidade, uf, capacidade_estimada, link_confirmacao, status, origem_dados, metadata) values (coalesce(nullif('${esc(src.referencia_id)}','')::uuid, gen_random_uuid()), '0001', '${esc(p.nome_evento)}', '${esc(p.tipo_evento)}', '${esc(p.descricao)}', nullif('${esc(p.data_evento)}','')::timestamptz, '${esc(p.local_nome)}', '${esc(p.endereco)}', '${esc(p.cidade)}', '${esc(p.uf)}', ${Number(p.capacidade_estimada || 0)}, '${esc(p.link_confirmacao)}', '${esc(p.status || 'ativo')}', 'plataforma_admin', '${esc(JSON.stringify(p.metadata || {}))}'::jsonb) on conflict (id) do update set nome_evento = excluded.nome_evento, tipo_evento = excluded.tipo_evento, descricao = excluded.descricao, data_evento = excluded.data_evento, local_nome = excluded.local_nome, endereco = excluded.endereco, cidade = excluded.cidade, uf = excluded.uf, capacidade_estimada = excluded.capacidade_estimada, link_confirmacao = excluded.link_confirmacao, status = excluded.status, metadata = excluded.metadata, atualizado_em = now() returning id;`;\n} else if (src.recurso === 'canal') {\n  query = `insert into canais_integracao (id, id_candidato, nome_canal, tipo_canal, identificador_externo, url_canal, status, origem_dados, metadata) values (coalesce(nullif('${esc(src.referencia_id)}','')::uuid, gen_random_uuid()), '0001', '${esc(p.nome_canal)}', '${esc(p.tipo_canal)}', '${esc(p.identificador_externo)}', '${esc(p.url_canal)}', '${esc(p.status || 'ativo')}', 'plataforma_admin', '${esc(JSON.stringify(p.metadata || {}))}'::jsonb) on conflict (id) do update set nome_canal = excluded.nome_canal, tipo_canal = excluded.tipo_canal, identificador_externo = excluded.identificador_externo, url_canal = excluded.url_canal, status = excluded.status, metadata = excluded.metadata, atualizado_em = now() returning id;`;\n} else {\n  query = `insert into agendas_campanha (id, id_candidato, titulo, descricao, data_inicio, data_fim, local_nome, endereco, cidade, uf, canal_confirmacao, status, origem_dados, metadata) values (coalesce(nullif('${esc(src.referencia_id)}','')::uuid, gen_random_uuid()), '0001', '${esc(p.titulo)}', '${esc(p.descricao)}', nullif('${esc(p.data_inicio)}','')::timestamptz, nullif('${esc(p.data_fim)}','')::timestamptz, '${esc(p.local_nome)}', '${esc(p.endereco)}', '${esc(p.cidade)}', '${esc(p.uf)}', '${esc(p.canal_confirmacao)}', '${esc(p.status || 'planejado')}', 'plataforma_admin', '${esc(JSON.stringify(p.metadata || {}))}'::jsonb) on conflict (id) do update set titulo = excluded.titulo, descricao = excluded.descricao, data_inicio = excluded.data_inicio, data_fim = excluded.data_fim, local_nome = excluded.local_nome, endereco = excluded.endereco, cidade = excluded.cidade, uf = excluded.uf, canal_confirmacao = excluded.canal_confirmacao, status = excluded.status, metadata = excluded.metadata, atualizado_em = now() returning id;`;\n}\nreturn [{ json: { ...src, upsert_sql: query } }];"
       },
       "id": "Code_Montar_SQL",
-      "name": "Montar SQL GovernanÃ§a",
+      "name": "Montar SQL Governança",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -50,7 +50,7 @@
         "query": "={{$json.upsert_sql}}"
       },
       "id": "Postgres_Aplicar",
-      "name": "Aplicar AlteraÃ§Ã£o",
+      "name": "Aplicar Alteração",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
@@ -66,10 +66,10 @@
     },
     {
       "parameters": {
-        "jsCode": "const src = $item(0).$node['Normalizar SolicitaÃ§Ã£o'].json;\nconst afterRow = Array.isArray($json) ? $json[0] : $json;\nreturn [{\n  json: {\n    status: 'ok',\n    recurso: src.recurso,\n    referencia_id: afterRow?.id || src.referencia_id || '',\n    message: `GovernanÃ§a concluÃ­da para o recurso ${src.recurso}. ReferÃªncia: ${afterRow?.id || src.referencia_id || 'novo_registro'}.`\n  }\n}];"
+        "jsCode": "const src = $item(0).$node['Normalizar Solicitação'].json;\nconst afterRow = Array.isArray($json) ? $json[0] : $json;\nreturn [{\n  json: {\n    status: 'ok',\n    recurso: src.recurso,\n    referencia_id: afterRow?.id || src.referencia_id || '',\n    message: `Governança concluída para o recurso ${src.recurso}. Referência: ${afterRow?.id || src.referencia_id || 'novo_registro'}.`\n  }\n}];"
       },
       "id": "Code_Resumo_Governanca",
-      "name": "Resumir GovernanÃ§a",
+      "name": "Resumir Governança",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -84,7 +84,7 @@
         "options": {}
       },
       "id": "Respond_Governanca",
-      "name": "Responder GovernanÃ§a",
+      "name": "Responder Governança",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
@@ -94,55 +94,55 @@
     }
   ],
   "connections": {
-    "Webhook GovernanÃ§a Brunex 0001": {
+    "Webhook Governança Brunex 0001": {
       "main": [
         [
           {
-            "node": "Normalizar SolicitaÃ§Ã£o",
+            "node": "Normalizar Solicitação",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalizar SolicitaÃ§Ã£o": {
+    "Normalizar Solicitação": {
       "main": [
         [
           {
-            "node": "Montar SQL GovernanÃ§a",
+            "node": "Montar SQL Governança",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Montar SQL GovernanÃ§a": {
+    "Montar SQL Governança": {
       "main": [
         [
           {
-            "node": "Aplicar AlteraÃ§Ã£o",
+            "node": "Aplicar Alteração",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Aplicar AlteraÃ§Ã£o": {
+    "Aplicar Alteração": {
       "main": [
         [
           {
-            "node": "Resumir GovernanÃ§a",
+            "node": "Resumir Governança",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Resumir GovernanÃ§a": {
+    "Resumir Governança": {
       "main": [
         [
           {
-            "node": "Responder GovernanÃ§a",
+            "node": "Responder Governança",
             "type": "main",
             "index": 0
           }

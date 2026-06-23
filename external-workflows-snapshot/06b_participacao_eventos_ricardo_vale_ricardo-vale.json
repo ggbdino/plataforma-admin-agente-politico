@@ -8,7 +8,7 @@
         "options": {}
       },
       "id": "Webhook_1",
-      "name": "Webhook ParticipaÃ§Ã£o Evento Ricardo Vale ricardo-vale",
+      "name": "Webhook Participação Evento",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
@@ -22,7 +22,7 @@
         "jsCode": "return items.map((item) => {\n  const b = item.json.body || item.json;\n  const idCandidato = 'ricardo-vale';\n  const eleitorId = String(b.eleitor_id || b.telefone || '').trim();\n  return {\n    json: {\n      id_candidato: idCandidato,\n      evento_id: String(b.evento_id || '').trim(),\n      eleitor_id: eleitorId,\n      eleitor_uid: `${idCandidato}:${eleitorId}`,\n      status_participacao: String(b.status_participacao || 'interessado').trim(),\n      canal_registro: String(b.canal_registro || 'whatsapp').trim(),\n      origem_registro: String(b.origem_registro || 'eleitor').trim(),\n      lider_responsavel_id: String(b.lider_responsavel_id || '').trim(),\n      observacao: String(b.observacao || '').trim(),\n      metadata: b\n    }\n  };\n});"
       },
       "id": "Code_1",
-      "name": "Normalizar ParticipaÃ§Ã£o",
+      "name": "Normalizar Participação",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -36,7 +36,7 @@
         "query": "insert into participacoes_eventos (evento_id, eleitor_uid, eleitor_id, id_candidato, status_participacao, origem_registro, canal_registro, lider_responsavel_id, observacao, metadata, registrado_em) values ('{{$json.evento_id}}'::uuid,'{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','{{$json.status_participacao}}','{{$json.origem_registro}}','{{$json.canal_registro}}',nullif('{{$json.lider_responsavel_id}}','')::uuid,'{{$json.observacao.replace(/'/g, \"''\")}}','{{ JSON.stringify($json.metadata).replace(/'/g, \"''\") }}'::jsonb,now()) on conflict (evento_id, eleitor_uid) do update set status_participacao = excluded.status_participacao, origem_registro = excluded.origem_registro, canal_registro = excluded.canal_registro, lider_responsavel_id = excluded.lider_responsavel_id, observacao = excluded.observacao, metadata = excluded.metadata, registrado_em = now();"
       },
       "id": "Postgres_1",
-      "name": "Registrar ParticipaÃ§Ã£o",
+      "name": "Registrar Participação",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
@@ -76,7 +76,7 @@
         "query": "insert into interacoes (eleitor_uid, eleitor_id, id_candidato, canal, direcao, mensagem, tema_classificado, etapa_sugerida, usa_ia, risco_compliance, status_envio, origem_execucao, metadata) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','{{$json.canal_registro}}','evento','Participacao registrada: {{$json.status_participacao}}','evento','engajado',false,'baixo','registrado','participacao_evento','{{ JSON.stringify($json.metadata).replace(/'/g, \"''\") }}'::jsonb);"
       },
       "id": "Postgres_3",
-      "name": "Registrar InteraÃ§Ã£o de Evento",
+      "name": "Registrar Interação de Evento",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
@@ -137,7 +137,7 @@
         "options": {}
       },
       "id": "Respond_1",
-      "name": "Responder ParticipaÃ§Ã£o",
+      "name": "Responder Participação",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
@@ -147,22 +147,22 @@
     }
   ],
   "connections": {
-    "Webhook ParticipaÃ§Ã£o Evento Ricardo Vale ricardo-vale": {
+    "Webhook Participação Evento": {
       "main": [
         [
           {
-            "node": "Normalizar ParticipaÃ§Ã£o",
+            "node": "Normalizar Participação",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalizar ParticipaÃ§Ã£o": {
+    "Normalizar Participação": {
       "main": [
         [
           {
-            "node": "Registrar ParticipaÃ§Ã£o",
+            "node": "Registrar Participação",
             "type": "main",
             "index": 0
           },
@@ -172,18 +172,18 @@
             "index": 0
           },
           {
-            "node": "Registrar InteraÃ§Ã£o de Evento",
+            "node": "Registrar Interação de Evento",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Registrar ParticipaÃ§Ã£o": {
+    "Registrar Participação": {
       "main": [
         [
           {
-            "node": "Responder ParticipaÃ§Ã£o",
+            "node": "Responder Participação",
             "type": "main",
             "index": 0
           }
@@ -194,18 +194,18 @@
       "main": [
         [
           {
-            "node": "Responder ParticipaÃ§Ã£o",
+            "node": "Responder Participação",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Registrar InteraÃ§Ã£o de Evento": {
+    "Registrar Interação de Evento": {
       "main": [
         [
           {
-            "node": "Responder ParticipaÃ§Ã£o",
+            "node": "Responder Participação",
             "type": "main",
             "index": 0
           }

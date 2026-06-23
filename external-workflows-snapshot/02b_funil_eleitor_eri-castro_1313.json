@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return items.map((item) => {\n  const raw = item.json.body || item.json;\n  const entries = Array.isArray(raw.entry) ? raw.entry : [];\n  const changes = entries.flatMap((entry) => Array.isArray(entry.changes) ? entry.changes : []);\n  const change = changes[0] || {};\n  const value = change.value || raw.value || raw;\n  const message = Array.isArray(value.messages) ? value.messages[0] : null;\n  const contact = Array.isArray(value.contacts) ? value.contacts[0] : null;\n  const status = Array.isArray(value.statuses) ? value.statuses[0] : null;\n\n  const extractMessageText = (source) => {\n    if (!source) return '';\n    return (\n      source.text?.body ||\n      source.button?.text ||\n      source.interactive?.button_reply?.title ||\n      source.interactive?.list_reply?.title ||\n      source.image?.caption ||\n      source.video?.caption ||\n      source.document?.caption ||\n      source.caption ||\n      source.conversation ||\n      ''\n    ).toString().trim();\n  };\n\n  const fallbackBody = raw.query || raw.body || raw;\n  const fallbackMessage = (fallbackBody.mensagem || fallbackBody.message || fallbackBody.text || '').toString().trim();\n\n  if (!message && !fallbackMessage) {\n    return [{\n      json: {\n        kind: status ? 'status' : 'ignored',\n        id_candidato: '1313',\n        eleitor_id: '',\n        eleitor_uid: '',\n        nome: '',\n        telefone: '',\n        email: '',\n        cidade: '',\n        bairro: '',\n        mensagem_eleitor: '',\n        tema_interesse: 'geral',\n        intencao_voto: 'nao_classificada',\n        sentimento: 'neutro',\n        etapa_sugerida: 'novo_lead',\n        score_delta: 0,\n        consentimento_lgpd: true,\n        canal_preferido: 'whatsapp',\n        origem_captacao: 'meta_cloud_api',\n        rotulo_ia: 'Resposta operacional de validaÃ§Ã£o da campanha.',\n        mensagem_resposta: '',\n        metadata: raw,\n        status_event: status || null,\n        response_message: status ? 'Evento de status recebido com sucesso.' : 'Evento recebido sem mensagem de eleitor.'\n      }\n    }];\n  }\n\n  const telefone = String(message?.from || fallbackBody.telefone || fallbackBody.phone || '').replace(/\\D/g, '');\n  const email = (fallbackBody.email || '').toString().trim();\n  const eleitorId = (fallbackBody.eleitor_id || telefone || email || Date.now().toString()).toString().trim();\n  const mensagem = extractMessageText(message) || fallbackMessage;\n  const nome = (contact?.profile?.name || fallbackBody.nome || fallbackBody.name || 'Eleitor').toString().trim();\n  const mensagemLc = mensagem.toLowerCase();\n\n  let tema = 'geral';\n  if (mensagemLc.includes('educa')) tema = 'educacao';\n  else if (mensagemLc.includes('saud')) tema = 'saude';\n  else if (mensagemLc.includes('seguran')) tema = 'seguranca';\n  else if (mensagemLc.includes('trabalho') || mensagemLc.includes('emprego')) tema = 'trabalho';\n  else if (mensagemLc.includes('mobilidade') || mensagemLc.includes('transporte')) tema = 'mobilidade';\n\n  let intencao = 'nao_classificada';\n  if (mensagemLc.includes('apoio') || mensagemLc.includes('voto')) intencao = 'apoio';\n  else if (mensagemLc.includes('duvida') || mensagemLc.includes('talvez')) intencao = 'indeciso';\n\n  let sentimento = 'neutro';\n  if (mensagemLc.includes('parab') || mensagemLc.includes('gostei') || mensagemLc.includes('apoio')) sentimento = 'positivo';\n  else if (mensagemLc.includes('reclama') || mensagemLc.includes('ruim') || mensagemLc.includes('contra')) sentimento = 'negativo';\n\n  let etapa = 'qualificado';\n  if (intencao === 'apoio') etapa = 'engajado';\n  if (!mensagem) etapa = 'novo_lead';\n\n  const respostaBase = {\n    educacao: 'Obrigado pela mensagem. O time do Eri Castro registrou seu interesse em educaÃ§Ã£o e retornarÃ¡ com conteÃºdo qualificado.',\n    saude: 'Obrigado pelo contato. O time do Eri Castro registrou seu interesse em saÃºde para aprofundar esse tema com vocÃª.',\n    seguranca: 'Recebemos sua mensagem. O tema seguranÃ§a jÃ¡ foi sinalizado para o relacionamento da campanha do Eri Castro.',\n    trabalho: 'Obrigado pela mensagem. Registramos seu interesse em trabalho e desenvolvimento para a campanha do Eri Castro.',\n    mobilidade: 'Recebemos sua mensagem. O tema mobilidade foi associado ao seu cadastro para continuidade do relacionamento.',\n    geral: 'Obrigado pela mensagem. Seu contato foi registrado na campanha do Eri Castro e seguirÃ¡ para acompanhamento.'\n  };\n\n  return [{\n    json: {\n      kind: 'inbound',\n      id_candidato: '1313',\n      eleitor_id: eleitorId,\n      eleitor_uid: `1313:${eleitorId}`,\n      nome,\n      telefone,\n      email,\n      cidade: (fallbackBody.cidade || '').toString().trim(),\n      bairro: (fallbackBody.bairro || '').toString().trim(),\n      mensagem_eleitor: mensagem,\n      tema_interesse: tema,\n      intencao_voto: intencao,\n      sentimento,\n      etapa_sugerida: etapa,\n      score_delta: intencao === 'apoio' ? 20 : 8,\n      consentimento_lgpd: fallbackBody.consentimento_lgpd !== false,\n      canal_preferido: 'whatsapp',\n      origem_captacao: 'meta_cloud_api',\n      rotulo_ia: 'Este atendimento Ã© realizado por assistente virtual oficial da campanha.',\n      mensagem_resposta: `Este atendimento Ã© realizado por assistente virtual oficial da campanha.\\n\\n${respostaBase[tema]}`,\n      metadata: raw,\n      meta_phone_number_id: value.metadata?.phone_number_id || '',\n      meta_display_phone_number: value.metadata?.display_phone_number || '',\n      meta_message_id: message?.id || '',\n      response_message: 'Mensagem inbound recebida e processada com sucesso.'\n    }\n  }];\n});"
+        "jsCode": "return items.map((item) => {\n  const raw = item.json.body || item.json;\n  const entries = Array.isArray(raw.entry) ? raw.entry : [];\n  const changes = entries.flatMap((entry) => Array.isArray(entry.changes) ? entry.changes : []);\n  const change = changes[0] || {};\n  const value = change.value || raw.value || raw;\n  const message = Array.isArray(value.messages) ? value.messages[0] : null;\n  const contact = Array.isArray(value.contacts) ? value.contacts[0] : null;\n  const status = Array.isArray(value.statuses) ? value.statuses[0] : null;\n\n  const extractMessageText = (source) => {\n    if (!source) return '';\n    return (\n      source.text?.body ||\n      source.button?.text ||\n      source.interactive?.button_reply?.title ||\n      source.interactive?.list_reply?.title ||\n      source.image?.caption ||\n      source.video?.caption ||\n      source.document?.caption ||\n      source.caption ||\n      source.conversation ||\n      ''\n    ).toString().trim();\n  };\n\n  const fallbackBody = raw.query || raw.body || raw;\n  const fallbackMessage = (fallbackBody.mensagem || fallbackBody.message || fallbackBody.text || '').toString().trim();\n\n  if (!message && !fallbackMessage) {\n    return [{\n      json: {\n        kind: status ? 'status' : 'ignored',\n        id_candidato: '1313',\n        eleitor_id: '',\n        eleitor_uid: '',\n        nome: '',\n        telefone: '',\n        email: '',\n        cidade: '',\n        bairro: '',\n        mensagem_eleitor: '',\n        tema_interesse: 'geral',\n        intencao_voto: 'nao_classificada',\n        sentimento: 'neutro',\n        etapa_sugerida: 'novo_lead',\n        score_delta: 0,\n        consentimento_lgpd: true,\n        canal_preferido: 'whatsapp',\n        origem_captacao: 'meta_cloud_api',\n        rotulo_ia: 'Resposta operacional de validação da campanha.',\n        mensagem_resposta: '',\n        metadata: raw,\n        status_event: status || null,\n        response_message: status ? 'Evento de status recebido com sucesso.' : 'Evento recebido sem mensagem de eleitor.'\n      }\n    }];\n  }\n\n  const telefone = String(message?.from || fallbackBody.telefone || fallbackBody.phone || '').replace(/\\D/g, '');\n  const email = (fallbackBody.email || '').toString().trim();\n  const eleitorId = (fallbackBody.eleitor_id || telefone || email || Date.now().toString()).toString().trim();\n  const mensagem = extractMessageText(message) || fallbackMessage;\n  const nome = (contact?.profile?.name || fallbackBody.nome || fallbackBody.name || 'Eleitor').toString().trim();\n  const mensagemLc = mensagem.toLowerCase();\n\n  let tema = 'geral';\n  if (mensagemLc.includes('educa')) tema = 'educacao';\n  else if (mensagemLc.includes('saud')) tema = 'saude';\n  else if (mensagemLc.includes('seguran')) tema = 'seguranca';\n  else if (mensagemLc.includes('trabalho') || mensagemLc.includes('emprego')) tema = 'trabalho';\n  else if (mensagemLc.includes('mobilidade') || mensagemLc.includes('transporte')) tema = 'mobilidade';\n\n  let intencao = 'nao_classificada';\n  if (mensagemLc.includes('apoio') || mensagemLc.includes('voto')) intencao = 'apoio';\n  else if (mensagemLc.includes('duvida') || mensagemLc.includes('talvez')) intencao = 'indeciso';\n\n  let sentimento = 'neutro';\n  if (mensagemLc.includes('parab') || mensagemLc.includes('gostei') || mensagemLc.includes('apoio')) sentimento = 'positivo';\n  else if (mensagemLc.includes('reclama') || mensagemLc.includes('ruim') || mensagemLc.includes('contra')) sentimento = 'negativo';\n\n  let etapa = 'qualificado';\n  if (intencao === 'apoio') etapa = 'engajado';\n  if (!mensagem) etapa = 'novo_lead';\n\n  const respostaBase = {\n    educacao: 'Obrigado pela mensagem. O time do Eri Castro registrou seu interesse em educação e retornará com conteúdo qualificado.',\n    saude: 'Obrigado pelo contato. O time do Eri Castro registrou seu interesse em saúde para aprofundar esse tema com você.',\n    seguranca: 'Recebemos sua mensagem. O tema segurança já foi sinalizado para o relacionamento da campanha do Eri Castro.',\n    trabalho: 'Obrigado pela mensagem. Registramos seu interesse em trabalho e desenvolvimento para a campanha do Eri Castro.',\n    mobilidade: 'Recebemos sua mensagem. O tema mobilidade foi associado ao seu cadastro para continuidade do relacionamento.',\n    geral: 'Obrigado pela mensagem. Seu contato foi registrado na campanha do Eri Castro e seguirá para acompanhamento.'\n  };\n\n  return [{\n    json: {\n      kind: 'inbound',\n      id_candidato: '1313',\n      eleitor_id: eleitorId,\n      eleitor_uid: `1313:${eleitorId}`,\n      nome,\n      telefone,\n      email,\n      cidade: (fallbackBody.cidade || '').toString().trim(),\n      bairro: (fallbackBody.bairro || '').toString().trim(),\n      mensagem_eleitor: mensagem,\n      tema_interesse: tema,\n      intencao_voto: intencao,\n      sentimento,\n      etapa_sugerida: etapa,\n      score_delta: intencao === 'apoio' ? 20 : 8,\n      consentimento_lgpd: fallbackBody.consentimento_lgpd !== false,\n      canal_preferido: 'whatsapp',\n      origem_captacao: 'meta_cloud_api',\n      rotulo_ia: 'Este atendimento é realizado por assistente virtual oficial da campanha.',\n      mensagem_resposta: `Este atendimento é realizado por assistente virtual oficial da campanha.\\n\\n${respostaBase[tema]}`,\n      metadata: raw,\n      meta_phone_number_id: value.metadata?.phone_number_id || '',\n      meta_display_phone_number: value.metadata?.display_phone_number || '',\n      meta_message_id: message?.id || '',\n      response_message: 'Mensagem inbound recebida e processada com sucesso.'\n    }\n  }];\n});"
       },
       "id": "Code_Normalizar_Meta",
       "name": "Normalizar Entrada Meta",
@@ -55,7 +55,7 @@
         }
       },
       "id": "If_Payload_Meta_OK",
-      "name": "Payload inbound vÃ¡lido?",
+      "name": "Payload inbound válido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -89,7 +89,7 @@
         "query": "insert into interacoes (eleitor_uid, eleitor_id, id_candidato, canal, direcao, mensagem, resposta_eleitor, tema_classificado, sentimento, intencao_voto, etapa_sugerida, usa_ia, rotulo_ia, risco_compliance, status_envio, origem_execucao, metadata) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','whatsapp','inbound','{{$json.mensagem_resposta}}','{{$json.mensagem_eleitor}}','{{$json.tema_interesse}}','{{$json.sentimento}}','{{$json.intencao_voto}}','{{$json.etapa_sugerida}}',true,'{{$json.rotulo_ia}}','baixo','recebido_meta_cloud_api','webhook_inbound_meta_eri_castro','{{ JSON.stringify($json.metadata) }}'::jsonb);"
       },
       "id": "Postgres_Registrar_Inbound_Meta",
-      "name": "Registrar InteraÃ§Ã£o Inbound",
+      "name": "Registrar Interação Inbound",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
@@ -140,7 +140,7 @@
         "query": "insert into interacoes (eleitor_uid, eleitor_id, id_candidato, canal, direcao, mensagem, tema_classificado, sentimento, intencao_voto, etapa_sugerida, usa_ia, rotulo_ia, risco_compliance, status_envio, origem_execucao, metadata) values ('{{$json.eleitor_uid}}','{{$json.eleitor_id}}','{{$json.id_candidato}}','whatsapp','outbound','{{$json.mensagem_resposta}}','{{$json.tema_interesse}}','{{$json.sentimento}}','{{$json.intencao_voto}}','{{$json.etapa_sugerida}}',true,'{{$json.rotulo_ia}}','baixo','enviado_meta_cloud_api','webhook_outbound_meta_eri_castro','{{ JSON.stringify({ meta_phone_number_id: $json.meta_phone_number_id, meta_message_id: $json.meta_message_id }) }}'::jsonb);"
       },
       "id": "Postgres_Registrar_Outbound_Meta",
-      "name": "Registrar InteraÃ§Ã£o Outbound",
+      "name": "Registrar Interação Outbound",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
@@ -227,14 +227,14 @@
       "main": [
         [
           {
-            "node": "Payload inbound vÃ¡lido?",
+            "node": "Payload inbound válido?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Payload inbound vÃ¡lido?": {
+    "Payload inbound válido?": {
       "main": [
         [
           {
@@ -256,14 +256,14 @@
       "main": [
         [
           {
-            "node": "Registrar InteraÃ§Ã£o Inbound",
+            "node": "Registrar Interação Inbound",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Registrar InteraÃ§Ã£o Inbound": {
+    "Registrar Interação Inbound": {
       "main": [
         [
           {
@@ -278,14 +278,14 @@
       "main": [
         [
           {
-            "node": "Registrar InteraÃ§Ã£o Outbound",
+            "node": "Registrar Interação Outbound",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Registrar InteraÃ§Ã£o Outbound": {
+    "Registrar Interação Outbound": {
       "main": [
         [
           {

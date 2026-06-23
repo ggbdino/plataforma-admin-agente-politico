@@ -26,7 +26,7 @@ if (-not (Test-Path -LiteralPath $ManifestPath)) {
   throw "Manifesto de candidatos não encontrado: $ManifestPath"
 }
 
-$candidates = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+$candidates = [System.IO.File]::ReadAllText($ManifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
 if (-not $candidates -or $candidates.Count -eq 0) {
   throw "Nenhum candidato definido no manifesto: $ManifestPath"
 }
@@ -34,6 +34,7 @@ if (-not $candidates -or $candidates.Count -eq 0) {
 $templateFiles = @{
   "02a" = "02a_meta_webhook_verify_eri_1313.json"
   "02b" = "02b_funil_eleitor_eri_1313.json"
+  "02b_datafy" = "02b_funil_eleitor_ricardo-vale_ricardo-vale_datafy-chat.json"
   "04b" = "04b_cadencia_eri_1313.json"
   "05b" = "05b_governanca_eri_1313.json"
   "06b" = "06_participacao_eventos_kpis.json"
@@ -83,6 +84,7 @@ function Build-FlowName([string]$Prefix, $Candidate) {
   switch ($Prefix) {
     "02a" { return "02a_meta_webhook_verify_${slug}_$($Candidate.id)" }
     "02b" { return "02b_funil_eleitor_${slug}_$($Candidate.id)" }
+    "02b_datafy" { return "02b_funil_eleitor_${slug}_$($Candidate.id)_datafy-chat" }
     "04b" { return "04b_cadencia_${slug}_$($Candidate.id)" }
     "05b" { return "05b_governanca_${slug}_$($Candidate.id)" }
     "07"  { return "07_qrcode_canais_agentes_${slugUnderscore}_$($Candidate.id)" }
@@ -100,6 +102,7 @@ function Build-FlowContent([string]$Prefix, $TemplateContent, $Candidate) {
   switch ($Prefix) {
     "02a" { return Apply-CommonCandidateReplacements $TemplateContent $Candidate }
     "02b" { return Apply-CommonCandidateReplacements $TemplateContent $Candidate }
+    "02b_datafy" { return Apply-DatafyCandidateReplacements $TemplateContent $Candidate }
     "04b" { return Apply-CommonCandidateReplacements $TemplateContent $Candidate }
     "05b" { return Apply-CommonCandidateReplacements $TemplateContent $Candidate }
     "07" {
@@ -129,6 +132,46 @@ function Build-FlowContent([string]$Prefix, $TemplateContent, $Candidate) {
   }
 }
 
+function Apply-DatafyCandidateReplacements([string]$Content, $Candidate) {
+  $slug = [string]$Candidate.slug
+  $slugUnderscore = [string]$Candidate.slug_underscore
+  if ([string]::IsNullOrWhiteSpace($slugUnderscore)) {
+    $slugUnderscore = $slug.Replace("-", "_")
+  }
+
+  $nome = [string]$Candidate.nome
+  $nomeLower = $nome.ToLowerInvariant()
+  $id = [string]$Candidate.id
+  $targetName = "02b_funil_eleitor_${slug}_$($Candidate.id)_datafy-chat"
+  $genericIncrementalBlock = @(
+    "'DETALHAMENTO INCREMENTAL DO CANDIDATO - EDITAVEL NO WORKFLOW, SEM ALTERAR O BANCO:',",
+    "'Use este bloco apenas como complemento manual. Para este candidato, priorize perfil_markdown, prompts_agentes e dados da base. Nunca invente propostas, links, apoios ou realizacoes.',",
+    "'ROTEIRO INICIAL: no primeiro contato, apresente-se como Atendente Virtual de $nome e pergunte o nome do eleitor. Depois de receber o nome, ofereca as opcoes: 1 - Conhecer $nome 2 - Acompanhar o trabalho 3 - Redes sociais 4 - Falar comigo 5 - Receber materiais.',",
+    "'Quando faltar informacao sobre uma proposta, diga que a proposta ainda esta sendo consolidada com a populacao.',",
+    "'ABERTURA DO DIA:',"
+  ) -join "\n"
+
+  $content = $Content
+  $content = $content -replace "(?s)'DETALHAMENTO INCREMENTAL DO CANDIDATO.*?'ABERTURA DO DIA:',", $genericIncrementalBlock
+  $content = $content.Replace("02b_funil_eleitor_ricardo-vale_ricardo-vale_datafy-chat", $targetName)
+  $content = $content.Replace("Webhook Entrada Ricardo Vale Datafy POST", "Webhook Entrada $nome Datafy POST")
+  $content = $content.Replace("agente-politico/ricardo-vale/entrada-eleitor-datafy", "agente-politico/$id/entrada-eleitor-datafy")
+  $content = $content.Replace("agente-politico-ricardo-vale-entrada-eleitor-datafy-post", "agente-politico-$id-entrada-eleitor-datafy-post")
+  $content = $content.Replace("Postgres_Buscar_Contexto_Datafy_Ricardo", "Postgres_Buscar_Contexto_Datafy_$slugUnderscore")
+  $content = $content.Replace("Merge_Contexto_Datafy_Ricardo", "Merge_Contexto_Datafy_$slugUnderscore")
+  $content = $content.Replace("webhook_inbound_datafy_ricardo_vale", "webhook_inbound_datafy_$slugUnderscore")
+  $content = $content.Replace("webhook_outbound_datafy_ricardo_vale", "webhook_outbound_datafy_$slugUnderscore")
+  $content = $content -replace "quem.{1,4}ricardo vale", "quem e $nomeLower"
+  $content = $content.Replace("fala do ricardo", "fala de $nomeLower")
+  $content = $content.Replace("fala de ricardo vale", "fala de $nomeLower")
+  $content = $content.Replace("me fala do ricardo", "me fala de $nomeLower")
+  $content = $content.Replace("me fala de ricardo vale", "me fala de $nomeLower")
+  $content = $content -replace "'13\. Nunca responda que o Instagram.*?ricardovaledf/\.',", "'13. Quando perguntarem por redes sociais, responda apenas com links ou perfis que estejam no perfil, prompts ou dados cadastrados do candidato. Se nao houver link cadastrado, diga que a equipe esta atualizando os canais oficiais.',"
+  $content = $content.Replace("Ricardo Vale", $nome)
+  $content = $content.Replace("ricardo-vale", $id)
+  $content = $content.Replace("ricardo_vale", $slugUnderscore)
+  return $content
+}
 $written = @()
 $legacyRemoved = @()
 
@@ -163,10 +206,10 @@ if ($CleanupLegacy) {
 }
 
 foreach ($candidate in $candidates) {
-  foreach ($prefix in @("02a", "02b", "04b", "05b", "06b", "07")) {
+  foreach ($prefix in @("02a", "02b", "02b_datafy", "04b", "05b", "06b", "07")) {
     $templateName = $templateFiles[$prefix]
     $templatePath = Join-Path $sourceDir $templateName
-    $templateContent = Get-Content -LiteralPath $templatePath -Raw
+    $templateContent = [System.IO.File]::ReadAllText($templatePath, [System.Text.Encoding]::UTF8)
     $targetName = "$(Build-FlowName $prefix $candidate).json"
     $generatedContent = Build-FlowContent $prefix $templateContent $candidate
 

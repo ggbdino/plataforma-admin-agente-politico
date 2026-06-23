@@ -30,6 +30,7 @@ export type CandidateWorkflowGenerationResult = {
 const TEMPLATE_FILES: Record<string, string> = {
   "02a": "02a_meta_webhook_verify_eri_1313.json",
   "02b": "02b_funil_eleitor_eri_1313.json",
+  "02b_datafy": "02b_funil_eleitor_ricardo-vale_ricardo-vale_datafy-chat.json",
   "04b": "04b_cadencia_eri_1313.json",
   "05b": "05b_governanca_eri_1313.json",
   "06b": "06_participacao_eventos_kpis.json",
@@ -37,7 +38,7 @@ const TEMPLATE_FILES: Record<string, string> = {
 };
 
 const LEGACY_PREFIXES = ["02a", "02b", "04b", "05b"] as const;
-const GENERATION_PREFIXES = ["02a", "02b", "04b", "05b", "06b", "07"] as const;
+const GENERATION_PREFIXES = ["02a", "02b", "02b_datafy", "04b", "05b", "06b", "07"] as const;
 
 export async function generateCandidateWorkflowBundle(
   input: CandidateWorkflowGenerationInput
@@ -200,6 +201,8 @@ function buildFlowName(prefix: string, candidate: CandidateWorkflowManifestEntry
       return `02a_meta_webhook_verify_${candidate.slug}_${candidate.id}`;
     case "02b":
       return `02b_funil_eleitor_${candidate.slug}_${candidate.id}`;
+    case "02b_datafy":
+      return `02b_funil_eleitor_${candidate.slug}_${candidate.id}_datafy-chat`;
     case "04b":
       return `04b_cadencia_${candidate.slug}_${candidate.id}`;
     case "05b":
@@ -224,6 +227,8 @@ function buildFlowContent(
     case "04b":
     case "05b":
       return applyCommonCandidateReplacements(templateContent, candidate);
+    case "02b_datafy":
+      return applyDatafyCandidateReplacements(templateContent, candidate);
     case "06b":
       return templateContent
         .replace(
@@ -294,6 +299,44 @@ function applyCommonCandidateReplacements(
       `webhook_outbound_meta_${candidate.slug_underscore}`
     )
     .replaceAll("1313", candidate.id);
+}
+
+function applyDatafyCandidateReplacements(
+  templateContent: string,
+  candidate: CandidateWorkflowManifestEntry
+) {
+  const targetName = `02b_funil_eleitor_${candidate.slug}_${candidate.id}_datafy-chat`;
+  const candidateNameLower = candidate.nome.toLowerCase();
+  const genericIncrementalBlock = [
+    "'DETALHAMENTO INCREMENTAL DO CANDIDATO - EDITAVEL NO WORKFLOW, SEM ALTERAR O BANCO:',",
+    "'Use este bloco apenas como complemento manual. Para este candidato, priorize perfil_markdown, prompts_agentes e dados da base. Nunca invente propostas, links, apoios ou realizacoes.',",
+    `'ROTEIRO INICIAL: no primeiro contato, apresente-se como Atendente Virtual de ${candidate.nome} e pergunte o nome do eleitor. Depois de receber o nome, ofereca as opcoes: 1 - Conhecer ${candidate.nome} 2 - Acompanhar o trabalho 3 - Redes sociais 4 - Falar comigo 5 - Receber materiais.',`,
+    "'Quando faltar informacao sobre uma proposta, diga que a proposta ainda esta sendo consolidada com a populacao.',",
+    "'ABERTURA DO DIA:',"
+  ].join("\\n");
+
+  return templateContent
+    .replace(/'DETALHAMENTO INCREMENTAL DO CANDIDATO[\s\S]*?'ABERTURA DO DIA:',/, genericIncrementalBlock)
+    .replaceAll("02b_funil_eleitor_ricardo-vale_ricardo-vale_datafy-chat", targetName)
+    .replaceAll("Webhook Entrada Ricardo Vale Datafy POST", `Webhook Entrada ${candidate.nome} Datafy POST`)
+    .replaceAll("agente-politico/ricardo-vale/entrada-eleitor-datafy", `agente-politico/${candidate.id}/entrada-eleitor-datafy`)
+    .replaceAll("agente-politico-ricardo-vale-entrada-eleitor-datafy-post", `agente-politico-${candidate.id}-entrada-eleitor-datafy-post`)
+    .replaceAll("Postgres_Buscar_Contexto_Datafy_Ricardo", `Postgres_Buscar_Contexto_Datafy_${candidate.slug_underscore}`)
+    .replaceAll("Merge_Contexto_Datafy_Ricardo", `Merge_Contexto_Datafy_${candidate.slug_underscore}`)
+    .replaceAll("webhook_inbound_datafy_ricardo_vale", `webhook_inbound_datafy_${candidate.slug_underscore}`)
+    .replaceAll("webhook_outbound_datafy_ricardo_vale", `webhook_outbound_datafy_${candidate.slug_underscore}`)
+    .replace(/quem.{1,4}ricardo vale/g, `quem e ${candidateNameLower}`)
+    .replaceAll("fala do ricardo", `fala de ${candidateNameLower}`)
+    .replaceAll("fala de ricardo vale", `fala de ${candidateNameLower}`)
+    .replaceAll("me fala do ricardo", `me fala de ${candidateNameLower}`)
+    .replaceAll("me fala de ricardo vale", `me fala de ${candidateNameLower}`)
+    .replace(
+      /'13\. Nunca responda que o Instagram[\s\S]*?ricardovaledf\/.',/,
+      "'13. Quando perguntarem por redes sociais, responda apenas com links ou perfis que estejam no perfil, prompts ou dados cadastrados do candidato. Se nao houver link cadastrado, diga que a equipe esta atualizando os canais oficiais.',"
+    )
+    .replaceAll("Ricardo Vale", candidate.nome)
+    .replaceAll("ricardo-vale", candidate.id)
+    .replaceAll("ricardo_vale", candidate.slug_underscore);
 }
 
 function normalizeForSlug(value: string) {
