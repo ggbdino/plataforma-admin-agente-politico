@@ -1,11 +1,11 @@
 {
   "name": "plataforma-admin-agente-politico",
-  "version": "16.0.1",
+  "version": "16.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
