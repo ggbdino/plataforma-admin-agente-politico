@@ -69,6 +69,7 @@ export type CampaignChannelOption = {
 export type CampaignManagerContext = {
   id_candidato: string;
   nome_urna: string;
+  numero_tre_tse: string | null;
   telefone_responsavel: string | null;
   responsavel_preenchimento: string | null;
   email_responsavel: string | null;

@@ -117,6 +117,10 @@ export default async function CampaignManagerPage({
                   <div>{data.email_responsavel ?? "-"}</div>
                 </div>
                 <div>
+                  <strong>Número do candidato</strong>
+                  <div className="mono">{data.numero_tre_tse ?? "-"}</div>
+                </div>
+                <div>
                   <strong>Número oficial da campanha</strong>
                   <div className="mono">{data.numero_agente_oficial ?? "-"}</div>
                 </div>
@@ -162,6 +166,24 @@ export default async function CampaignManagerPage({
               <input name="idCandidato" type="hidden" value={idCandidato} />
               <input name="tipo_canal" type="hidden" value="whatsapp_agente" />
               <div className="step-form-grid">
+                <label className="step-note">
+                  <span>Nome de urna</span>
+                  <input
+                    className="step-input"
+                    defaultValue={data.nome_urna}
+                    name="nome_urna"
+                    type="text"
+                  />
+                </label>
+                <label className="step-note">
+                  <span>Número do candidato</span>
+                  <input
+                    className="step-input"
+                    defaultValue={data.numero_tre_tse ?? ""}
+                    name="numero_tre_tse"
+                    type="text"
+                  />
+                </label>
                 <label className="step-note">
                   <span>Nome do canal oficial</span>
                   <input

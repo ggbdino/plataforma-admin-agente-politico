@@ -136,10 +136,13 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     await client.query("commit");
 
     executionId = executionResult.rows[0].id;
+
+
     const webhookConfig = STEP_TO_WEBHOOK[input.codigoEtapa];
 
     if (!webhookConfig) {
       if (input.codigoEtapa === "configurar_canais") {
+        await updateCandidateCampaignIdentity(input.idCandidato, input.payload);
         await upsertCandidateChannel(input.idCandidato, input.payload);
       }
 
@@ -196,28 +199,49 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
     }
 
     const defaultPayload = buildDefaultPayload(input.idCandidato, input.codigoEtapa);
-    const responsePayload = await triggerN8nWebhook({
-      path: webhookConfig.path,
-      method: webhookConfig.method ?? "POST",
-      payload: {
-        ...defaultPayload,
-        ...input.payload
+    let responsePayload: unknown;
+
+    try {
+      responsePayload = await triggerN8nWebhook({
+        path: webhookConfig.path,
+        method: webhookConfig.method ?? "POST",
+        payload: {
+          ...defaultPayload,
+          ...input.payload
+        }
+      });
+    } catch (error) {
+      if (input.codigoEtapa === "cadastro_candidato") {
+        const localRegistration = await resolveExistingCandidateRegistration(input.idCandidato);
+
+        if (localRegistration) {
+          responsePayload = {
+            conciliado_localmente: true,
+            motivo: "n8n_indisponivel_candidato_existente_na_base",
+            erro_n8n: error instanceof Error ? error.message : "Falha ao chamar workflow do n8n.",
+            candidato: localRegistration
+          };
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
       }
-    });
+    }
 
     await markExecutionFinished({
       executionId,
       idCandidato: input.idCandidato,
       codigoEtapa: input.codigoEtapa,
       status: "concluida",
-      message: `Etapa ${implantation.nome_etapa} executada com sucesso.`,
+      message: buildStepSuccessMessage(implantation.nome_etapa, responsePayload),
       responsePayload
     });
 
     return {
       status: "concluido",
       codigo_etapa: input.codigoEtapa,
-      mensagem: `Etapa ${implantation.nome_etapa} executada com sucesso.`,
+      mensagem: buildStepSuccessMessage(implantation.nome_etapa, responsePayload),
       detalhes: responsePayload
     };
   } catch (error) {
@@ -243,6 +267,55 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
   } finally {
     client.release();
   }
+}
+
+function buildStepSuccessMessage(nomeEtapa: string, responsePayload: unknown) {
+  if (
+    responsePayload &&
+    typeof responsePayload === "object" &&
+    "conciliado_localmente" in responsePayload
+  ) {
+    return `Etapa ${nomeEtapa} conciliada localmente: candidato ja existe na base da plataforma; o workflow do n8n nao retornou sucesso nesta execucao.`;
+  }
+
+  return `Etapa ${nomeEtapa} executada com sucesso.`;
+}
+
+async function resolveExistingCandidateRegistration(idCandidato: string) {
+  const result = await db.query<{
+    id_candidato: string;
+    nome_urna: string | null;
+    nome_completo: string | null;
+    partido: string | null;
+    cargo_disputado: string | null;
+  }>(
+    `
+      select
+        id_candidato,
+        nome_urna,
+        nome_completo,
+        partido,
+        cargo_disputado
+      from candidatos
+      where id_candidato = $1
+      limit 1
+    `,
+    [idCandidato]
+  );
+
+  const candidate = result.rows[0];
+
+  if (
+    !candidate ||
+    !candidate.nome_urna ||
+    !candidate.nome_completo ||
+    !candidate.partido ||
+    !candidate.cargo_disputado
+  ) {
+    return null;
+  }
+
+  return candidate;
 }
 
 function buildDefaultPayload(idCandidato: string, codigoEtapa: string) {
@@ -321,6 +394,54 @@ function getManualStepMessage(codigoEtapa: string, payload: Record<string, unkno
       return `Campanha marcada como ativa no painel administrativo.${observacao}`;
     default:
       return `Etapa registrada como manual ou dependente de configuracao externa.${observacao}`;
+  }
+}
+
+async function updateCandidateCampaignIdentity(
+  idCandidato: string,
+  payload: Record<string, unknown>
+) {
+  const nomeUrna =
+    typeof payload.nome_urna === "string" && payload.nome_urna.trim().length > 0
+      ? payload.nome_urna.trim()
+      : null;
+  const numeroTreTse =
+    typeof payload.numero_tre_tse === "string" && payload.numero_tre_tse.trim().length > 0
+      ? payload.numero_tre_tse.trim()
+      : null;
+  const telefoneCampanha =
+    typeof payload.identificador_externo === "string" && payload.identificador_externo.trim().length > 0
+      ? normalizeCampaignPhone(payload.identificador_externo)
+      : null;
+
+  if (!nomeUrna && !numeroTreTse && !telefoneCampanha) {
+    return;
+  }
+
+  await db.query(
+    `
+      update candidatos
+      set
+        nome_urna = coalesce($2::text, nome_urna),
+        numero_tre_tse = coalesce($3::text, numero_tre_tse),
+        telefone_candidato = coalesce($4::text, telefone_candidato),
+        atualizado_em = now()
+      where id_candidato = $1
+    `,
+    [idCandidato, nomeUrna, numeroTreTse, telefoneCampanha]
+  );
+
+  if (nomeUrna) {
+    await db.query(
+      `
+        update campanhas
+        set
+          nome_campanha = $2,
+          atualizado_em = now()
+        where id_candidato = $1
+      `,
+      [idCandidato, `Campanha ${nomeUrna}`]
+    );
   }
 }
 

@@ -9,6 +9,8 @@ import type { CampaignChannelOption } from "@/lib/types";
 
 export async function registerCampaignChannelAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
+  const nomeUrna = String(formData.get("nome_urna") ?? "").trim();
+  const numeroTreTse = String(formData.get("numero_tre_tse") ?? "").trim();
   const nomeCanal = String(formData.get("nome_canal") ?? "").trim();
   const tipoCanal = String(formData.get("tipo_canal") ?? "").trim();
   const identificadorExterno = String(formData.get("identificador_externo") ?? "").trim();
@@ -44,6 +46,8 @@ export async function registerCampaignChannelAction(formData: FormData) {
       executedBy: session?.email ?? "gestor-campanha@plataforma.local",
       source: "gestor_campanha",
       payload: {
+        nome_urna: nomeUrna,
+        numero_tre_tse: numeroTreTse,
         nome_canal: nomeCanal,
         tipo_canal: tipoCanal,
         identificador_externo: identificadorExterno,

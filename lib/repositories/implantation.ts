@@ -255,6 +255,7 @@ export async function getCampaignManagerContext(
   const candidateResult = await db.query<{
     id_candidato: string;
     nome_urna: string;
+    numero_tre_tse: string | null;
     telefone_responsavel: string | null;
     responsavel_preenchimento: string | null;
     email_responsavel: string | null;
@@ -269,6 +270,7 @@ export async function getCampaignManagerContext(
       select
         c.id_candidato,
         c.nome_urna,
+        c.numero_tre_tse,
         c.telefone_responsavel,
         c.responsavel_preenchimento,
         c.email_responsavel,
@@ -339,6 +341,7 @@ export async function getCampaignManagerContext(
   return {
     id_candidato: candidate.id_candidato,
     nome_urna: candidate.nome_urna,
+    numero_tre_tse: candidate.numero_tre_tse,
     telefone_responsavel: candidate.telefone_responsavel,
     responsavel_preenchimento: candidate.responsavel_preenchimento,
     email_responsavel: candidate.email_responsavel,
