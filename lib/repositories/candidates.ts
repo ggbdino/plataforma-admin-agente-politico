@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import type { CandidateListItem } from "@/lib/types";
 
 export async function listCandidates(): Promise<CandidateListItem[]> {
+  await ensureCandidateOperationalColumns();
   await ensureImplantationQrColumns();
 
   const result = await db.query<CandidateListItem>(
@@ -94,9 +95,18 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
 async function ensureImplantationQrColumns() {
   await db.query(`
     alter table implantacoes_candidato
+      add column if not exists qr_code_url text,
       add column if not exists pairing_qr_code_url text,
       add column if not exists evolution_connection_code text,
       add column if not exists evolution_pairing_code text,
       add column if not exists evolution_connection_status text
+  `);
+}
+
+async function ensureCandidateOperationalColumns() {
+  await db.query(`
+    alter table candidatos
+      add column if not exists numero_tre_tse text,
+      add column if not exists telefone_candidato text
   `);
 }

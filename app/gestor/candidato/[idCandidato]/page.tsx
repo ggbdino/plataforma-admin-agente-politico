@@ -160,6 +160,59 @@ export default async function CampaignManagerPage({
             </article>
           </section>
 
+          <section className="card" style={{ marginBottom: 20 }}>
+            <div className="section-heading">
+              <div>
+                <h2 className="section-title">Exportar dados dos usuários</h2>
+                <p className="subtitle">
+                  Gere uma planilha CSV com os dados básicos dos usuários vinculados a este candidato.
+                </p>
+              </div>
+              <span className="pill">Gestor da campanha</span>
+            </div>
+            <form
+              action={`/api/campanhas/${idCandidato}/eleitores/exportar`}
+              className="manager-auth-form"
+              method="get"
+            >
+              <div className="manager-channel-options">
+                <label className="manager-channel-option">
+                  <input defaultChecked name="campo" type="checkbox" value="nome" />
+                  <span>
+                    <strong>Nome</strong>
+                    <small className="muted">Nome cadastrado ou informado no atendimento.</small>
+                  </span>
+                </label>
+                <label className="manager-channel-option">
+                  <input defaultChecked name="campo" type="checkbox" value="telefone" />
+                  <span>
+                    <strong>Telefone</strong>
+                    <small className="muted">Contato de WhatsApp ou telefone importado.</small>
+                  </span>
+                </label>
+                <label className="manager-channel-option">
+                  <input defaultChecked name="campo" type="checkbox" value="email" />
+                  <span>
+                    <strong>Email</strong>
+                    <small className="muted">Email cadastral quando disponível.</small>
+                  </span>
+                </label>
+                <label className="manager-channel-option">
+                  <input defaultChecked name="campo" type="checkbox" value="ultima_interacao" />
+                  <span>
+                    <strong>Data da última interação</strong>
+                    <small className="muted">Último contato identificado no funil ou nas interações.</small>
+                  </span>
+                </label>
+              </div>
+              <div className="actions">
+                <button className="button" type="submit">
+                  Gerar planilha CSV
+                </button>
+              </div>
+            </form>
+          </section>
+
           <section className="card">
             <h2 className="section-title">Configurar canal oficial e divulgação</h2>
             <form action={registerCampaignChannelAction} className="manager-auth-form">

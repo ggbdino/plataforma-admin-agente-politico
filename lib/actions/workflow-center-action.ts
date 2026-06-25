@@ -70,6 +70,8 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
 
   const adminSession = session as NonNullable<typeof session>;
 
+  await ensureWorkflowCenterOperationalColumns();
+
   const config = resolveWorkflowConfig(workflow, idCandidato);
 
   if (!config) {
@@ -236,6 +238,9 @@ export async function updateCandidateOperationalDataAction(formData: FormData) {
   }
 
   const adminSession = session as NonNullable<typeof session>;
+
+  await ensureWorkflowCenterOperationalColumns();
+
   const currentResult = await db.query<{
     nome_urna: string | null;
     numero_tre_tse: string | null;
@@ -482,6 +487,23 @@ export async function generateCandidateWorkflowPackageAction(formData: FormData)
   }
 }
 
+
+async function ensureWorkflowCenterOperationalColumns() {
+  await db.query(`
+    alter table candidatos
+      add column if not exists numero_tre_tse text,
+      add column if not exists telefone_candidato text
+  `);
+
+  await db.query(`
+    alter table implantacoes_candidato
+      add column if not exists qr_code_url text,
+      add column if not exists pairing_qr_code_url text,
+      add column if not exists evolution_connection_code text,
+      add column if not exists evolution_pairing_code text,
+      add column if not exists evolution_connection_status text
+  `);
+}
 
 function normalizeCampaignPhone(value: string) {
   const digits = value.replace(/\D/g, "");

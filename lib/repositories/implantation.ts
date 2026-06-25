@@ -66,6 +66,7 @@ const DEFAULT_IMPLANTATION_STEPS: Array<{
 ];
 
 export async function getCandidateImplantation(idCandidato: string) {
+  await ensureCandidateOperationalColumns();
   await ensureImplantationQrColumns();
   await ensureCandidateImplantationSkeleton(idCandidato);
 
@@ -239,9 +240,18 @@ export async function getCandidateImplantation(idCandidato: string) {
   };
 }
 
+async function ensureCandidateOperationalColumns() {
+  await db.query(`
+    alter table candidatos
+      add column if not exists numero_tre_tse text,
+      add column if not exists telefone_candidato text
+  `);
+}
+
 async function ensureImplantationQrColumns() {
   await db.query(`
     alter table implantacoes_candidato
+      add column if not exists qr_code_url text,
       add column if not exists pairing_qr_code_url text,
       add column if not exists evolution_connection_code text,
       add column if not exists evolution_pairing_code text,
@@ -252,6 +262,9 @@ async function ensureImplantationQrColumns() {
 export async function getCampaignManagerContext(
   idCandidato: string
 ): Promise<CampaignManagerContext | null> {
+  await ensureCandidateOperationalColumns();
+  await ensureImplantationQrColumns();
+
   const candidateResult = await db.query<{
     id_candidato: string;
     nome_urna: string;
