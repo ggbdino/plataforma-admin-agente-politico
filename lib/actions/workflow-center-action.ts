@@ -192,6 +192,184 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
   });
 }
 
+
+export async function updateCandidateOperationalDataAction(formData: FormData) {
+  const idCandidato = String(formData.get("idCandidato") ?? "").trim();
+  const redirectTo =
+    String(formData.get("redirectTo") ?? "/estatisticas/governanca/workflows").trim();
+  const nomeUrna = String(formData.get("nome_urna") ?? "").trim();
+  const numeroTreTse = String(formData.get("numero_tre_tse") ?? "").trim();
+  const rawNumeroAgenteOficial = String(formData.get("numero_agente_oficial") ?? "").trim();
+  const redirectBase = buildRedirectBase(redirectTo, idCandidato);
+  const session = await getCurrentPlatformSession();
+
+  if (!session || session.perfil !== "administrador") {
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Apenas administradores podem atualizar dados operacionais pela Central."
+    });
+  }
+
+  if (!idCandidato) {
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Selecione um candidato valido antes de atualizar os dados operacionais."
+    });
+  }
+
+  if (!nomeUrna) {
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Informe o nome de urna antes de atualizar os dados operacionais."
+    });
+  }
+
+  const numeroAgenteOficial = rawNumeroAgenteOficial
+    ? normalizeCampaignPhone(rawNumeroAgenteOficial)
+    : null;
+
+  if (rawNumeroAgenteOficial && !numeroAgenteOficial) {
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Telefone oficial invalido. Informe DDI, DDD e numero, por exemplo 5561999999999."
+    });
+  }
+
+  const adminSession = session as NonNullable<typeof session>;
+  const currentResult = await db.query<{
+    nome_urna: string | null;
+    numero_tre_tse: string | null;
+    numero_agente_oficial: string | null;
+  }>(
+    [
+      "select c.nome_urna, c.numero_tre_tse, ic.numero_agente_oficial",
+      "from candidatos c",
+      "left join implantacoes_candidato ic on ic.id_candidato = c.id_candidato",
+      "where c.id_candidato = $1",
+      "limit 1"
+    ].join("\n"),
+    [idCandidato]
+  );
+  const current = currentResult.rows[0];
+
+  if (!current) {
+    redirectWithParams(redirectBase, {
+      feedback: "erro",
+      mensagem: "Candidato nao localizado na base para atualizacao operacional."
+    });
+  }
+
+  const phoneChanged = Boolean(
+    numeroAgenteOficial && numeroAgenteOficial !== current.numero_agente_oficial
+  );
+  const publicWhatsappUrl = numeroAgenteOficial ? "https://wa.me/" + numeroAgenteOficial : null;
+  const publicQrCodeUrl = publicWhatsappUrl
+    ? "https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=" +
+      encodeURIComponent(publicWhatsappUrl)
+    : null;
+
+  await db.query("begin");
+
+  try {
+    await db.query(
+      [
+        "update candidatos",
+        "set nome_urna = $2,",
+        "    numero_tre_tse = nullif($3, ''),",
+        "    telefone_candidato = coalesce($4, telefone_candidato),",
+        "    atualizado_em = now()",
+        "where id_candidato = $1"
+      ].join("\n"),
+      [idCandidato, nomeUrna, numeroTreTse, numeroAgenteOficial]
+    );
+
+    await db.query(
+      [
+        "update campanhas",
+        "set nome_campanha = $2, atualizado_em = now()",
+        "where id_candidato = $1"
+      ].join("\n"),
+      [idCandidato, "Campanha " + nomeUrna]
+    );
+
+    await db.query(
+      [
+        "insert into implantacoes_candidato (",
+        "  id_candidato, status_implantacao, numero_agente_oficial, qr_code_url,",
+        "  pairing_qr_code_url, evolution_connection_code, evolution_pairing_code,",
+        "  evolution_connection_status, observacoes, atualizado_em",
+        ") values (",
+        "  $1, 'em_andamento', $2, $3, null, null, null,",
+        "  case when $4 then 'telefone_alterado_requer_regerar_qr' else null end,",
+        "  'Dados operacionais atualizados pela Central de workflows.', now()",
+        ")",
+        "on conflict (id_candidato) do update set",
+        "  numero_agente_oficial = coalesce(excluded.numero_agente_oficial, implantacoes_candidato.numero_agente_oficial),",
+        "  qr_code_url = coalesce(excluded.qr_code_url, implantacoes_candidato.qr_code_url),",
+        "  pairing_qr_code_url = case when $4 then null else implantacoes_candidato.pairing_qr_code_url end,",
+        "  evolution_connection_code = case when $4 then null else implantacoes_candidato.evolution_connection_code end,",
+        "  evolution_pairing_code = case when $4 then null else implantacoes_candidato.evolution_pairing_code end,",
+        "  evolution_connection_status = case",
+        "    when $4 then 'telefone_alterado_requer_regerar_qr'",
+        "    else implantacoes_candidato.evolution_connection_status",
+        "  end,",
+        "  observacoes = 'Dados operacionais atualizados pela Central de workflows.',",
+        "  atualizado_em = now()"
+      ].join("\n"),
+      [idCandidato, numeroAgenteOficial, publicQrCodeUrl, phoneChanged]
+    );
+
+    if (numeroAgenteOficial && publicWhatsappUrl) {
+      await db.query(
+        [
+          "insert into canais_integracao (",
+          "  id_candidato, nome_canal, tipo_canal, identificador_externo, url_canal,",
+          "  status, selecionado_por_padrao, metadata, atualizado_em",
+          ") values (",
+          "  $1, 'WhatsApp oficial da campanha', 'whatsapp_agente', $2, $3,",
+          "  'ativo', true, jsonb_build_object('qr_code_url', $4, 'origem', 'workflow_center'), now()",
+          ")"
+        ].join("\n"),
+        [idCandidato, numeroAgenteOficial, publicWhatsappUrl, publicQrCodeUrl]
+      );
+    }
+
+    await db.query("commit");
+  } catch (error) {
+    await db.query("rollback");
+    throw error;
+  }
+
+  await recordGovernanceEvent({
+    idCandidato,
+    escopo: "admin",
+    ator: adminSession.email,
+    categoria: "dados_operacionais",
+    acao: phoneChanged ? "atualizar_dados_e_invalidar_qr" : "atualizar_dados_operacionais",
+    descricao: phoneChanged
+      ? "Dados operacionais atualizados e QR de pareamento anterior invalidado para regeracao."
+      : "Dados operacionais do candidato atualizados pela Central de workflows.",
+    status: "sucesso",
+    origem: "workflow-center",
+    detalhes: {
+      nome_urna_anterior: current.nome_urna,
+      nome_urna: nomeUrna,
+      numero_tre_tse_anterior: current.numero_tre_tse,
+      numero_tre_tse: numeroTreTse || null,
+      numero_agente_oficial_anterior: current.numero_agente_oficial,
+      numero_agente_oficial: numeroAgenteOficial,
+      telefone_alterado: phoneChanged
+    }
+  });
+
+  redirectWithParams(redirectBase, {
+    feedback: "sucesso",
+    mensagem: phoneChanged
+      ? "Dados operacionais atualizados. Como o telefone oficial mudou, gere novamente o QR code de conexao do WhatsApp."
+      : "Dados operacionais atualizados com sucesso."
+  });
+}
+
 export async function generateCandidateWorkflowPackageAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
   const redirectTo =
@@ -304,6 +482,17 @@ export async function generateCandidateWorkflowPackageAction(formData: FormData)
   }
 }
 
+
+function normalizeCampaignPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length < 12 || digits.length > 13) {
+    return null;
+  }
+
+  return digits;
+}
+
 function buildRedirectBase(redirectTo: string, idCandidato: string) {
   return appendSearchParams(
     redirectTo,
@@ -388,6 +577,10 @@ function buildWorkflowErrorMessage(
 ) {
   if (workflow === "candidato_sync" && rawMessage.includes("requested webhook")) {
     return "O workflow de sincronização de candidatos ainda não expõe uma URL de produção compatível com a plataforma. Confirme se o nó Webhook está ativo, publicado com método GET, usando o path /webhook/candidato-sync e se a plataforma está apontando para N8N_WEBHOOK_BASE_URL no domínio do serviço n8n_webhook.";
+  }
+
+  if (workflow === "candidato_sync" && rawMessage.includes("Error in workflow")) {
+    return "O workflow de sincronizacao da planilha respondeu com erro interno no n8n. Enquanto ele e ajustado no n8n, use o painel Dados operacionais do candidato para atualizar nome de urna, numero, telefone oficial e depois regerar o QR code.";
   }
 
   if (workflow === "governanca" && rawMessage.includes("requested webhook")) {

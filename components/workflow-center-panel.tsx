@@ -15,6 +15,7 @@ type WorkflowCenterPanelProps = {
   feedback?: WorkflowFeedback;
   generateAction: (payload: FormData) => void;
   triggerAction: (payload: FormData) => void;
+  updateOperationalDataAction: (payload: FormData) => void;
 };
 
 const BATCH_WORKFLOWS = [
@@ -89,7 +90,8 @@ export function WorkflowCenterPanel({
   isAdmin,
   feedback,
   generateAction,
-  triggerAction
+  triggerAction,
+  updateOperationalDataAction
 }: WorkflowCenterPanelProps) {
   const [selectedCandidateId, setSelectedCandidateId] = useState(defaultCandidateId);
   const [governanceResource, setGovernanceResource] = useState("");
@@ -198,6 +200,60 @@ export function WorkflowCenterPanel({
             </div>
           </div>
         </div>
+        <form
+          action={updateOperationalDataAction}
+          className="manager-auth-form workflow-operational-form"
+          key={selectedCandidateId}
+          style={{ marginTop: 18 }}
+        >
+          <input name="redirectTo" type="hidden" value="/estatisticas/governanca/workflows" />
+          <input name="idCandidato" type="hidden" value={selectedCandidateId} />
+          <div className="step-panel-callout">
+            <strong>Dados operacionais do candidato</strong>
+            <span>
+              Atualize aqui nome de urna, numero eleitoral e telefone oficial da campanha quando a
+              planilha ou o n8n ainda nao refletirem a mudanca. Ao alterar o telefone oficial, o QR
+              de pareamento antigo sera invalidado e a etapa Gerar QR code devera ser executada de
+              novo.
+            </span>
+          </div>
+          <div className="step-form-grid">
+            <label className="step-note">
+              <span>Nome de urna</span>
+              <input
+                className="step-input"
+                defaultValue={selectedCandidate?.nome_urna ?? ""}
+                name="nome_urna"
+                type="text"
+              />
+            </label>
+            <label className="step-note">
+              <span>Numero do candidato</span>
+              <input
+                className="step-input"
+                defaultValue={selectedCandidate?.numero_tre_tse ?? ""}
+                name="numero_tre_tse"
+                placeholder="Exemplo: 13123"
+                type="text"
+              />
+            </label>
+          </div>
+          <label className="step-note">
+            <span>Telefone oficial da campanha</span>
+            <input
+              className="step-input"
+              defaultValue={selectedCandidate?.numero_agente_oficial ?? ""}
+              name="numero_agente_oficial"
+              placeholder="Exemplo: 5561999999999"
+              type="text"
+            />
+          </label>
+          <div className="workflow-card-footer">
+            <button className="button workflow-action-button" type="submit">
+              Atualizar dados operacionais
+            </button>
+          </div>
+        </form>
       </section>
 
       <section className="analytics-stack" style={{ marginBottom: 16 }}>

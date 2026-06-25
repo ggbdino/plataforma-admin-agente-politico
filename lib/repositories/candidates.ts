@@ -9,6 +9,7 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
       select
         c.id_candidato,
         c.nome_urna,
+        c.numero_tre_tse,
         c.nome_completo,
         c.partido,
         c.cargo_disputado,

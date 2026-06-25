@@ -449,6 +449,8 @@ async function upsertCandidateChannel(
   idCandidato: string,
   payload: Record<string, unknown>
 ) {
+  await ensureEvolutionConnectionColumns();
+
   const nomeCanal =
     typeof payload.nome_canal === "string" && payload.nome_canal.trim().length > 0
       ? payload.nome_canal.trim()
@@ -473,6 +475,9 @@ async function upsertCandidateChannel(
   const canaisDivulgacaoExtras = normalizeExtraChannelItems(payload.canais_divulgacao_extra);
   const normalizedPhone = normalizeCampaignPhone(identificadorExterno);
   const normalizedWhatsappUrl = normalizeWhatsappUrl(urlCanal, normalizedPhone);
+  const publicQrCodeUrl = normalizedWhatsappUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(normalizedWhatsappUrl)}`
+    : null;
 
   if (!nomeCanal || !tipoCanal || !identificadorExterno) {
     throw new Error(
@@ -494,6 +499,19 @@ async function upsertCandidateChannel(
     throw new Error("Nao foi possivel derivar o link oficial do WhatsApp a partir do numero informado.");
   }
 
+  const currentChannelState = await db.query<{ numero_agente_oficial: string | null }>(
+    `
+      select numero_agente_oficial
+      from implantacoes_candidato
+      where id_candidato = $1
+    `,
+    [idCandidato]
+  );
+  const phoneChanged = Boolean(
+    currentChannelState.rows[0]?.numero_agente_oficial &&
+      currentChannelState.rows[0].numero_agente_oficial !== normalizedPhone
+  );
+
   const updateResult = await db.query<{ id: string }>(
     `
       update canais_integracao
@@ -510,6 +528,7 @@ async function upsertCandidateChannel(
           'papel_canal', 'canal_oficial_funil',
           'qrcode_vinculado', true,
           'numero_oficial_campanha', $4::text,
+          'qr_code_url', $7::text,
           'canais_divulgacao', $6::text
         ),
         atualizado_em = now()
@@ -517,7 +536,15 @@ async function upsertCandidateChannel(
         and tipo_canal = $3
       returning id
     `,
-    [idCandidato, nomeCanal, tipoCanal, normalizedPhone, normalizedWhatsappUrl, canaisDivulgacao]
+    [
+      idCandidato,
+      nomeCanal,
+      tipoCanal,
+      normalizedPhone,
+      normalizedWhatsappUrl,
+      canaisDivulgacao,
+      publicQrCodeUrl
+    ]
   );
 
   let officialChannelId: string;
@@ -551,12 +578,21 @@ async function upsertCandidateChannel(
             'papel_canal', 'canal_oficial_funil',
             'qrcode_vinculado', true,
             'numero_oficial_campanha', $4::text,
+            'qr_code_url', $7::text,
             'canais_divulgacao', $6::text
           )
         )
         returning id
       `,
-      [idCandidato, nomeCanal, tipoCanal, normalizedPhone, normalizedWhatsappUrl, canaisDivulgacao]
+      [
+        idCandidato,
+        nomeCanal,
+        tipoCanal,
+        normalizedPhone,
+        normalizedWhatsappUrl,
+        canaisDivulgacao,
+        publicQrCodeUrl
+      ]
     );
 
     officialChannelId = insertResult.rows[0].id;
@@ -573,6 +609,14 @@ async function upsertCandidateChannel(
       update implantacoes_candidato
       set
         numero_agente_oficial = $2,
+        qr_code_url = $5,
+        pairing_qr_code_url = case when $6 then null else pairing_qr_code_url end,
+        evolution_connection_code = case when $6 then null else evolution_connection_code end,
+        evolution_pairing_code = case when $6 then null else evolution_pairing_code end,
+        evolution_connection_status = case
+          when $6 then 'telefone_alterado_requer_regerar_qr'
+          else evolution_connection_status
+        end,
         webhook_inbound_url = coalesce(
           webhook_inbound_url,
           $3
@@ -588,7 +632,9 @@ async function upsertCandidateChannel(
       idCandidato,
       normalizedPhone,
       `/webhook/agente-politico/${idCandidato}/entrada-eleitor`,
-      `/webhook/agente-politico/${idCandidato}/cadencia`
+      `/webhook/agente-politico/${idCandidato}/cadencia`,
+      publicQrCodeUrl,
+      phoneChanged
     ]
   );
 

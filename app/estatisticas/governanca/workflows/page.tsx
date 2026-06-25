@@ -3,7 +3,8 @@ import { getCurrentPlatformSession } from "@/lib/auth";
 import { getDefaultPlatformRoute } from "@/lib/auth";
 import {
   generateCandidateWorkflowPackageAction,
-  triggerGovernanceWorkflowAction
+  triggerGovernanceWorkflowAction,
+  updateCandidateOperationalDataAction
 } from "@/lib/actions/workflow-center-action";
 import { WorkflowCenterPanel } from "@/components/workflow-center-panel";
 import { listCandidates } from "@/lib/repositories/candidates";
@@ -45,6 +46,7 @@ export default async function WorkflowCenterPage({ searchParams }: WorkflowCente
       isAdmin={session?.perfil === "administrador"}
       generateAction={generateCandidateWorkflowPackageAction}
       triggerAction={triggerGovernanceWorkflowAction}
+      updateOperationalDataAction={updateCandidateOperationalDataAction}
     />
   );
 }

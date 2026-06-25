@@ -1,6 +1,7 @@
 export type CandidateListItem = {
   id_candidato: string;
   nome_urna: string;
+  numero_tre_tse: string | null;
   nome_completo: string;
   partido: string | null;
   cargo_disputado: string | null;
