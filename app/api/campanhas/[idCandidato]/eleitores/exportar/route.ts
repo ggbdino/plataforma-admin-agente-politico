@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
-import { toCsv } from "@/lib/csv";
 import { db } from "@/lib/db";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
@@ -92,7 +91,7 @@ export async function GET(request: Request, context: RouteContext) {
     rows.push(fields.map((_field, index) => row["campo_" + index]));
   });
 
-  const csv = toCsv(rows);
+  const spreadsheet = toExcelCompatibleSpreadsheet(rows);
 
   await recordGovernanceEvent({
     idCandidato,
@@ -105,15 +104,16 @@ export async function GET(request: Request, context: RouteContext) {
     origem: "campaign-voters-export",
     detalhes: {
       campos: fields,
-      total_registros: result.rows.length
+      total_registros: result.rows.length,
+      formato: "xls_utf16le"
     }
   });
 
-  return new NextResponse(csv, {
+  return new NextResponse(spreadsheet, {
     status: 200,
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="eleitores-${idCandidato}.csv"`
+      "Content-Type": "application/vnd.ms-excel; charset=utf-16le",
+      "Content-Disposition": `attachment; filename="eleitores-${idCandidato}.xls"`
     }
   });
 }
@@ -122,4 +122,40 @@ function parseFields(values: string[]) {
   const allowed = new Set(Object.keys(FIELD_DEFINITIONS) as ExportField[]);
   const fields = values.filter((value): value is ExportField => allowed.has(value as ExportField));
   return fields.length ? Array.from(new Set(fields)) : DEFAULT_FIELDS;
+}
+
+function toExcelCompatibleSpreadsheet(rows: Array<Array<string | number | null | undefined>>) {
+  const body = rows
+    .map((row) =>
+      row
+        .map((value) => escapeExcelCell(value == null ? "" : String(value)))
+        .join("\t")
+    )
+    .join("\r\n");
+
+  return Buffer.from("\uFEFF" + body, "utf16le");
+}
+
+function escapeExcelCell(value: string) {
+  const normalized = normalizeSpreadsheetText(value).replace(/\r?\n/g, " ");
+
+  if (/["\t]/.test(normalized)) {
+    return `"${normalized.replace(/"/g, '""')}"`;
+  }
+
+  return normalized;
+}
+
+function normalizeSpreadsheetText(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return value;
+  }
+
+  if (/^(0\d+|\d{11,}|[\d:+\-\/\s]{8,})$/.test(trimmed)) {
+    return `="${trimmed}"`;
+  }
+
+  return value;
 }
