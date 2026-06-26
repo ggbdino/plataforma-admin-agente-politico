@@ -332,7 +332,7 @@ export async function updateCandidateOperationalDataAction(formData: FormData) {
           "  status, selecionado_por_padrao, metadata, atualizado_em",
           ") values (",
           "  $1, 'WhatsApp oficial da campanha', 'whatsapp_agente', $2, $3,",
-          "  'ativo', true, jsonb_build_object('qr_code_url', $4, 'origem', 'workflow_center'), now()",
+          "  'ativo', true, jsonb_build_object('qr_code_url', $4::text, 'origem', 'workflow_center'), now()",
           ")"
         ].join("\n"),
         [idCandidato, numeroAgenteOficial, publicWhatsappUrl, publicQrCodeUrl]
