@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentPlatformSession } from "@/lib/auth";
-import { toCsv } from "@/lib/csv";
+import { excelHtmlHeaders, toExcelHtmlSpreadsheet } from "@/lib/excel-compatible";
 import { getAdminCampaignStatsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
@@ -69,7 +69,7 @@ export async function GET() {
     });
   });
 
-  const csv = toCsv(rows);
+  const spreadsheet = toExcelHtmlSpreadsheet(rows);
 
   await recordGovernanceEvent({
     escopo: "admin",
@@ -85,11 +85,8 @@ export async function GET() {
     }
   });
 
-  return new NextResponse(csv, {
+  return new NextResponse(spreadsheet, {
     status: 200,
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="estatisticas-admin-executivo.csv"'
-    }
+    headers: excelHtmlHeaders("estatisticas-admin-executivo.xls")
   });
 }

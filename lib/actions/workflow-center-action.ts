@@ -503,6 +503,13 @@ async function ensureWorkflowCenterOperationalColumns() {
       add column if not exists evolution_pairing_code text,
       add column if not exists evolution_connection_status text
   `);
+
+  await db.query(`
+    alter table canais_integracao
+      add column if not exists selecionado_por_padrao boolean not null default false,
+      add column if not exists metadata jsonb not null default '{}'::jsonb,
+      add column if not exists atualizado_em timestamptz not null default now()
+  `);
 }
 
 function normalizeCampaignPhone(value: string) {

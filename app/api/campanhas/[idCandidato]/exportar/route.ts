@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
-import { toCsv } from "@/lib/csv";
+import { excelHtmlHeaders, toExcelHtmlSpreadsheet } from "@/lib/excel-compatible";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
@@ -127,7 +127,7 @@ export async function GET(request: Request, context: RouteContext) {
   ]);
   rows.push(["conversas_estatisticas", "temas_distintos", snapshot.temas.length]);
 
-  const csv = toCsv(rows);
+  const spreadsheet = toExcelHtmlSpreadsheet(rows);
 
   await recordGovernanceEvent({
     idCandidato,
@@ -145,12 +145,9 @@ export async function GET(request: Request, context: RouteContext) {
     }
   });
 
-  return new NextResponse(csv, {
+  return new NextResponse(spreadsheet, {
     status: 200,
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="campanha-${idCandidato}-executivo-${periodDays}d.csv"`
-    }
+    headers: excelHtmlHeaders(`campanha-${idCandidato}-executivo-${periodDays}d.xls`)
   });
 }
 

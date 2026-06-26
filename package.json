@@ -1,6 +1,6 @@
 {
   "name": "plataforma-admin-agente-politico",
-  "version": "16.0.2",
+  "version": "16.0.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "15.2.0",
+    "next": "16.2.9",
     "pg": "^8.13.1",
     "react": "19.0.0",
     "react-dom": "19.0.0"
@@ -21,7 +21,7 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "eslint": "^9.17.0",
-    "eslint-config-next": "15.2.0",
+    "eslint-config-next": "16.2.9",
     "typescript": "^5.7.2"
   }
 }
