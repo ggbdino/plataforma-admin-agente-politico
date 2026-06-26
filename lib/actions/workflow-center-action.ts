@@ -167,6 +167,10 @@ export async function triggerGovernanceWorkflowAction(formData: FormData) {
       detalhes: response as Record<string, unknown>
     });
   } catch (error) {
+    if (isNextRedirectError(error)) {
+      throw error;
+    }
+
     const rawMessage =
       error instanceof Error ? error.message : "Falha ao iniciar o workflow do n8n.";
     const message = buildWorkflowErrorMessage(workflow, rawMessage);
@@ -530,6 +534,19 @@ function buildRedirectBase(redirectTo: string, idCandidato: string) {
           candidato: idCandidato
         }
       : {}
+  );
+}
+
+function isNextRedirectError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const possibleRedirect = error as { digest?: unknown; message?: unknown };
+  return (
+    (typeof possibleRedirect.digest === "string" &&
+      possibleRedirect.digest.startsWith("NEXT_REDIRECT")) ||
+    possibleRedirect.message === "NEXT_REDIRECT"
   );
 }
 
