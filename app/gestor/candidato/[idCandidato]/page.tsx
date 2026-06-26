@@ -165,7 +165,7 @@ export default async function CampaignManagerPage({
               <div>
                 <h2 className="section-title">Exportar dados dos usuários</h2>
                 <p className="subtitle">
-                  Gere uma planilha CSV com os dados básicos dos usuários vinculados a este candidato.
+                  Gere uma planilha XLSX com os dados básicos dos usuários vinculados a este candidato.
                 </p>
               </div>
               <span className="pill">Gestor da campanha</span>
@@ -207,7 +207,7 @@ export default async function CampaignManagerPage({
               </div>
               <div className="actions">
                 <button className="button" type="submit">
-                  Gerar planilha CSV
+                  Gerar planilha XLSX
                 </button>
               </div>
             </form>

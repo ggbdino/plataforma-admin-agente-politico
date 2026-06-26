@@ -1,6 +1,6 @@
 {
   "name": "plataforma-admin-agente-politico",
-  "version": "16.0.6",
+  "version": "16.0.7",
   "private": true,
   "scripts": {
     "dev": "next dev",

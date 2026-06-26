@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { excelHtmlHeaders, toExcelHtmlSpreadsheet } from "@/lib/excel-compatible";
+import { toXlsxWorkbook, xlsxHeaders } from "@/lib/xlsx";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
 type RouteContext = {
@@ -27,7 +27,7 @@ const FIELD_DEFINITIONS: Record<ExportField, { label: string; expression: string
   },
   ultima_interacao: {
     label: "data_ultima_interacao",
-    expression: "coalesce(last_interaction.ultima_interacao_em, e.ultimo_contato_em, e.ultima_resposta_em, e.atualizado_em, e.criado_em)::text"
+    expression: "to_char(coalesce(last_interaction.ultima_interacao_em, e.ultimo_contato_em, e.ultima_resposta_em, e.atualizado_em, e.criado_em) at time zone 'America/Sao_Paulo', 'DD/MM/YYYY')"
   }
 };
 
@@ -89,10 +89,10 @@ export async function GET(request: Request, context: RouteContext) {
   ];
 
   result.rows.forEach((row) => {
-    rows.push(fields.map((_field, index) => row["campo_" + index]));
+    rows.push(fields.map((field, index) => formatExportValue(field, row["campo_" + index])));
   });
 
-  const spreadsheet = toExcelHtmlSpreadsheet(rows);
+  const spreadsheet = toXlsxWorkbook(rows);
 
   await recordGovernanceEvent({
     idCandidato,
@@ -106,14 +106,48 @@ export async function GET(request: Request, context: RouteContext) {
     detalhes: {
       campos: fields,
       total_registros: result.rows.length,
-      formato: "xls_html_utf8"
+      formato: "xlsx"
     }
   });
 
   return new NextResponse(spreadsheet, {
     status: 200,
-    headers: excelHtmlHeaders(`eleitores-${idCandidato}.xls`)
+    headers: xlsxHeaders(`eleitores-${idCandidato}.xlsx`)
   });
+}
+
+function formatExportValue(field: ExportField, value: string | null) {
+  if (field === "telefone") {
+    return formatBrazilianPhone(value);
+  }
+
+  return value ?? "";
+}
+
+function formatBrazilianPhone(value: string | null) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length === 13 && digits.startsWith("55")) {
+    return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
+  }
+
+  if (digits.length === 12 && digits.startsWith("55")) {
+    return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`;
+  }
+
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+
+  return String(value ?? "");
 }
 
 function parseFields(values: string[]) {

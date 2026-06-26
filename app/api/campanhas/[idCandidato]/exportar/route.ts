@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
-import { excelHtmlHeaders, toExcelHtmlSpreadsheet } from "@/lib/excel-compatible";
+import { toXlsxWorkbook, xlsxHeaders } from "@/lib/xlsx";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
@@ -127,7 +127,7 @@ export async function GET(request: Request, context: RouteContext) {
   ]);
   rows.push(["conversas_estatisticas", "temas_distintos", snapshot.temas.length]);
 
-  const spreadsheet = toExcelHtmlSpreadsheet(rows);
+  const spreadsheet = toXlsxWorkbook(rows);
 
   await recordGovernanceEvent({
     idCandidato,
@@ -147,7 +147,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   return new NextResponse(spreadsheet, {
     status: 200,
-    headers: excelHtmlHeaders(`campanha-${idCandidato}-executivo-${periodDays}d.xls`)
+    headers: xlsxHeaders(`campanha-${idCandidato}-executivo-${periodDays}d.xlsx`)
   });
 }
 

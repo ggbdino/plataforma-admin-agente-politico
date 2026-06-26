@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentPlatformSession } from "@/lib/auth";
-import { excelHtmlHeaders, toExcelHtmlSpreadsheet } from "@/lib/excel-compatible";
+import { toXlsxWorkbook, xlsxHeaders } from "@/lib/xlsx";
 import { getAdminCampaignStatsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
@@ -69,7 +69,7 @@ export async function GET() {
     });
   });
 
-  const spreadsheet = toExcelHtmlSpreadsheet(rows);
+  const spreadsheet = toXlsxWorkbook(rows);
 
   await recordGovernanceEvent({
     escopo: "admin",
@@ -87,6 +87,6 @@ export async function GET() {
 
   return new NextResponse(spreadsheet, {
     status: 200,
-    headers: excelHtmlHeaders("estatisticas-admin-executivo.xls")
+    headers: xlsxHeaders("estatisticas-admin-executivo.xlsx")
   });
 }
