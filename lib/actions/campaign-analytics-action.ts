@@ -9,7 +9,7 @@ import { recordGovernanceEvent } from "@/lib/repositories/governance";
 export async function importCampaignElectorBaseAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
   const redirectTo = String(formData.get("redirectTo") ?? "").trim() || `/campanhas/${idCandidato}`;
-  const origemCaptacao = String(formData.get("origemCaptacao") ?? "importacao_admin").trim();
+  const origemCaptacao = String(formData.get("origemCaptacao") ?? "saneamento_importacao").trim();
   const fileEntry = formData.get("arquivo");
   const session = await getCurrentPlatformSession();
   const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_operar_funil");
@@ -44,7 +44,7 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
   let successMessage = "";
 
   try {
-    const text = await fileEntry.text();
+    const text = decodeUploadedSpreadsheetText(await fileEntry.arrayBuffer());
     const result = await importCampaignElectorBase(idCandidato, text, origemCaptacao);
 
     await recordGovernanceEvent({
@@ -83,6 +83,32 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
   redirect(
     `${redirectTo}?operacao=importacao&feedback=sucesso&mensagem=${encodeURIComponent(successMessage)}`
   );
+}
+
+function decodeUploadedSpreadsheetText(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const utf8Text = decodeText(bytes, "utf-8");
+
+  if (!hasEncodingDamage(utf8Text)) {
+    return utf8Text;
+  }
+
+  const windowsText = decodeText(bytes, "windows-1252");
+  return scoreEncodingDamage(windowsText) < scoreEncodingDamage(utf8Text) ? windowsText : utf8Text;
+}
+
+function decodeText(bytes: Uint8Array, encoding: string) {
+  return new TextDecoder(encoding).decode(bytes);
+}
+
+function hasEncodingDamage(value: string) {
+  return scoreEncodingDamage(value) > 0;
+}
+
+function scoreEncodingDamage(value: string) {
+  const replacementChars = (value.match(/\uFFFD/g) ?? []).length;
+  const mojibakeMarkers = (value.match(/\u00C3.|\u00C2.|\u00E2\u20AC|\u00E2\u20AC\u0153|\u00E2\u20AC\u009D|\u00E2\u20AC\u2122|\u00E2\u20AC\u201C|\u00E2\u20AC\u00A2/g) ?? []).length;
+  return replacementChars * 3 + mojibakeMarkers;
 }
 
 export async function recalculateCampaignFunnelCycleAction(formData: FormData) {

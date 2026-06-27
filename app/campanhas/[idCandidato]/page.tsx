@@ -183,7 +183,8 @@ export default async function CampaignOperationalPage({
             <p className="subtitle">
               Upload administrativo de planilha CSV com <strong>nome</strong>, <strong>telefone</strong>,{" "}
               <strong>email</strong> e, opcionalmente, <strong>cidade</strong>, <strong>uf</strong> e{" "}
-              <strong>grupo</strong> para alimentar a base individual desta campanha.
+              <strong>grupo</strong>. Reenvie a base original para sanear acentos e dados cadastrais
+              sem alterar histórico, funil ou interações.
             </p>
           </div>
           <span className="pill">Controle do administrador</span>
@@ -208,7 +209,7 @@ export default async function CampaignOperationalPage({
             type="hidden"
             value={`/campanhas/${idCandidato}?periodo=${snapshot.periodoSelecionadoDias}`}
           />
-          <input name="origemCaptacao" type="hidden" value="importacao_admin" />
+          <input name="origemCaptacao" type="hidden" value="saneamento_importacao" />
           <label className="step-note">
             <span>Arquivo CSV da base</span>
             <input accept=".csv,.txt" className="step-input" name="arquivo" type="file" />
