@@ -24,14 +24,14 @@ export async function GET(request: Request, context: RouteContext) {
       ator: session?.email ?? "operacao_campanha",
       categoria: "exportacao",
       acao: "exportacao_negada",
-      descricao: "Tentativa de exportaÃ§Ã£o executiva bloqueada por acesso operacional ausente.",
+      descricao: "Tentativa de exportaÃƒÂ§ÃƒÂ£o executiva bloqueada por acesso operacional ausente.",
       status: "erro",
       origem: "campaign-export"
     });
 
     return NextResponse.json(
       {
-        message: "Acesso operacional nÃ£o autorizado para exportaÃ§Ã£o."
+        message: "Acesso operacional nÃƒÂ£o autorizado para exportaÃƒÂ§ÃƒÂ£o."
       },
       { status: 401 }
     );
@@ -48,14 +48,14 @@ export async function GET(request: Request, context: RouteContext) {
       ator: session?.email ?? "operacao_campanha",
       categoria: "exportacao",
       acao: "exportacao_sem_campanha",
-      descricao: "ExportaÃ§Ã£o executiva abortada porque a campanha nÃ£o foi encontrada.",
+      descricao: "ExportaÃƒÂ§ÃƒÂ£o executiva abortada porque a campanha nÃƒÂ£o foi encontrada.",
       status: "erro",
       origem: "campaign-export"
     });
 
     return NextResponse.json(
       {
-        message: "Campanha nÃ£o encontrada."
+        message: "Campanha nÃƒÂ£o encontrada."
       },
       { status: 404 }
     );
@@ -131,6 +131,25 @@ export async function GET(request: Request, context: RouteContext) {
     rows.push(["territorio_cidades", item.uf, item.cidade, item.total]);
   });
 
+  rows.push([], ["territorio_grupos", "grupo", "total"]);
+
+  snapshot.distribuicaoGrupos.forEach((item) => {
+    rows.push(["territorio_grupos", item.grupo, item.total]);
+  });
+
+  rows.push([], ["importacao_relatorio", "campo", "valor"]);
+
+  if (snapshot.relatorioImportacao) {
+    rows.push(["importacao_relatorio", "criado_em", snapshot.relatorioImportacao.criado_em]);
+    rows.push(["importacao_relatorio", "status", snapshot.relatorioImportacao.status]);
+    rows.push(["importacao_relatorio", "processados", snapshot.relatorioImportacao.total_processado]);
+    rows.push(["importacao_relatorio", "novos", snapshot.relatorioImportacao.importados]);
+    rows.push(["importacao_relatorio", "atualizados", snapshot.relatorioImportacao.atualizados]);
+    rows.push(["importacao_relatorio", "ignorados", snapshot.relatorioImportacao.ignorados]);
+    snapshot.relatorioImportacao.motivos_ignorados.forEach((reason) => {
+      rows.push(["importacao_motivos_ignorados", reason.motivo, reason.total]);
+    });
+  }
   rows.push([], ["qualidade", "campo", "valor"]);
   rows.push(["qualidade", "uf_invalidas", snapshot.qualidade.uf_invalidas]);
 
@@ -157,7 +176,7 @@ export async function GET(request: Request, context: RouteContext) {
     ator: session?.email ?? "operacao_campanha",
     categoria: "exportacao",
     acao: "exportacao_concluida",
-    descricao: `ExportaÃ§Ã£o executiva da campanha concluÃ­da para o recorte de ${periodDays} dias.`,
+    descricao: `ExportaÃƒÂ§ÃƒÂ£o executiva da campanha concluÃƒÂ­da para o recorte de ${periodDays} dias.`,
     status: "sucesso",
     origem: "campaign-export",
     detalhes: {

@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CampaignCityMetric, CampaignRegionalMetric } from "@/lib/types";
+import type { CampaignCityMetric, CampaignGroupMetric, CampaignRegionalMetric } from "@/lib/types";
 
 type CampaignTerritorialPanelProps = {
   regional: CampaignRegionalMetric[];
   cities: CampaignCityMetric[];
+  groups: CampaignGroupMetric[];
   invalidUfTotal: number;
 };
 
@@ -33,6 +34,7 @@ const TERRITORIAL_COLORS = [
 export function CampaignTerritorialPanel({
   regional,
   cities,
+  groups,
   invalidUfTotal
 }: CampaignTerritorialPanelProps) {
   const visibleRegional = regional.filter((item) => item.total > 0);
@@ -40,11 +42,11 @@ export function CampaignTerritorialPanel({
   const [selectedUf, setSelectedUf] = useState(initialUf);
   const totalUsuarios = regional.reduce((sum, item) => sum + item.total, 0);
   const totalForPie = Math.max(totalUsuarios, 1);
+  const maxGroupTotal = Math.max(...groups.map((item) => item.total), 1);
   const selectedRegional = regional.find((item) => item.uf === selectedUf) ?? regional[0] ?? null;
   const selectedCities = cities
     .filter((item) => item.uf === selectedUf)
-    .sort((left, right) => right.total - left.total || left.cidade.localeCompare(right.cidade))
-    .slice(0, 12);
+    .sort((left, right) => right.total - left.total || left.cidade.localeCompare(right.cidade));
   const pieSegments = useMemo(
     () => buildPieSegments(visibleRegional, totalForPie),
     [visibleRegional, totalForPie]
@@ -54,9 +56,9 @@ export function CampaignTerritorialPanel({
     <article className="card analytics-panel territorial-panel">
       <div className="section-heading">
         <div>
-          <h2 className="section-title">Distribuição territorial da base</h2>
+          <h2 className="section-title">Distribuição eleitoral e grupos da base</h2>
           <p className="subtitle">
-            Pizza por UF oficial do Brasil e leitura das cidades com maior quantidade de usuários.
+            Leitura integral por UF, cidades da UF selecionada e quantidade de pessoas por grupo.
           </p>
         </div>
         <span className={`pill ${invalidUfTotal > 0 ? "warn" : "ok"}`}>
@@ -65,98 +67,133 @@ export function CampaignTerritorialPanel({
       </div>
 
       <div className="territorial-layout">
-        <div className="territorial-pie-column">
-          <div aria-label="Distribuição por unidade da federação" className="territorial-pie">
-            <svg className="territorial-pie-svg" viewBox="0 0 100 100" role="img">
-              {pieSegments.length ? (
-                pieSegments.map((segment) => (
-                  <path
-                    d={segment.d}
-                    fill={segment.color}
-                    key={segment.uf}
-                    onFocus={() => setSelectedUf(segment.uf)}
-                    onMouseEnter={() => setSelectedUf(segment.uf)}
-                    tabIndex={0}
+        <div className="territorial-region-grid">
+          <div className="territorial-pie-column">
+            <div aria-label="Distribuição por unidade da federação" className="territorial-pie">
+              <svg className="territorial-pie-svg" viewBox="0 0 100 100" role="img">
+                {pieSegments.length ? (
+                  pieSegments.map((segment) => (
+                    <path
+                      d={segment.d}
+                      fill={segment.color}
+                      key={segment.uf}
+                      onFocus={() => setSelectedUf(segment.uf)}
+                      onMouseEnter={() => setSelectedUf(segment.uf)}
+                      tabIndex={0}
+                    >
+                      <title>{segment.uf}</title>
+                    </path>
+                  ))
+                ) : (
+                  <circle cx="50" cy="50" fill="#dbeafe" r="50" />
+                )}
+              </svg>
+              <div className="territorial-pie-center">
+                <strong>{totalUsuarios}</strong>
+                <span>usuários</span>
+              </div>
+            </div>
+
+            <div className="territorial-uf-grid">
+              {regional.map((item, index) => {
+                const active = item.uf === selectedUf;
+                return (
+                  <button
+                    className={`territorial-uf-chip ${active ? "active" : ""}`}
+                    key={item.uf}
+                    onFocus={() => setSelectedUf(item.uf)}
+                    onMouseEnter={() => setSelectedUf(item.uf)}
+                    onClick={() => setSelectedUf(item.uf)}
+                    type="button"
                   >
-                    <title>{segment.uf}</title>
-                  </path>
-                ))
-              ) : (
-                <circle cx="50" cy="50" fill="#dbeafe" r="50" />
-              )}
-            </svg>
-            <div className="territorial-pie-center">
-              <strong>{totalUsuarios}</strong>
-              <span>usuários</span>
+                    <span
+                      className="territorial-dot"
+                      style={{ background: getTerritorialColor(index) }}
+                    />
+                    <strong>{item.uf}</strong>
+                    <span>{item.total}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="territorial-uf-grid">
-            {regional.map((item, index) => {
-              const active = item.uf === selectedUf;
-              return (
-                <button
-                  className={`territorial-uf-chip ${active ? "active" : ""}`}
-                  key={item.uf}
-                  onFocus={() => setSelectedUf(item.uf)}
-                  onMouseEnter={() => setSelectedUf(item.uf)}
-                  onClick={() => setSelectedUf(item.uf)}
-                  type="button"
-                >
-                  <span
-                    className="territorial-dot"
-                    style={{ background: getTerritorialColor(index) }}
-                  />
-                  <strong>{item.uf}</strong>
-                  <span>{item.total}</span>
-                </button>
-              );
-            })}
+          <div className="territorial-table-panel">
+            <div className="territorial-table-head">
+              <div>
+                <strong>{selectedRegional?.uf ?? "UF"}</strong>
+                <span>
+                  {selectedRegional?.cidade_destaque ?? "Cidade não informada"} em destaque
+                </span>
+              </div>
+              <span className="pill">
+                {selectedRegional ? formatPercent(selectedRegional.taxa_conversao_percentual) : "0.00%"}
+              </span>
+            </div>
+
+            <div className="territorial-summary-grid">
+              <div>
+                <span>Total</span>
+                <strong>{selectedRegional?.total ?? 0}</strong>
+              </div>
+              <div>
+                <span>Apoiadores</span>
+                <strong>{selectedRegional?.apoiadores ?? 0}</strong>
+              </div>
+              <div>
+                <span>Cidades</span>
+                <strong>{selectedRegional?.cidades_mapeadas ?? 0}</strong>
+              </div>
+            </div>
+
+            <div className="territorial-city-table" role="table">
+              <div className="territorial-city-row territorial-city-header" role="row">
+                <span>Cidade</span>
+                <span>Usuários</span>
+              </div>
+              {selectedCities.length ? (
+                selectedCities.map((city) => (
+                  <div className="territorial-city-row" key={`${city.uf}-${city.cidade}`} role="row">
+                    <span>{city.cidade}</span>
+                    <strong>{city.total}</strong>
+                  </div>
+                ))
+              ) : (
+                <div className="territorial-city-empty">Sem cidades mapeadas para esta UF.</div>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="territorial-table-panel">
+        <div className="territorial-group-panel">
           <div className="territorial-table-head">
             <div>
-              <strong>{selectedRegional?.uf ?? "UF"}</strong>
-              <span>
-                {selectedRegional?.cidade_destaque ?? "Cidade não informada"} em destaque
-              </span>
+              <strong>Grupos</strong>
+              <span>Quantidade de pessoas por grupo de interesse.</span>
             </div>
-            <span className="pill">
-              {selectedRegional ? formatPercent(selectedRegional.taxa_conversao_percentual) : "0.00%"}
-            </span>
+            <span className="pill">{groups.length} grupo(s)</span>
           </div>
-
-          <div className="territorial-summary-grid">
-            <div>
-              <span>Total</span>
-              <strong>{selectedRegional?.total ?? 0}</strong>
-            </div>
-            <div>
-              <span>Apoiadores</span>
-              <strong>{selectedRegional?.apoiadores ?? 0}</strong>
-            </div>
-            <div>
-              <span>Cidades</span>
-              <strong>{selectedRegional?.cidades_mapeadas ?? 0}</strong>
-            </div>
-          </div>
-
-          <div className="territorial-city-table" role="table">
-            <div className="territorial-city-row territorial-city-header" role="row">
-              <span>Cidade</span>
-              <span>Usuários</span>
-            </div>
-            {selectedCities.length ? (
-              selectedCities.map((city) => (
-                <div className="territorial-city-row" key={`${city.uf}-${city.cidade}`} role="row">
-                  <span>{city.cidade}</span>
-                  <strong>{city.total}</strong>
+          <div className="analytics-stack territorial-group-stack">
+            {groups.length ? (
+              groups.map((item, index) => (
+                <div className="analytics-bar-row" key={item.grupo}>
+                  <div className="analytics-bar-label">
+                    <strong>{item.grupo}</strong>
+                    <span className="muted">{item.total} pessoa(s)</span>
+                  </div>
+                  <div className="analytics-bar-track">
+                    <div
+                      className="analytics-bar-fill"
+                      style={{
+                        width: `${Math.max((item.total / maxGroupTotal) * 100, 6)}%`,
+                        background: getTerritorialColor(index + 4)
+                      }}
+                    />
+                  </div>
                 </div>
               ))
             ) : (
-              <div className="territorial-city-empty">Sem cidades mapeadas para esta UF.</div>
+              <div className="territorial-city-empty">Sem grupos mapeados para esta campanha.</div>
             )}
           </div>
         </div>

@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdminBootstrap } from "@/lib/auth";
 import {
   deleteAllCandidatesCascade,
-  deleteCandidateCascade
+  deleteCandidateCascade,
+  deleteCandidateElectorsCascade
 } from "@/lib/repositories/admin-candidate-maintenance";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
@@ -48,6 +49,45 @@ export async function deleteCandidateAction(formData: FormData) {
   redirectWithSuccess("Candidato e registros vinculados removidos da base com sucesso.");
 }
 
+
+export async function deleteCandidateElectorsAction(formData: FormData) {
+  await requireAdminBootstrap();
+
+  const idCandidato = String(formData.get("idCandidato") ?? "").trim();
+  const confirmacao = String(formData.get("confirmacaoEleitores") ?? "").trim();
+  const esperado = `EXCLUIR ELEITORES ${idCandidato}`;
+
+  if (!idCandidato) {
+    redirectWithError("Selecione um candidato para excluir os eleitores.");
+  }
+
+  if (confirmacao !== esperado) {
+    redirectWithError(`Confirme a operacao digitando exatamente: ${esperado}`);
+  }
+
+  try {
+    const result = await deleteCandidateElectorsCascade(idCandidato);
+
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: "admin",
+      ator: "administrador",
+      categoria: "saneamento_base",
+      acao: "eleitores_candidato_excluidos",
+      descricao: `Eleitores do candidato ${idCandidato} removidos sem excluir cadastro da campanha.`,
+      status: "sucesso",
+      origem: "platform-admin",
+      detalhes: result as Record<string, unknown>
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Nao foi possivel excluir os eleitores do candidato.";
+    redirectWithError(message);
+  }
+
+  revalidateAdminPaths();
+  redirectWithSuccess("Eleitores, interacoes e participacoes vinculadas ao candidato foram removidos com sucesso.");
+}
 export async function deleteAllCandidatesAction(formData: FormData) {
   await requireAdminBootstrap();
 

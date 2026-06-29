@@ -1,4 +1,4 @@
-﻿export type CandidateListItem = {
+export type CandidateListItem = {
   id_candidato: string;
   nome_urna: string;
   numero_tre_tse: string | null;
@@ -271,6 +271,27 @@ export type CampaignCityMetric = {
   total: number;
 };
 
+export type CampaignGroupMetric = {
+  grupo: string;
+  total: number;
+};
+
+export type CampaignImportIgnoredReason = {
+  motivo: string;
+  total: number;
+};
+
+export type CampaignImportReportSummary = {
+  status: string;
+  descricao: string;
+  criado_em: string;
+  importados: number;
+  atualizados: number;
+  ignorados: number;
+  total_processado: number;
+  motivos_ignorados: CampaignImportIgnoredReason[];
+};
+
 export type CampaignDataQualitySummary = {
   total_registros: number;
   sem_nome: number;
@@ -374,6 +395,8 @@ export type CampaignAnalyticsSnapshot = {
   temasForaPlataforma: CampaignOutsideThemeMetric[];
   distribuicaoRegional: CampaignRegionalMetric[];
   distribuicaoCidades: CampaignCityMetric[];
+  distribuicaoGrupos: CampaignGroupMetric[];
+  relatorioImportacao: CampaignImportReportSummary | null;
   evolucaoDiaria: CampaignDailyMetric[];
   crescimentoBase: CampaignBaseGrowthPoint[];
   conversasRecentes: CampaignRecentConversation[];

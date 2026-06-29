@@ -77,6 +77,50 @@ export async function getCandidateDeletionSummary(idCandidato: string | null) {
   } satisfies CandidateDeletionSummary;
 }
 
+
+export async function deleteCandidateElectorsCascade(idCandidato: string) {
+  const candidateId = idCandidato.trim();
+
+  if (!candidateId) {
+    throw new Error("Informe o identificador do candidato para excluir os eleitores.");
+  }
+
+  const existsResult = await db.query<{ nome_urna: string | null }>(
+    `select nome_urna from candidatos where id_candidato = $1 limit 1`,
+    [candidateId]
+  );
+
+  if (!existsResult.rows[0]) {
+    throw new Error("O candidato informado nao foi localizado na base.");
+  }
+
+  const client = await db.connect();
+
+  try {
+    await client.query("begin");
+
+    const summary = await getCandidateDeletionSummary(candidateId);
+    const params = [candidateId];
+
+    await client.query(`delete from participacoes_eventos where id_candidato = $1`, params);
+    await client.query(`delete from interacoes where id_candidato = $1`, params);
+    await client.query(`delete from eleitores where id_candidato = $1`, params);
+
+    await client.query("commit");
+
+    return {
+      candidateId,
+      eleitores: summary.eleitores,
+      interacoes: summary.interacoes,
+      participacoes_eventos: summary.participacoes_eventos
+    };
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 export async function deleteCandidateCascade(idCandidato: string) {
   const candidateId = idCandidato.trim();
 

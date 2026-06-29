@@ -1700,3 +1700,74 @@ button {
     grid-template-columns: 1fr;
   }
 }
+.import-report-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 16px;
+}
+
+.import-report-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.import-report-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.territorial-panel {
+  overflow: visible;
+}
+
+.territorial-layout {
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 0.85fr);
+}
+
+.territorial-region-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+  min-width: 0;
+}
+
+.territorial-group-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 16px;
+}
+
+.territorial-group-stack {
+  max-height: none;
+  overflow: visible;
+}
+
+.territorial-city-table {
+  max-height: none;
+  overflow: visible;
+}
+
+@media (max-width: 1180px) {
+  .territorial-layout,
+  .territorial-region-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .import-report-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+}

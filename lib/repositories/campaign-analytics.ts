@@ -14,6 +14,8 @@ import type {
   CampaignDataQualitySummary,
   CampaignFunnelHealthSummary,
   CampaignGoalProgress,
+  CampaignGroupMetric,
+  CampaignImportReportSummary,
   CampaignPeriodSummary,
   CampaignAnalyticsSummary,
   CampaignBaseGrowthPoint,
@@ -35,6 +37,16 @@ const VALID_BRAZILIAN_UFS = [
 
 const VALID_BRAZILIAN_UF_SQL = VALID_BRAZILIAN_UFS.map((uf) => `'${uf}'`).join(", ");
 
+type CampaignImportReportRow = {
+  status: string;
+  descricao: string;
+  criado_em: string;
+  importados: number;
+  atualizados: number;
+  ignorados: number;
+  ignorados_por_motivo: Record<string, number> | null;
+};
+
 export async function getCampaignAnalyticsSnapshot(
   idCandidato: string,
   periodDays = 14
@@ -42,6 +54,7 @@ export async function getCampaignAnalyticsSnapshot(
   const normalizedPeriodDays = normalizePeriodDays(periodDays);
   const hasElectorEmailColumn = await hasTableColumn("eleitores", "email");
   const hasElectorUfColumn = await hasTableColumn("eleitores", "uf");
+  const hasElectorGroupColumn = await hasTableColumn("eleitores", "grupo_interesse");
   const headerResult = await db.query<CampaignAnalyticsHeader>(
     `
       select
@@ -620,6 +633,47 @@ export async function getCampaignAnalyticsSnapshot(
     []
   );
 
+  const groupDistributionResult = await queryOrDefault<CampaignGroupMetric>(
+    "campaign-group-distribution",
+    `
+      select
+        ${
+          hasElectorGroupColumn
+            ? "coalesce(nullif(trim(coalesce(grupo_interesse, '')), ''), 'Grupo nao informado')"
+            : "'Grupo nao informado'"
+        } as grupo,
+        count(*)::int as total
+      from eleitores
+      where id_candidato = $1
+      group by 1
+      order by total desc, grupo asc
+      limit 40
+    `,
+    [idCandidato],
+    []
+  );
+
+  const importReportResult = await queryOrDefault<CampaignImportReportRow>(
+    "campaign-import-report",
+    `
+      select
+        status,
+        descricao,
+        criado_em::text as criado_em,
+        coalesce((detalhes->>'importados')::int, 0) as importados,
+        coalesce((detalhes->>'atualizados')::int, 0) as atualizados,
+        coalesce((detalhes->>'ignorados')::int, 0) as ignorados,
+        coalesce(detalhes->'ignorados_por_motivo', '{}'::jsonb) as ignorados_por_motivo
+      from governanca_auditoria
+      where id_candidato = $1
+        and categoria = 'importacao_base'
+      order by criado_em desc
+      limit 1
+    `,
+    [idCandidato],
+    []
+  );
+
   const dailyResult = await queryOrDefault<CampaignDailyMetric>(
     "campaign-daily",
     `
@@ -770,9 +824,39 @@ export async function getCampaignAnalyticsSnapshot(
     temasForaPlataforma,
     distribuicaoRegional: regionalResult.rows,
     distribuicaoCidades: cityDistributionResult.rows,
+    distribuicaoGrupos: groupDistributionResult.rows,
+    relatorioImportacao: buildImportReportSummary(importReportResult.rows[0]),
     evolucaoDiaria: dailyResult.rows,
     crescimentoBase: growthResult.rows,
     conversasRecentes: recentConversationsResult.rows
+  };
+}
+
+
+function buildImportReportSummary(
+  row: CampaignImportReportRow | undefined
+): CampaignImportReportSummary | null {
+  if (!row) {
+    return null;
+  }
+
+  const reasons = Object.entries(row.ignorados_por_motivo ?? {})
+    .filter(([, total]) => Number(total) > 0)
+    .map(([motivo, total]) => ({
+      motivo,
+      total: Number(total)
+    }));
+
+  return {
+    status: row.status,
+    descricao: row.descricao,
+    criado_em: row.criado_em,
+    importados: Number(row.importados ?? 0),
+    atualizados: Number(row.atualizados ?? 0),
+    ignorados: Number(row.ignorados ?? 0),
+    total_processado:
+      Number(row.importados ?? 0) + Number(row.atualizados ?? 0) + Number(row.ignorados ?? 0),
+    motivos_ignorados: reasons
   };
 }
 

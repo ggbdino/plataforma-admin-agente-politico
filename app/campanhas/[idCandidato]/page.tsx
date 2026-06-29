@@ -229,6 +229,50 @@ export default async function CampaignOperationalPage({
             </button>
           </div>
         </form>
+        {snapshot.relatorioImportacao ? (
+          <div className="import-report-panel">
+            <div className="section-heading">
+              <div>
+                <h3 className="section-title">Relatório da última importação</h3>
+                <p className="subtitle">
+                  Crítica persistida na governança da campanha para recuperação das linhas ignoradas.
+                </p>
+              </div>
+              <span className={snapshot.relatorioImportacao.status === "sucesso" ? "pill ok" : "pill warn"}>
+                {formatShortDate(snapshot.relatorioImportacao.criado_em)}
+              </span>
+            </div>
+            <div className="grid grid-4 import-report-metrics">
+              <article className="metric-card">
+                <span className="metric-label">Processados</span>
+                <strong className="metric-value">{snapshot.relatorioImportacao.total_processado}</strong>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Novos</span>
+                <strong className="metric-value">{snapshot.relatorioImportacao.importados}</strong>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Atualizados</span>
+                <strong className="metric-value">{snapshot.relatorioImportacao.atualizados}</strong>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Ignorados</span>
+                <strong className="metric-value">{snapshot.relatorioImportacao.ignorados}</strong>
+              </article>
+            </div>
+            <div className="import-report-reasons">
+              {snapshot.relatorioImportacao.motivos_ignorados.length ? (
+                snapshot.relatorioImportacao.motivos_ignorados.map((reason) => (
+                  <span className="pill warn" key={reason.motivo}>
+                    {reason.total} {labelImportIgnoredReason(reason.motivo)}
+                  </span>
+                ))
+              ) : (
+                <span className="pill ok">Sem linhas ignoradas na última importação</span>
+              )}
+            </div>
+          </div>
+        ) : null}
         </section>
       ) : null}
 
@@ -485,13 +529,16 @@ export default async function CampaignOperationalPage({
         </article>
       </section>
 
-      <section className="grid grid-2" style={{ marginBottom: 20 }}>
+      <section style={{ marginBottom: 20 }}>
         <CampaignTerritorialPanel
           cities={snapshot.distribuicaoCidades}
+          groups={snapshot.distribuicaoGrupos}
           invalidUfTotal={snapshot.qualidade.uf_invalidas}
           regional={snapshot.distribuicaoRegional}
         />
+      </section>
 
+      <section className="grid grid-2" style={{ marginBottom: 20 }}>
         <article className="card analytics-panel">
           <div className="section-heading">
             <div>
@@ -1179,3 +1226,13 @@ function getRegionalNeutralColor(index: number) {
   return palette[index % palette.length];
 }
 
+
+function labelImportIgnoredReason(reason: string) {
+  const labels: Record<string, string> = {
+    sem_telefone_e_email: "sem telefone/e-mail",
+    duplicado_no_arquivo: "duplicado no arquivo",
+    sem_alteracao_na_base: "sem alteração cadastral"
+  };
+
+  return labels[reason] ?? reason;
+}

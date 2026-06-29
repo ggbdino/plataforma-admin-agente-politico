@@ -7,7 +7,8 @@ import {
 } from "@/lib/auth";
 import {
   deleteAllCandidatesAction,
-  deleteCandidateAction
+  deleteCandidateAction,
+  deleteCandidateElectorsAction
 } from "@/lib/actions/admin-candidate-maintenance-action";
 import { listCandidates } from "@/lib/repositories/candidates";
 import { getCandidateDeletionSummary } from "@/lib/repositories/admin-candidate-maintenance";
@@ -127,6 +128,53 @@ export default async function AdminCandidatesPage({ searchParams }: AdminCandida
         </form>
       </section>
 
+      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+        <div className="section-heading">
+          <div>
+            <h2 className="section-title">Eliminar eleitores de um candidato</h2>
+            <p className="subtitle">
+              Preserva o cadastro do candidato, campanha, integrações e workflows, removendo apenas
+              eleitores, interações e participações vinculadas aos eventos.
+            </p>
+          </div>
+          <span className="pill warn">Saneamento da base</span>
+        </div>
+        <form action={deleteCandidateElectorsAction} className="manager-auth-form">
+          <div className="step-form-grid">
+            <label className="step-note">
+              <span>Candidato</span>
+              <select className="step-input" name="idCandidato" defaultValue="">
+                <option value="" disabled>
+                  Selecione o candidato
+                </option>
+                {candidates.map((candidate) => (
+                  <option key={candidate.id_candidato} value={candidate.id_candidato}>
+                    {candidate.id_candidato} - {candidate.nome_urna}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="step-note">
+              <span>Confirmacao textual</span>
+              <input
+                className="step-input"
+                name="confirmacaoEleitores"
+                placeholder="EXCLUIR ELEITORES 0001"
+                type="text"
+              />
+            </label>
+          </div>
+          <div className="step-panel-callout">
+            Use quando for necessário limpar uma base importada com erro sem perder configuração do candidato,
+            QR Code, permissões, implantação e parâmetros operacionais da campanha.
+          </div>
+          <div className="actions">
+            <button className="button" type="submit">
+              Eliminar eleitores do candidato
+            </button>
+          </div>
+        </form>
+      </section>
       <section className="card analytics-panel">
         <div className="section-heading">
           <div>
