@@ -61,7 +61,7 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
 
     successMessage = `Base importada com sucesso. ${
       result.importados + result.atualizados + result.ignorados
-    } registro(s) processado(s): ${result.importados} novo(s), ${result.atualizados} atualizado(s) e ${result.ignorados} ignorado(s).`;
+    } registro(s) processado(s): ${result.importados} novo(s), ${result.atualizados} atualizado(s) e ${result.ignorados} ignorado(s)${formatIgnoredReasons(result.ignorados_por_motivo)}.`;
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Não foi possível processar a planilha da base de eleitores.";
@@ -85,6 +85,21 @@ export async function importCampaignElectorBaseAction(formData: FormData) {
   );
 }
 
+function formatIgnoredReasons(reasons: Record<string, number> | undefined) {
+  const entries = Object.entries(reasons ?? {}).filter(([, total]) => total > 0);
+
+  if (!entries.length) {
+    return "";
+  }
+
+  const labels: Record<string, string> = {
+    sem_telefone_e_email: "sem telefone/e-mail",
+    duplicado_no_arquivo: "duplicado no arquivo",
+    sem_alteracao_na_base: "sem alteracao cadastral"
+  };
+
+  return `, motivos: ${entries.map(([reason, total]) => `${total} ${labels[reason] ?? reason}`).join(", ")}`;
+}
 function decodeUploadedSpreadsheetText(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
   const utf8Text = decodeText(bytes, "utf-8");

@@ -1,4 +1,4 @@
-export type CandidateListItem = {
+﻿export type CandidateListItem = {
   id_candidato: string;
   nome_urna: string;
   numero_tre_tse: string | null;
@@ -265,11 +265,18 @@ export type CampaignRegionalMetric = {
   total_cidade_destaque: number;
 };
 
+export type CampaignCityMetric = {
+  uf: string;
+  cidade: string;
+  total: number;
+};
+
 export type CampaignDataQualitySummary = {
   total_registros: number;
   sem_nome: number;
   sem_telefone: number;
   sem_email: number;
+  uf_invalidas: number;
   duplicidades_telefone: number;
   sem_interacoes: number;
   sem_contato_30_dias: number;
@@ -366,6 +373,7 @@ export type CampaignAnalyticsSnapshot = {
   temas: CampaignThemeMetric[];
   temasForaPlataforma: CampaignOutsideThemeMetric[];
   distribuicaoRegional: CampaignRegionalMetric[];
+  distribuicaoCidades: CampaignCityMetric[];
   evolucaoDiaria: CampaignDailyMetric[];
   crescimentoBase: CampaignBaseGrowthPoint[];
   conversasRecentes: CampaignRecentConversation[];
@@ -390,6 +398,7 @@ export type AdminCampaignStatItem = {
   sem_nome: number;
   sem_telefone: number;
   sem_email: number;
+  uf_invalidas: number;
   duplicidades_telefone: number;
   sem_interacoes: number;
   sem_contato_30_dias: number;

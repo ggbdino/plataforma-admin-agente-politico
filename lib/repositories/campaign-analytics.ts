@@ -17,6 +17,7 @@ import type {
   CampaignPeriodSummary,
   CampaignAnalyticsSummary,
   CampaignBaseGrowthPoint,
+  CampaignCityMetric,
   CampaignDailyMetric,
   CampaignOperationalAlert,
   CampaignOriginMetric,
@@ -25,6 +26,14 @@ import type {
   CampaignRecentConversation,
   CampaignStageMetric
 } from "@/lib/types";
+
+const VALID_BRAZILIAN_UFS = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+  "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+  "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+];
+
+const VALID_BRAZILIAN_UF_SQL = VALID_BRAZILIAN_UFS.map((uf) => `'${uf}'`).join(", ");
 
 export async function getCampaignAnalyticsSnapshot(
   idCandidato: string,
@@ -283,6 +292,11 @@ export async function getCampaignAnalyticsSnapshot(
             ? "coalesce((select count(*)::int from eleitor_base where nullif(trim(coalesce(email, '')), '') is null), 0)"
             : "0"
         } as sem_email,
+        ${
+          hasElectorUfColumn
+            ? `coalesce((select count(*)::int from eleitor_base where nullif(trim(coalesce(uf, '')), '') is not null and upper(trim(uf)) not in (${VALID_BRAZILIAN_UF_SQL})), 0)`
+            : "0"
+        } as uf_invalidas,
         coalesce((select total from duplicados_telefone), 0) as duplicidades_telefone,
         greatest(
           coalesce((select count(*)::int from eleitor_base), 0) -
@@ -349,6 +363,7 @@ export async function getCampaignAnalyticsSnapshot(
         sem_nome: 0,
         sem_telefone: 0,
         sem_email: 0,
+        uf_invalidas: 0,
         duplicidades_telefone: 0,
         sem_interacoes: 0,
         sem_contato_30_dias: 0,
@@ -523,14 +538,17 @@ export async function getCampaignAnalyticsSnapshot(
   const regionalResult = await queryOrDefault<CampaignRegionalMetric>(
     "campaign-regional",
     `
-      with eleitor_base as (
+      with ufs(uf) as (
+        values ${VALID_BRAZILIAN_UFS.map((uf) => `('${uf}')`).join(", ")}
+      ),
+      eleitor_base as (
         select
           ${
             hasElectorUfColumn
-              ? "coalesce(nullif(trim(coalesce(uf, '')), ''), $2, 'UF não informada')"
-              : "coalesce($2, 'UF não informada')"
+              ? `case when upper(trim(coalesce(uf, ''))) in (${VALID_BRAZILIAN_UF_SQL}) then upper(trim(uf)) else null end`
+              : "null"
           } as uf_resolvida,
-          coalesce(nullif(trim(coalesce(cidade, '')), ''), 'Cidade não informada') as cidade_resolvida,
+          coalesce(nullif(trim(coalesce(cidade, '')), ''), 'Cidade nao informada') as cidade_resolvida,
           intencao_voto
         from eleitores
         where id_candidato = $1
@@ -542,6 +560,7 @@ export async function getCampaignAnalyticsSnapshot(
           count(*) filter (where intencao_voto = 'apoiador')::int as apoiadores,
           count(distinct cidade_resolvida)::int as cidades_mapeadas
         from eleitor_base
+        where uf_resolvida is not null
         group by uf_resolvida
       ),
       cidade_rank as (
@@ -554,26 +573,50 @@ export async function getCampaignAnalyticsSnapshot(
             order by count(*) desc, cidade_resolvida asc
           ) as rn
         from eleitor_base
+        where uf_resolvida is not null
         group by uf_resolvida, cidade_resolvida
       )
       select
-        uf_totais.uf_resolvida as uf,
+        ufs.uf,
         cidade_rank.cidade_resolvida as cidade_destaque,
-        uf_totais.total,
-        uf_totais.apoiadores,
+        coalesce(uf_totais.total, 0) as total,
+        coalesce(uf_totais.apoiadores, 0) as apoiadores,
         case
-          when uf_totais.total = 0 then 0
-          else round((uf_totais.apoiadores::numeric / greatest(uf_totais.total, 1)::numeric) * 100, 2)
+          when coalesce(uf_totais.total, 0) = 0 then 0
+          else round((coalesce(uf_totais.apoiadores, 0)::numeric / greatest(uf_totais.total, 1)::numeric) * 100, 2)
         end as taxa_conversao_percentual,
-        uf_totais.cidades_mapeadas,
+        coalesce(uf_totais.cidades_mapeadas, 0) as cidades_mapeadas,
         coalesce(cidade_rank.total_cidade, 0) as total_cidade_destaque
-      from uf_totais
+      from ufs
+      left join uf_totais
+        on uf_totais.uf_resolvida = ufs.uf
       left join cidade_rank
-        on cidade_rank.uf_resolvida = uf_totais.uf_resolvida
+        on cidade_rank.uf_resolvida = ufs.uf
        and cidade_rank.rn = 1
-      order by uf_totais.total desc, uf_totais.uf_resolvida asc
+      order by coalesce(uf_totais.total, 0) desc, ufs.uf asc
     `,
-    [idCandidato, cabecalho.uf ?? null],
+    [idCandidato],
+    []
+  );
+
+  const cityDistributionResult = await queryOrDefault<CampaignCityMetric>(
+    "campaign-city-distribution",
+    `
+      select
+        ${
+          hasElectorUfColumn
+            ? `case when upper(trim(coalesce(uf, ''))) in (${VALID_BRAZILIAN_UF_SQL}) then upper(trim(uf)) else 'UF_INVALIDA' end`
+            : "'UF_INVALIDA'"
+        } as uf,
+        coalesce(nullif(trim(coalesce(cidade, '')), ''), 'Cidade nao informada') as cidade,
+        count(*)::int as total
+      from eleitores
+      where id_candidato = $1
+      group by 1, 2
+      order by total desc, uf asc, cidade asc
+      limit 120
+    `,
+    [idCandidato],
     []
   );
 
@@ -726,6 +769,7 @@ export async function getCampaignAnalyticsSnapshot(
     temas: themesResult.rows,
     temasForaPlataforma,
     distribuicaoRegional: regionalResult.rows,
+    distribuicaoCidades: cityDistributionResult.rows,
     evolucaoDiaria: dailyResult.rows,
     crescimentoBase: growthResult.rows,
     conversasRecentes: recentConversationsResult.rows
@@ -772,6 +816,16 @@ function buildCampaignOperationalAlerts(
       descricao: "Há risco de fragmentação do eleitor e distorção do KPI do funil.",
       criticidade: qualidade.duplicidades_telefone >= 5 ? "error" : "warning",
       total: qualidade.duplicidades_telefone
+    });
+  }
+
+  if (qualidade.uf_invalidas > 0) {
+    alerts.push({
+      codigo: "uf_invalida",
+      titulo: "UF fora do padrão brasileiro",
+      descricao: "Há registros com unidade da federação diferente das 27 siglas oficiais do Brasil.",
+      criticidade: qualidade.uf_invalidas >= 5 ? "error" : "warning",
+      total: qualidade.uf_invalidas
     });
   }
 

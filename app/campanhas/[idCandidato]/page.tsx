@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   importCampaignElectorBaseAction,
@@ -8,6 +8,7 @@ import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-acti
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { getCampaignGovernanceSnapshot } from "@/lib/repositories/governance";
+import { CampaignTerritorialPanel } from "@/components/campaign-territorial-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -104,7 +105,6 @@ export default async function CampaignOperationalPage({
 
   const maxFunil = Math.max(...snapshot.funil.map((item) => item.total), 1);
   const maxOrigem = Math.max(...snapshot.origens.map((item) => item.total), 1);
-  const maxRegional = Math.max(...snapshot.distribuicaoRegional.map((item) => item.total), 1);
   const maxDaily = Math.max(
     ...snapshot.evolucaoDiaria.flatMap((item) => [item.novos_leads, item.interacoes]),
     1
@@ -486,78 +486,11 @@ export default async function CampaignOperationalPage({
       </section>
 
       <section className="grid grid-2" style={{ marginBottom: 20 }}>
-        <article className="card analytics-panel">
-          <div className="section-heading">
-            <div>
-              <h2 className="section-title">Conversão por região da base</h2>
-              <p className="subtitle">
-                Leitura territorial por UF, com cidade de maior concentração em destaque para
-                observar onde a campanha já converte melhor e onde ainda depende de maturação.
-              </p>
-            </div>
-            <span className="pill">Mapa tático</span>
-          </div>
-          <div className="analytics-stack">
-            {snapshot.distribuicaoRegional.length === 0 ? (
-              <div className="workflow-empty-state">
-                Ainda não há recorte regional suficiente para leitura territorial da base.
-              </div>
-            ) : (
-              snapshot.distribuicaoRegional.map((item, index) => (
-                <div className="regional-card" key={item.uf}>
-                  <div className="regional-card-head">
-                    <div>
-                      <strong className="regional-card-title">{item.uf}</strong>
-                      <div className="muted">
-                        {item.cidade_destaque ?? "Cidade não informada"} em destaque •{" "}
-                        {item.total_cidade_destaque} eleitor(es)
-                      </div>
-                    </div>
-                    <span className="pill ok">
-                      {formatPercent(item.taxa_conversao_percentual)} de conversão
-                    </span>
-                  </div>
-                  <div className="regional-card-grid">
-                    <article
-                      className="regional-card-metric"
-                      style={{ "--regional-accent": getRegionalColor(index) } as React.CSSProperties}
-                    >
-                      <span>Total da base</span>
-                      <strong>{item.total}</strong>
-                    </article>
-                    <article
-                      className="regional-card-metric"
-                      style={
-                        { "--regional-accent": getRegionalSupportColor(index) } as React.CSSProperties
-                      }
-                    >
-                      <span>Apoiadores</span>
-                      <strong>{item.apoiadores}</strong>
-                    </article>
-                    <article
-                      className="regional-card-metric"
-                      style={
-                        { "--regional-accent": getRegionalNeutralColor(index) } as React.CSSProperties
-                      }
-                    >
-                      <span>Cidades mapeadas</span>
-                      <strong>{item.cidades_mapeadas}</strong>
-                    </article>
-                  </div>
-                  <div className="analytics-bar-track regional-card-track">
-                    <div
-                      className="regional-card-fill"
-                      style={{
-                        width: `${Math.max((item.total / maxRegional) * 100, 8)}%`,
-                        background: `linear-gradient(135deg, ${getRegionalColor(index)}, ${getRegionalSupportColor(index)})`
-                      }}
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </article>
+        <CampaignTerritorialPanel
+          cities={snapshot.distribuicaoCidades}
+          invalidUfTotal={snapshot.qualidade.uf_invalidas}
+          regional={snapshot.distribuicaoRegional}
+        />
 
         <article className="card analytics-panel">
           <div className="section-heading">

@@ -24,14 +24,14 @@ export async function GET(request: Request, context: RouteContext) {
       ator: session?.email ?? "operacao_campanha",
       categoria: "exportacao",
       acao: "exportacao_negada",
-      descricao: "Tentativa de exportação executiva bloqueada por acesso operacional ausente.",
+      descricao: "Tentativa de exportaÃ§Ã£o executiva bloqueada por acesso operacional ausente.",
       status: "erro",
       origem: "campaign-export"
     });
 
     return NextResponse.json(
       {
-        message: "Acesso operacional não autorizado para exportação."
+        message: "Acesso operacional nÃ£o autorizado para exportaÃ§Ã£o."
       },
       { status: 401 }
     );
@@ -48,14 +48,14 @@ export async function GET(request: Request, context: RouteContext) {
       ator: session?.email ?? "operacao_campanha",
       categoria: "exportacao",
       acao: "exportacao_sem_campanha",
-      descricao: "Exportação executiva abortada porque a campanha não foi encontrada.",
+      descricao: "ExportaÃ§Ã£o executiva abortada porque a campanha nÃ£o foi encontrada.",
       status: "erro",
       origem: "campaign-export"
     });
 
     return NextResponse.json(
       {
-        message: "Campanha não encontrada."
+        message: "Campanha nÃ£o encontrada."
       },
       { status: 404 }
     );
@@ -112,6 +112,28 @@ export async function GET(request: Request, context: RouteContext) {
     rows.push(["temas", item.tema, item.total]);
   });
 
+  rows.push([], ["territorio_uf", "uf", "total", "apoiadores", "taxa_conversao_percentual", "cidades_mapeadas"]);
+
+  snapshot.distribuicaoRegional.forEach((item) => {
+    rows.push([
+      "territorio_uf",
+      item.uf,
+      item.total,
+      item.apoiadores,
+      item.taxa_conversao_percentual,
+      item.cidades_mapeadas
+    ]);
+  });
+
+  rows.push([], ["territorio_cidades", "uf", "cidade", "total"]);
+
+  snapshot.distribuicaoCidades.forEach((item) => {
+    rows.push(["territorio_cidades", item.uf, item.cidade, item.total]);
+  });
+
+  rows.push([], ["qualidade", "campo", "valor"]);
+  rows.push(["qualidade", "uf_invalidas", snapshot.qualidade.uf_invalidas]);
+
   rows.push([], ["conversas_estatisticas", "campo", "valor"]);
   rows.push(["conversas_estatisticas", "interacoes_total", snapshot.resumo.interacoes_total]);
   rows.push(["conversas_estatisticas", "interacoes_24h", snapshot.resumo.interacoes_24h]);
@@ -135,7 +157,7 @@ export async function GET(request: Request, context: RouteContext) {
     ator: session?.email ?? "operacao_campanha",
     categoria: "exportacao",
     acao: "exportacao_concluida",
-    descricao: `Exportação executiva da campanha concluída para o recorte de ${periodDays} dias.`,
+    descricao: `ExportaÃ§Ã£o executiva da campanha concluÃ­da para o recorte de ${periodDays} dias.`,
     status: "sucesso",
     origem: "campaign-export",
     detalhes: {

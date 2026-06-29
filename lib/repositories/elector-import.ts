@@ -24,6 +24,7 @@ type ImportSummary = {
   importados: number;
   atualizados: number;
   ignorados: number;
+  ignorados_por_motivo: Record<string, number>;
 };
 
 type OptionalElectorColumns = {
@@ -72,11 +73,13 @@ export async function importCampaignElectorBase(
     let importados = 0;
     let atualizados = 0;
     let ignorados = 0;
+    const ignoredReasons: Record<string, number> = {};
     const seenImportKeys = new Set<string>();
 
     for (const row of rows) {
       if (!row.telefone && !row.email) {
         ignorados += 1;
+        addIgnoredReason(ignoredReasons, "sem_telefone_e_email");
         continue;
       }
 
@@ -84,6 +87,7 @@ export async function importCampaignElectorBase(
 
       if (importKey && seenImportKeys.has(importKey)) {
         ignorados += 1;
+        addIgnoredReason(ignoredReasons, "duplicado_no_arquivo");
         continue;
       }
 
@@ -103,6 +107,7 @@ export async function importCampaignElectorBase(
       if (lookup.rows[0]?.eleitor_uid) {
         if (isSameElectorData(lookup.rows[0], row, availableColumns.hasEmailColumn)) {
           ignorados += 1;
+          addIgnoredReason(ignoredReasons, "sem_alteracao_na_base");
           continue;
         }
 
@@ -138,7 +143,8 @@ export async function importCampaignElectorBase(
     return {
       importados,
       atualizados,
-      ignorados
+      ignorados,
+      ignorados_por_motivo: ignoredReasons
     };
   } catch (error) {
     await client.query("rollback");
@@ -146,6 +152,10 @@ export async function importCampaignElectorBase(
   } finally {
     client.release();
   }
+}
+
+function addIgnoredReason(reasons: Record<string, number>, reason: string) {
+  reasons[reason] = (reasons[reason] ?? 0) + 1;
 }
 
 function parseElectorCsv(rawFileContents: string): ParsedElectorRow[] {
