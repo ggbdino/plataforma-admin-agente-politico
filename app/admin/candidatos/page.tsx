@@ -45,7 +45,7 @@ export default async function AdminCandidatesPage({ searchParams }: AdminCandida
 
       <section className="hero-card">
         <span className="pill">Saneamento administrativo</span>
-        <h1 className="title">Exclusao de candidatos e dados vinculados</h1>
+        <h1 className="title">Saneamento de candidatos e eleitores</h1>
         <p className="subtitle">
           Esta area remove da base o candidato selecionado ou toda a base de candidatos, incluindo
           eleitores, interacoes, eventos, implantacoes, canais e registros de governanca vinculados.
@@ -133,8 +133,8 @@ export default async function AdminCandidatesPage({ searchParams }: AdminCandida
           <div>
             <h2 className="section-title">Eliminar eleitores de um candidato</h2>
             <p className="subtitle">
-              Preserva o cadastro do candidato, campanha, integrações e workflows, removendo apenas
-              eleitores, interações e participações vinculadas aos eventos.
+              Preserva o cadastro do candidato, campanha, integraÃ§Ãµes e workflows, removendo apenas
+              eleitores, interaÃ§Ãµes e participaÃ§Ãµes vinculadas aos eventos.
             </p>
           </div>
           <span className="pill warn">Saneamento da base</span>
@@ -165,8 +165,8 @@ export default async function AdminCandidatesPage({ searchParams }: AdminCandida
             </label>
           </div>
           <div className="step-panel-callout">
-            Use quando for necessário limpar uma base importada com erro sem perder configuração do candidato,
-            QR Code, permissões, implantação e parâmetros operacionais da campanha.
+            Use quando for necessÃ¡rio limpar uma base importada com erro sem perder configuraÃ§Ã£o do candidato,
+            QR Code, permissÃµes, implantaÃ§Ã£o e parÃ¢metros operacionais da campanha.
           </div>
           <div className="actions">
             <button className="button" type="submit">

@@ -20,15 +20,15 @@ export default async function GovernanceAdminPage() {
   return (
     <main className="page-shell">
       <section className="hero-card">
-        <span className="pill">Governança do admin</span>
+        <span className="pill">GovernanÃƒÂ§a do admin</span>
         <h1 className="title">Trilha administrativa e operacional da plataforma</h1>
         <p className="subtitle">
-          Visão consolidada das ações críticas do produto para acompanhar importações, exportações,
-          liberações de acesso, recálculos do funil e disparos de workflow.
+          VisÃƒÂ£o consolidada das aÃƒÂ§ÃƒÂµes crÃƒÂ­ticas do produto para acompanhar importaÃƒÂ§ÃƒÂµes, exportaÃƒÂ§ÃƒÂµes,
+          liberaÃƒÂ§ÃƒÂµes de acesso, recÃƒÂ¡lculos do funil e disparos de workflow.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/estatisticas">
-            Voltar para Inteligência da Campanha
+            Voltar para InteligÃƒÂªncia da Campanha
           </Link>
           <Link className="button secondary" href="/estatisticas/auditoria">
             Ver auditoria da base
@@ -37,10 +37,10 @@ export default async function GovernanceAdminPage() {
             Central de workflows
           </Link>
           <Link className="button secondary" href="/admin/candidatos">
-            Excluir candidatos
+            Saneamento de candidatos e eleitores
           </Link>
           <Link className="button secondary" href="/admin/usuarios">
-            Usuários e perfis
+            UsuÃƒÂ¡rios e perfis
           </Link>
         </div>
       </section>
@@ -51,7 +51,7 @@ export default async function GovernanceAdminPage() {
           <strong className="metric-value">{snapshot.totais.campanhas_auditadas}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Ações em 7 dias</span>
+          <span className="metric-label">AÃƒÂ§ÃƒÂµes em 7 dias</span>
           <strong className="metric-value">{snapshot.totais.acoes_7_dias}</strong>
         </article>
         <article className="card metric-card">
@@ -59,15 +59,15 @@ export default async function GovernanceAdminPage() {
           <strong className="metric-value">{snapshot.totais.erros_7_dias}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Importações em 30 dias</span>
+          <span className="metric-label">ImportaÃƒÂ§ÃƒÂµes em 30 dias</span>
           <strong className="metric-value">{snapshot.totais.importacoes_30_dias}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Exportações em 30 dias</span>
+          <span className="metric-label">ExportaÃƒÂ§ÃƒÂµes em 30 dias</span>
           <strong className="metric-value">{snapshot.totais.exportacoes_30_dias}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">Recálculos em 30 dias</span>
+          <span className="metric-label">RecÃƒÂ¡lculos em 30 dias</span>
           <strong className="metric-value">{snapshot.totais.recalculos_30_dias}</strong>
         </article>
       </section>
@@ -75,26 +75,26 @@ export default async function GovernanceAdminPage() {
       <section className="card analytics-panel" style={{ marginBottom: 20 }}>
         <div className="section-heading">
           <div>
-            <h2 className="section-title">Mapa de governança por campanha</h2>
+            <h2 className="section-title">Mapa de governanÃƒÂ§a por campanha</h2>
             <p className="subtitle">
               Leitura consolidada da criticidade operacional para localizar campanhas com maior
-              volume de erro, exportações sensíveis e saneamentos recentes.
+              volume de erro, exportaÃƒÂ§ÃƒÂµes sensÃƒÂ­veis e saneamentos recentes.
             </p>
           </div>
-          <span className="pill">Governança consolidada</span>
+          <span className="pill">GovernanÃƒÂ§a consolidada</span>
         </div>
         <div className="table-responsive">
           <table className="table analytics-table">
             <thead>
               <tr>
                 <th>Campanha</th>
-                <th>Ações</th>
+                <th>AÃƒÂ§ÃƒÂµes</th>
                 <th>Erros em 30 dias</th>
-                <th>Importações</th>
-                <th>Exportações</th>
-                <th>Recálculos</th>
+                <th>ImportaÃƒÂ§ÃƒÂµes</th>
+                <th>ExportaÃƒÂ§ÃƒÂµes</th>
+                <th>RecÃƒÂ¡lculos</th>
                 <th>Criticidade</th>
-                <th>Último evento</th>
+                <th>ÃƒÅ¡ltimo evento</th>
               </tr>
             </thead>
             <tbody>
@@ -120,10 +120,10 @@ export default async function GovernanceAdminPage() {
                       }`}
                     >
                       {campanha.criticidade === "error"
-                        ? "Crítica"
+                        ? "CrÃƒÂ­tica"
                         : campanha.criticidade === "warning"
-                          ? "Atenção"
-                          : "Estável"}
+                          ? "AtenÃƒÂ§ÃƒÂ£o"
+                          : "EstÃƒÂ¡vel"}
                     </span>
                   </td>
                   <td>{formatDateTime(campanha.ultimo_evento_em)}</td>
@@ -137,9 +137,9 @@ export default async function GovernanceAdminPage() {
       <section className="card">
         <div className="section-heading">
           <div>
-            <h2 className="section-title">Eventos recentes de governança</h2>
+            <h2 className="section-title">Eventos recentes de governanÃƒÂ§a</h2>
             <p className="subtitle">
-              Sequência das últimas ações administrativas e operacionais registradas na plataforma.
+              SequÃƒÂªncia das ÃƒÂºltimas aÃƒÂ§ÃƒÂµes administrativas e operacionais registradas na plataforma.
             </p>
           </div>
           <span className="pill">Trilha transacional</span>
@@ -151,10 +151,10 @@ export default async function GovernanceAdminPage() {
                 <th>Quando</th>
                 <th>Campanha</th>
                 <th>Categoria</th>
-                <th>Ação</th>
+                <th>AÃƒÂ§ÃƒÂ£o</th>
                 <th>Ator</th>
                 <th>Status</th>
-                <th>Descrição</th>
+                <th>DescriÃƒÂ§ÃƒÂ£o</th>
               </tr>
             </thead>
             <tbody>

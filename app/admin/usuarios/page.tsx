@@ -28,13 +28,13 @@ const PROFILE_LABELS = {
 
 const PROFILE_SUMMARY = {
   administrador:
-    "Acesso total à plataforma, governança, saneamento da base, usuários, workflows e visão consolidada.",
+    "Acesso total ÃƒÂ  plataforma, governanÃƒÂ§a, saneamento da base, usuÃƒÂ¡rios, workflows e visÃƒÂ£o consolidada.",
   gestor_campanha:
-    "Acesso integral apenas ao candidato vinculado, incluindo implantação, eventos, funil e cadastro de operadores e analistas.",
+    "Acesso integral apenas ao candidato vinculado, incluindo implantaÃƒÂ§ÃƒÂ£o, eventos, funil e cadastro de operadores e analistas.",
   operador:
-    "Visualiza conversas, opera relacionamento e funil, controla entrada em eventos e telão, sem acesso aos dados estatísticos.",
+    "Visualiza conversas, opera relacionamento e funil, controla entrada em eventos e telÃƒÂ£o, sem acesso aos dados estatÃƒÂ­sticos.",
   analista:
-    "Consulta gráficos e indicadores estatísticos do candidato vinculado, sem eventos, conversas nominais ou operação administrativa."
+    "Consulta grÃƒÂ¡ficos e indicadores estatÃƒÂ­sticos do candidato vinculado, sem eventos, conversas nominais ou operaÃƒÂ§ÃƒÂ£o administrativa."
 } as const;
 
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
@@ -50,7 +50,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
         <section className="feedback-banner error">
           <strong>Acesso administrativo restrito.</strong>
           <div style={{ marginTop: 6 }}>
-            Seu perfil não possui autorização para gerenciar usuários da plataforma.
+            Seu perfil nÃƒÂ£o possui autorizaÃƒÂ§ÃƒÂ£o para gerenciar usuÃƒÂ¡rios da plataforma.
           </div>
         </section>
       </main>
@@ -82,31 +82,34 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     <main className="page-shell">
       {query?.feedback && query?.mensagem ? (
         <section className={`feedback-banner ${query.feedback === "sucesso" ? "ok" : "error"}`}>
-          <strong>{query.feedback === "sucesso" ? "Operação concluída." : "Falha administrativa."}</strong>
+          <strong>{query.feedback === "sucesso" ? "OperaÃƒÂ§ÃƒÂ£o concluÃƒÂ­da." : "Falha administrativa."}</strong>
           <div style={{ marginTop: 6 }}>{query.mensagem}</div>
         </section>
       ) : null}
 
       <section className="hero-card">
-        <span className="pill">Governança de acesso</span>
-        <h1 className="title">Cadastro de usuários, perfis e vinculação por candidato</h1>
+        <span className="pill">GovernanÃƒÂ§a de acesso</span>
+        <h1 className="title">Cadastro de usuÃƒÂ¡rios, perfis e vinculaÃƒÂ§ÃƒÂ£o por candidato</h1>
         <p className="subtitle">
           Cada perfil operacional agora nasce vinculado ao candidato correto. O gestor da campanha
-          enxerga apenas o próprio candidato e pode montar sua equipe de operação sem abrir acesso
+          enxerga apenas o prÃƒÂ³prio candidato e pode montar sua equipe de operaÃƒÂ§ÃƒÂ£o sem abrir acesso
           ao restante da plataforma.
         </p>
         <div className="hero-meta">
           <span className="pill">
             {access?.mode === "bootstrap"
-              ? "Sessão especial de bootstrap"
+              ? "SessÃƒÂ£o especial de bootstrap"
               : `Perfil ${session?.perfil ?? "interno"}`}
           </span>
-          <span className="pill">{visibleUsers.length} usuário(s) visível(is)</span>
-          <span className="pill">{manageableCandidates.length} campanha(s) disponível(is)</span>
+          <span className="pill">{visibleUsers.length} usuÃƒÂ¡rio(s) visÃƒÂ­vel(is)</span>
+          <span className="pill">{manageableCandidates.length} campanha(s) disponÃƒÂ­vel(is)</span>
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/estatisticas/governanca">
-            Voltar para governança
+            Voltar para governanÃƒÂ§a
+          </Link>
+          <Link className="button secondary" href="/admin/candidatos">
+            Saneamento de base
           </Link>
         </div>
       </section>
@@ -114,9 +117,9 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
       <section className="card analytics-panel" style={{ marginBottom: 20 }}>
         <div className="section-heading">
           <div>
-            <h2 className="section-title">Perfis disponíveis</h2>
+            <h2 className="section-title">Perfis disponÃƒÂ­veis</h2>
             <p className="subtitle">
-              Escopos operacionais padronizados para produção.
+              Escopos operacionais padronizados para produÃƒÂ§ÃƒÂ£o.
             </p>
           </div>
           <span className="pill">
@@ -138,10 +141,10 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
       <section className="card analytics-panel" style={{ marginBottom: 20 }}>
         <div className="section-heading">
           <div>
-            <h2 className="section-title">Novo usuário</h2>
+            <h2 className="section-title">Novo usuÃƒÂ¡rio</h2>
             <p className="subtitle">
               Administrador pode cadastrar qualquer perfil. Gestor da campanha pode cadastrar apenas
-              operador e analista do próprio candidato.
+              operador e analista do prÃƒÂ³prio candidato.
             </p>
           </div>
           <span className="pill">Cadastro estruturado</span>
@@ -187,41 +190,41 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
           <div className="step-panel-callout">
             <strong>Regras desta tela</strong>
             <div style={{ marginTop: 8 }}>
-              Administrador: acesso total e não precisa de vínculo por candidato.
+              Administrador: acesso total e nÃƒÂ£o precisa de vÃƒÂ­nculo por candidato.
             </div>
             <div style={{ marginTop: 4 }}>
-              Gestor da campanha: vínculo obrigatório a um único candidato.
+              Gestor da campanha: vÃƒÂ­nculo obrigatÃƒÂ³rio a um ÃƒÂºnico candidato.
             </div>
             <div style={{ marginTop: 4 }}>
-              Operador e analista: vínculo obrigatório e visão isolada ao candidato informado.
+              Operador e analista: vÃƒÂ­nculo obrigatÃƒÂ³rio e visÃƒÂ£o isolada ao candidato informado.
             </div>
             <div style={{ marginTop: 4 }}>
-              O gestor da campanha não consegue ver nem cadastrar usuários fora do próprio candidato.
+              O gestor da campanha nÃƒÂ£o consegue ver nem cadastrar usuÃƒÂ¡rios fora do prÃƒÂ³prio candidato.
             </div>
           </div>
 
           <div className="step-panel-callout">
-            Campanhas disponíveis neste cadastro:{" "}
+            Campanhas disponÃƒÂ­veis neste cadastro:{" "}
             {manageableCandidates.map((candidate) => `${candidate.id_candidato} (${candidate.nome_urna})`).join(" | ")}
           </div>
 
           <div className="actions">
             <button className="button" type="submit">
-              Cadastrar usuário
+              Cadastrar usuÃƒÂ¡rio
             </button>
           </div>
         </form>
       </section>
 
       <section className="card">
-        <h2 className="section-title">Usuários cadastrados</h2>
+        <h2 className="section-title">UsuÃƒÂ¡rios cadastrados</h2>
         <div className="table-responsive">
           <table className="table analytics-table">
             <thead>
               <tr>
-                <th>Usuário</th>
+                <th>UsuÃƒÂ¡rio</th>
                 <th>Perfil</th>
-                <th>Último login</th>
+                <th>ÃƒÅ¡ltimo login</th>
                 <th>Candidato vinculado</th>
                 <th>Capacidades</th>
               </tr>
@@ -256,11 +259,11 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                           <div key={permission.id} className="step-panel-callout">
                             <strong>{permission.nome_urna ?? permission.id_candidato ?? "Campanha"}</strong>
                             <div className="muted">
-                              visualizar: {permission.pode_visualizar ? "sim" : "não"} | implantar:{" "}
-                              {permission.pode_implantar ? "sim" : "não"} | funil:{" "}
-                              {permission.pode_operar_funil ? "sim" : "não"} | eventos:{" "}
-                              {permission.pode_operar_eventos ? "sim" : "não"} | KPIs:{" "}
-                              {permission.pode_ver_kpis ? "sim" : "não"}
+                              visualizar: {permission.pode_visualizar ? "sim" : "nÃƒÂ£o"} | implantar:{" "}
+                              {permission.pode_implantar ? "sim" : "nÃƒÂ£o"} | funil:{" "}
+                              {permission.pode_operar_funil ? "sim" : "nÃƒÂ£o"} | eventos:{" "}
+                              {permission.pode_operar_eventos ? "sim" : "nÃƒÂ£o"} | KPIs:{" "}
+                              {permission.pode_ver_kpis ? "sim" : "nÃƒÂ£o"}
                             </div>
                           </div>
                         ))}
