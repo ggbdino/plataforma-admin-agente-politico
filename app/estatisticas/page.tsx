@@ -28,11 +28,11 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
     return (
       <main className="page-shell">
         <section className="hero-card">
-          <span className="pill">InteligÃƒÂªncia da Campanha</span>
-          <h1 className="title">Acesso protegido ÃƒÂ  inteligÃƒÂªncia consolidada</h1>
+          <span className="pill">Inteligência da Campanha</span>
+          <h1 className="title">Acesso protegido à inteligência consolidada</h1>
           <p className="subtitle">
-            Entre com um usuÃƒÂ¡rio previamente cadastrado para consultar indicadores, auditoria,
-            governanÃƒÂ§a e visÃƒÂ£o executiva das campanhas.
+            Entre com um usuário previamente cadastrado para consultar indicadores, auditoria,
+            governança e visão executiva das campanhas.
           </p>
         </section>
 
@@ -42,15 +42,15 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
             <input name="redirectTo" type="hidden" value="/estatisticas" />
             <input name="contexto" type="hidden" value="governanca" />
             <label className="step-note">
-              <span>E-mail do usuÃƒÂ¡rio</span>
+              <span>E-mail do usuário</span>
               <input className="step-input" name="email" type="email" />
             </label>
             <label className="step-note">
-              <span>Senha do usuÃƒÂ¡rio</span>
+              <span>Senha do usuário</span>
               <input className="step-input" name="senha" type="password" />
             </label>
             <button className="button" type="submit">
-              Entrar em InteligÃƒÂªncia da Campanha
+              Entrar em Inteligência da Campanha
             </button>
           </form>
         </section>
@@ -74,26 +74,26 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
   return (
     <main className="page-shell">
       <section className="hero-card">
-        <span className="pill">InteligÃƒÂªncia da Campanha</span>
-        <h1 className="title">VisÃƒÂ£o consolidada de operaÃƒÂ§ÃƒÂ£o e conversÃƒÂ£o</h1>
+        <span className="pill">Inteligência da Campanha</span>
+        <h1 className="title">Visão consolidada de operação e conversão</h1>
         <p className="subtitle">
-          Entrada executiva para a administraÃƒÂ§ÃƒÂ£o acompanhar a traÃƒÂ§ÃƒÂ£o de cada campanha sem misturar
-          a camada de implantaÃƒÂ§ÃƒÂ£o com a camada de inteligÃƒÂªncia operacional.
+          Entrada executiva para a administração acompanhar a tração de cada campanha sem misturar
+          a camada de implantação com a camada de inteligência operacional.
         </p>
         <div className="hero-meta">
-          <span className="pill">UsuÃƒÂ¡rio {session.nome}</span>
+          <span className="pill">Usuário {session.nome}</span>
           <span className="pill">Perfil {session.perfil}</span>
           <span className="pill">{APP_VERSION}</span>
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href="/">
-            Voltar ao inÃƒÂ­cio
+            Voltar ao início
           </Link>
           <Link className="button secondary" href="/api/estatisticas/exportar">
             Exportar executivo
           </Link>
           <Link className="button secondary" href="/estatisticas/governanca">
-            GovernanÃƒÂ§a do admin
+            Governança do admin
           </Link>
           <Link className="button secondary" href="/admin/candidatos">
             Saneamento de base
@@ -102,7 +102,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
             Auditoria do admin
           </Link>
           <Link className="button secondary" href="/candidatos">
-            Ver implantaÃƒÂ§ÃƒÂ£o
+            Ver implantação
           </Link>
         </div>
       </section>
@@ -117,11 +117,11 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
           <strong className="metric-value">{snapshot.totais.eleitores}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">InteraÃƒÂ§ÃƒÂµes em 24h</span>
+          <span className="metric-label">Interações em 24h</span>
           <strong className="metric-value">{snapshot.totais.interacoes_24h}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">InteraÃƒÂ§ÃƒÂµes acumuladas</span>
+          <span className="metric-label">Interações acumuladas</span>
           <strong className="metric-value">{snapshot.totais.interacoes}</strong>
         </article>
         <article className="card metric-card">
@@ -129,7 +129,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
           <strong className="metric-value">{snapshot.totais.apoiadores}</strong>
         </article>
         <article className="card metric-card">
-          <span className="metric-label">MÃƒÂ©dia de eleitores por campanha</span>
+          <span className="metric-label">Média de eleitores por campanha</span>
           <strong className="metric-value">
             {snapshot.totais.campanhas === 0 ? 0 : Math.round(snapshot.totais.eleitores / snapshot.totais.campanhas)}
           </strong>
@@ -141,12 +141,12 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
           <div>
             <h2 className="section-title">Selecionar candidato</h2>
             <p className="subtitle">
-              O administrador pode alternar a leitura individual e abrir a InteligÃƒÂªncia completa de cada campanha.
+              O administrador pode alternar a leitura individual e abrir a Inteligência completa de cada campanha.
             </p>
           </div>
           {selectedCandidate ? (
             <Link className="button secondary" href={`/campanhas/${selectedCandidate.cabecalho.id_candidato}/inteligencia`}>
-              Abrir inteligÃƒÂªncia de {selectedCandidate.cabecalho.nome_urna}
+              Abrir inteligência de {selectedCandidate.cabecalho.nome_urna}
             </Link>
           ) : null}
         </div>
@@ -183,8 +183,8 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
       <section className="card analytics-panel" style={{ marginBottom: 20 }}>
         <div className="section-heading">
           <div>
-            <h2 className="section-title">Crescimento de usuÃƒÂ¡rios da plataforma</h2>
-            <p className="subtitle">SÃƒÂ©rie acumulada considerando todas as campanhas.</p>
+            <h2 className="section-title">Crescimento de usuários da plataforma</h2>
+            <p className="subtitle">Série acumulada considerando todas as campanhas.</p>
           </div>
           <span className="pill">Todas as campanhas</span>
         </div>
@@ -195,10 +195,10 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
         <article className="card analytics-panel">
           <div className="section-heading">
             <div>
-              <h2 className="section-title">EstÃƒÂ¡gio de conversÃƒÂ£o da plataforma</h2>
-              <p className="subtitle">Total geral dos usuÃƒÂ¡rios em cada estÃƒÂ¡gio de KPI/funil.</p>
+              <h2 className="section-title">Estágio de conversão da plataforma</h2>
+              <p className="subtitle">Total geral dos usuários em cada estágio de KPI/funil.</p>
             </div>
-            <span className="pill ok">{globalFunnelTotal} usuÃƒÂ¡rio(s)</span>
+            <span className="pill ok">{globalFunnelTotal} usuário(s)</span>
           </div>
           <div className="campaign-pie-layout">
             <div
@@ -211,7 +211,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
             >
               <div className="campaign-pie-core">
                 <strong>{snapshot.totais.eleitores}</strong>
-                <span>usuÃƒÂ¡rios</span>
+                <span>usuários</span>
               </div>
             </div>
             <div className="campaign-pie-legend">
@@ -220,7 +220,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
                   <span className="campaign-pie-legend-swatch" style={{ background: segment.color }} />
                   <div>
                     <strong>{segment.label}</strong>
-                    <div className="muted">{segment.total} usuÃƒÂ¡rio(s)</div>
+                    <div className="muted">{segment.total} usuário(s)</div>
                   </div>
                 </div>
               ))}
@@ -232,7 +232,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
           <div className="section-heading">
             <div>
               <h2 className="section-title">Mensagens tratadas por candidato</h2>
-              <p className="subtitle">Volume total de interaÃƒÂ§ÃƒÂµes processadas por campanha.</p>
+              <p className="subtitle">Volume total de interações processadas por campanha.</p>
             </div>
             <span className="pill">Mensagens</span>
           </div>
@@ -263,7 +263,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
           <div>
             <h2 className="section-title">Densidade da base por campanha</h2>
             <p className="subtitle">
-              Comparativo consolidado para priorizar onde aprofundar a operaÃƒÂ§ÃƒÂ£o.
+              Comparativo consolidado para priorizar onde aprofundar a operação.
             </p>
           </div>
           <span className="pill">Drill-down por candidato</span>
@@ -274,7 +274,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
               <div className="analytics-bar-label">
                 <strong>{campaign.nome_urna}</strong>
                 <span className="muted">
-                  {campaign.total_eleitores} eleitores | {campaign.interacoes_24h} interaÃƒÂ§ÃƒÂµes em 24h
+                  {campaign.total_eleitores} eleitores | {campaign.interacoes_24h} interações em 24h
                 </span>
               </div>
               <div className="analytics-bar-track">
@@ -297,7 +297,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
             <div>
               <h2 className="section-title">Cobertura da meta de contatos</h2>
               <p className="subtitle">
-                Comparativo executivo do quanto cada campanha jÃƒÂ¡ conseguiu transformar a meta de
+                Comparativo executivo do quanto cada campanha já conseguiu transformar a meta de
                 contatos em base real.
               </p>
             </div>
@@ -329,14 +329,14 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
             <div>
               <h2 className="section-title">Rankings executivos</h2>
               <p className="subtitle">
-                Top campanhas por conversÃƒÂ£o, atividade recente e cobertura de meta.
+                Top campanhas por conversão, atividade recente e cobertura de meta.
               </p>
             </div>
-            <span className="pill">Drill-up de priorizaÃƒÂ§ÃƒÂ£o</span>
+            <span className="pill">Drill-up de priorização</span>
           </div>
           <div className="grid grid-3">
             <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
-              <span className="metric-label">Melhor conversÃƒÂ£o</span>
+              <span className="metric-label">Melhor conversão</span>
               <strong className="metric-value">{snapshot.rankings.conversao[0]?.nome_urna ?? "sem dados"}</strong>
               <span className="muted">
                 {snapshot.rankings.conversao[0] ? `${snapshot.rankings.conversao[0].valor.toFixed(2)}%` : "aguardando base"}
@@ -347,7 +347,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
               <strong className="metric-value">{snapshot.rankings.atividade_24h[0]?.nome_urna ?? "sem dados"}</strong>
               <span className="muted">
                 {snapshot.rankings.atividade_24h[0]
-                  ? `${snapshot.rankings.atividade_24h[0].valor.toFixed(0)} interaÃƒÂ§ÃƒÂµes`
+                  ? `${snapshot.rankings.atividade_24h[0].valor.toFixed(0)} interações`
                   : "aguardando atividade"}
               </span>
             </article>
@@ -375,10 +375,10 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
                 <th>Eleitores</th>
                 <th>Engajados</th>
                 <th>Apoiadores</th>
-                <th>InteraÃƒÂ§ÃƒÂµes</th>
-                <th>ConversÃƒÂ£o</th>
+                <th>Interações</th>
+                <th>Conversão</th>
                 <th>Meta</th>
-                <th>AÃƒÂ§ÃƒÂµes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -407,7 +407,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
                         Abrir campanha
                       </Link>
                       <Link className="button secondary" href={`/campanhas/${campaign.id_candidato}/inteligencia`}>
-                        InteligÃƒÂªncia
+                        Inteligência
                       </Link>
                       <Link className="button secondary" href={`/campanhas/${campaign.id_candidato}/conversas`}>
                         Conversas
@@ -440,7 +440,7 @@ function getCampaignChartColor(index: number) {
 
 function renderLineChart(points: Array<{ x: number; y: number; data_referencia: string; total_acumulado: number }>) {
   if (points.length === 0) {
-    return <div className="step-panel-callout">Sem sÃƒÂ©rie de crescimento disponÃƒÂ­vel.</div>;
+    return <div className="step-panel-callout">Sem série de crescimento disponível.</div>;
   }
 
   return (
@@ -451,7 +451,7 @@ function renderLineChart(points: Array<{ x: number; y: number; data_referencia: 
         <polyline className="campaign-line-path" fill="none" points={points.map((item) => `${item.x},${item.y}`).join(" ")} />
         {points.map((item) => (
           <circle className="campaign-line-point" cx={item.x} cy={item.y} key={item.data_referencia} r={1.8}>
-            <title>{`${formatShortDate(item.data_referencia)}: ${item.total_acumulado} usuÃƒÂ¡rio(s)`}</title>
+            <title>{`${formatShortDate(item.data_referencia)}: ${item.total_acumulado} usuário(s)`}</title>
           </circle>
         ))}
       </svg>

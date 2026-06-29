@@ -24,14 +24,14 @@ export async function GET(request: Request, context: RouteContext) {
       ator: session?.email ?? "operacao_campanha",
       categoria: "exportacao",
       acao: "exportacao_negada",
-      descricao: "Tentativa de exportaÃƒÂ§ÃƒÂ£o executiva bloqueada por acesso operacional ausente.",
+      descricao: "Tentativa de exportação executiva bloqueada por acesso operacional ausente.",
       status: "erro",
       origem: "campaign-export"
     });
 
     return NextResponse.json(
       {
-        message: "Acesso operacional nÃƒÂ£o autorizado para exportaÃƒÂ§ÃƒÂ£o."
+        message: "Acesso operacional não autorizado para exportação."
       },
       { status: 401 }
     );
@@ -48,14 +48,14 @@ export async function GET(request: Request, context: RouteContext) {
       ator: session?.email ?? "operacao_campanha",
       categoria: "exportacao",
       acao: "exportacao_sem_campanha",
-      descricao: "ExportaÃƒÂ§ÃƒÂ£o executiva abortada porque a campanha nÃƒÂ£o foi encontrada.",
+      descricao: "Exportação executiva abortada porque a campanha não foi encontrada.",
       status: "erro",
       origem: "campaign-export"
     });
 
     return NextResponse.json(
       {
-        message: "Campanha nÃƒÂ£o encontrada."
+        message: "Campanha não encontrada."
       },
       { status: 404 }
     );
@@ -176,7 +176,7 @@ export async function GET(request: Request, context: RouteContext) {
     ator: session?.email ?? "operacao_campanha",
     categoria: "exportacao",
     acao: "exportacao_concluida",
-    descricao: `ExportaÃƒÂ§ÃƒÂ£o executiva da campanha concluÃƒÂ­da para o recorte de ${periodDays} dias.`,
+    descricao: `Exportação executiva da campanha concluída para o recorte de ${periodDays} dias.`,
     status: "sucesso",
     origem: "campaign-export",
     detalhes: {
