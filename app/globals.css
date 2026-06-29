@@ -1771,3 +1771,9 @@ button {
     grid-template-columns: 1fr 1fr;
   }
 }
+.brand-session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 4px;
+}

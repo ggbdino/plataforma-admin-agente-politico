@@ -7,9 +7,13 @@ import { usePathname } from "next/navigation";
 type AppShellProps = {
   appVersion: string;
   children: React.ReactNode;
+  userSession?: {
+    nome: string;
+    perfil: string;
+  } | null;
 };
 
-export function AppShell({ appVersion, children }: AppShellProps) {
+export function AppShell({ appVersion, children, userSession }: AppShellProps) {
   const pathname = usePathname();
   const isPublicEventPage =
     pathname.startsWith("/e/") || pathname.startsWith("/agentepolitico/");
@@ -58,6 +62,12 @@ export function AppShell({ appVersion, children }: AppShellProps) {
               <p className="brand-subtitle">
                 Gestão operacional do agente político, implantação de campanhas e governança da automação
               </p>
+              {userSession ? (
+                <div className="brand-session-meta">
+                  <span className="pill">Usuário {userSession.nome}</span>
+                  <span className="pill">Perfil {formatProfileLabel(userSession.perfil)}</span>
+                </div>
+              ) : null}
             </div>
           </Link>
         </header>
@@ -69,4 +79,15 @@ export function AppShell({ appVersion, children }: AppShellProps) {
       </footer>
     </>
   );
+}
+
+function formatProfileLabel(profile: string) {
+  const labels: Record<string, string> = {
+    administrador: "administrador",
+    gestor_campanha: "gestor da campanha",
+    operador: "operador",
+    analista: "analista"
+  };
+
+  return labels[profile] ?? profile;
 }
