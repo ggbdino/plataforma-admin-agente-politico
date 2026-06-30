@@ -99,9 +99,15 @@ function buildSuccessMessage(result: {
   totalEnviados: number;
   totalFalhas: number;
   provider: string;
+  firstFailureMessage?: string | null;
 }) {
   if (result.status === "planejada_sem_provedor") {
     return `Remessa planejada para ${result.totalDestinatarios} destinatário(s). Configure RESEND_API_KEY para habilitar o envio real.`;
+  }
+
+  if (result.totalFalhas > 0) {
+    const motivo = result.firstFailureMessage ? ` Motivo: ${result.firstFailureMessage}` : "";
+    return `Remessa processada pelo provedor ${result.provider}. ${result.totalEnviados} enviada(s), ${result.totalFalhas} com falha.${motivo}`;
   }
 
   return `Remessa processada pelo provedor ${result.provider}. ${result.totalEnviados} enviada(s), ${result.totalFalhas} com falha.`;

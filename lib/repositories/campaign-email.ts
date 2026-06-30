@@ -252,6 +252,7 @@ export async function planAndSendCampaignEmail(input: {
 
   let totalEnviados = 0;
   let totalFalhas = 0;
+  let firstFailureMessage: string | null = null;
 
   for (const recipient of limitedRecipients) {
     try {
@@ -282,11 +283,13 @@ export async function planAndSendCampaignEmail(input: {
       await updateRecipientStatus(dispatchId, recipient.eleitor_uid, "enviado", null);
     } catch (error) {
       totalFalhas += 1;
+      const failureMessage = error instanceof Error ? error.message : "Falha desconhecida no envio.";
+      firstFailureMessage ??= summarizeProviderFailure(failureMessage);
       await updateRecipientStatus(
         dispatchId,
         recipient.eleitor_uid,
         "erro",
-        error instanceof Error ? error.message : "Falha desconhecida no envio."
+        failureMessage
       );
     }
   }
@@ -307,7 +310,8 @@ export async function planAndSendCampaignEmail(input: {
     totalDestinatarios: limitedRecipients.length,
     totalEnviados,
     totalFalhas,
-    provider
+    provider,
+    firstFailureMessage
   };
 }
 
@@ -567,6 +571,28 @@ function buildEmailText(input: {
     "",
     `Atenciosamente, ${input.nomeCandidato}`
   ].join("\n");
+}
+
+function summarizeProviderFailure(message: string) {
+  const normalized = message.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "Falha desconhecida no envio.";
+  }
+
+  const jsonStart = normalized.indexOf("{");
+  if (jsonStart >= 0) {
+    try {
+      const parsed = JSON.parse(normalized.slice(jsonStart));
+      const detail = [parsed.message, parsed.name, parsed.error].filter(Boolean).join(" ");
+      if (detail) {
+        return detail.slice(0, 240);
+      }
+    } catch {
+      // Mantem a mensagem textual do provedor quando o corpo nao vier em JSON valido.
+    }
+  }
+
+  return normalized.slice(0, 240);
 }
 
 function normalizeText(value: string | null | undefined) {
