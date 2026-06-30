@@ -11,10 +11,11 @@ Disponibilizar ao gestor da campanha uma rotina controlada para remeter mensagen
 - Quando o candidato ainda não tiver e-mail remetente registrado, o gestor informa o e-mail na própria tela antes da primeira remessa.
 - Públicos disponíveis:
   - todos os eleitores com e-mail válido;
+  - um eleitor específico, para testes e validações controladas;
   - todos os participantes de um evento;
   - confirmados em um evento;
   - presentes em um evento.
-- Mensagem com assunto, texto livre, URL opcional de imagem e inclusão opcional do QR Code oficial da campanha.
+- Mensagem com assunto, texto livre, URL opcional de imagem, imagem anexada do computador do gestor e inclusão opcional do QR Code oficial da campanha.
 - Registro de auditoria em governança e tabelas próprias de remessas/destinatários.
 - Envio real por Resend quando `RESEND_API_KEY` estiver configurada.
 - Sem provedor configurado, a remessa fica registrada como planejada, sem envio externo.

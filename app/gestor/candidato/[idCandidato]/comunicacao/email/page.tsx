@@ -69,7 +69,7 @@ export default async function CampaignEmailPage({ params, searchParams }: Campai
         <article className="card">
           <span className="metric-label">Remetente do candidato</span>
           <strong className="metric-value compact-text">{context.email_remetente ?? "Pendente"}</strong>
-          <div className="muted">Quando não houver e-mail registrado, informe no formulário abaixo.</div>
+          <div className="muted">Quando não houver e-mail registrado, informe-o no formulário abaixo.</div>
         </article>
         <article className="card">
           <span className="metric-label">Provedor de envio</span>
@@ -85,13 +85,14 @@ export default async function CampaignEmailPage({ params, searchParams }: Campai
           <div>
             <h2 className="section-title">Preparar mensagem</h2>
             <p className="subtitle">
-              Escolha o público, escreva a mensagem e confirme a inclusão de imagem ou QR Code oficial.
+              Escolha o público, escreva a mensagem e inclua, se necessário, uma imagem por URL,
+              um arquivo local e o QR Code oficial da campanha.
             </p>
           </div>
           <span className="pill">Exclusivo do gestor</span>
         </div>
 
-        <form action={sendCampaignEmailAction} className="manager-auth-form">
+        <form action={sendCampaignEmailAction} className="manager-auth-form" encType="multipart/form-data">
           <input name="idCandidato" type="hidden" value={idCandidato} />
 
           <div className="step-form-grid">
@@ -110,9 +111,21 @@ export default async function CampaignEmailPage({ params, searchParams }: Campai
               <span>Público da remessa</span>
               <select className="step-input" name="publico">
                 <option value="todos_com_email">Todos os eleitores com e-mail</option>
+                <option value="eleitor_individual">Um eleitor específico</option>
                 <option value="evento_todos">Todos os participantes de um evento</option>
                 <option value="evento_confirmados">Confirmados em um evento</option>
                 <option value="evento_presentes">Presentes em um evento</option>
+              </select>
+            </label>
+            <label className="step-note">
+              <span>Eleitor, quando aplicável</span>
+              <select className="step-input" name="eleitorUid">
+                <option value="">Sem eleitor individual</option>
+                {context.eleitores.map((elector) => (
+                  <option key={elector.eleitor_uid} value={elector.eleitor_uid}>
+                    {(elector.nome ?? "Sem nome")} - {elector.email}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="step-note">
@@ -126,11 +139,12 @@ export default async function CampaignEmailPage({ params, searchParams }: Campai
                 ))}
               </select>
             </label>
-            <label className="step-note">
-              <span>Assunto</span>
-              <input className="step-input" maxLength={180} name="assunto" required type="text" />
-            </label>
           </div>
+
+          <label className="step-note">
+            <span>Assunto</span>
+            <input className="step-input" maxLength={180} name="assunto" required type="text" />
+          </label>
 
           <label className="step-note">
             <span>Texto da mensagem</span>
@@ -147,6 +161,11 @@ export default async function CampaignEmailPage({ params, searchParams }: Campai
             <label className="step-note">
               <span>URL de imagem da campanha</span>
               <input className="step-input" name="imagemUrl" placeholder="https://..." type="url" />
+            </label>
+            <label className="step-note">
+              <span>Imagem do computador</span>
+              <input className="step-input" accept="image/*" name="imagemArquivo" type="file" />
+              <small className="muted">Opcional. A imagem será anexada ao e-mail. Tamanho máximo: 2 MB.</small>
             </label>
             <label className="manager-channel-option">
               <input
@@ -241,6 +260,7 @@ function formatDate(value: string | null | undefined) {
 function labelAudience(value: string) {
   const labels: Record<string, string> = {
     todos_com_email: "Todos com e-mail",
+    eleitor_individual: "Eleitor individual",
     evento_todos: "Participantes do evento",
     evento_confirmados: "Confirmados no evento",
     evento_presentes: "Presentes no evento"

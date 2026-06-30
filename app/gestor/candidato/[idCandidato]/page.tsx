@@ -45,26 +45,26 @@ export default async function CampaignManagerPage({
 
       <section className="hero-card">
         <span className="pill">Gestor da campanha</span>
-        <h1 className="title">Canal oficial e divulga??o da campanha</h1>
+        <h1 className="title">Canal oficial e divulgação da campanha</h1>
         <p className="subtitle">
-          ?rea reservada para revisar dados do formul?rio de entrada, ajustar o canal oficial do
-          Agente Pol?tico e registrar os canais de divulga??o que apontam para esse WhatsApp.
+          Área reservada para revisar dados do formulário de entrada, ajustar o canal oficial do
+          Agente Político e registrar os canais de divulgação que apontam para esse WhatsApp.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
-            Voltar para implanta??o
+            Voltar para implantação
           </Link>
           <Link className="button secondary" href="/admin/usuarios">
             Equipe da campanha
           </Link>
           <Link className="button secondary" href={`/campanhas/${idCandidato}/inteligencia`}>
-            Intelig?ncia da campanha
+            Inteligência da campanha
           </Link>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/eventos/gestao`}>
             Gerir eventos da campanha
           </Link>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/eventos`}>
-            Controlar presen?a de eventos
+            Controlar presença de eventos
           </Link>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/comunicacao/email`}>
             Remeter e-mails

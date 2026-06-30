@@ -4,9 +4,16 @@ import { ensureElectorEnrichmentColumns } from "@/lib/repositories/elector-schem
 
 export type CampaignEmailAudience =
   | "todos_com_email"
+  | "eleitor_individual"
   | "evento_todos"
   | "evento_confirmados"
   | "evento_presentes";
+
+export type CampaignEmailAttachment = {
+  filename: string;
+  content: string;
+  contentType: string;
+};
 
 export type CampaignEmailContext = {
   id_candidato: string;
@@ -16,6 +23,7 @@ export type CampaignEmailContext = {
   qr_code_url: string | null;
   total_eleitores_com_email: number;
   eventos: { id: string; nome_evento: string; data_evento: string }[];
+  eleitores: { eleitor_uid: string; nome: string | null; email: string; telefone: string | null }[];
   ultimas_remessas: CampaignEmailDispatchSummary[];
   provedor_configurado: boolean;
 };
@@ -54,7 +62,7 @@ export async function getCampaignEmailContext(idCandidato: string): Promise<Camp
     return null;
   }
 
-  const [totalResult, eventsResult, dispatchesResult] = await Promise.all([
+  const [totalResult, eventsResult, electorsResult, dispatchesResult] = await Promise.all([
     db.query<{ total: number }>(
       `
         select count(*)::int as total
@@ -72,6 +80,19 @@ export async function getCampaignEmailContext(idCandidato: string): Promise<Camp
         where id_candidato = $1
         order by data_evento desc
         limit 20
+      `,
+      [idCandidato]
+    ),
+    db.query<{ eleitor_uid: string; nome: string | null; email: string; telefone: string | null }>(
+      `
+        select eleitor_uid, nome, lower(trim(email)) as email, telefone
+        from eleitores
+        where id_candidato = $1
+          and nullif(trim(coalesce(email, '')), '') is not null
+          and email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
+          and coalesce(opt_out, false) = false
+        order by coalesce(nullif(trim(nome), ''), email)
+        limit 250
       `,
       [idCandidato]
     ),
@@ -99,6 +120,7 @@ export async function getCampaignEmailContext(idCandidato: string): Promise<Camp
     ...identity,
     total_eleitores_com_email: totalResult.rows[0]?.total ?? 0,
     eventos: eventsResult.rows,
+    eleitores: electorsResult.rows,
     ultimas_remessas: dispatchesResult.rows,
     provedor_configurado: Boolean(env.resendApiKey)
   };
@@ -110,10 +132,12 @@ export async function planAndSendCampaignEmail(input: {
   atorEmail: string;
   publico: CampaignEmailAudience;
   eventoId?: string | null;
+  eleitorUid?: string | null;
   emailRemetente?: string | null;
   assunto: string;
   mensagem: string;
   imagemUrl?: string | null;
+  imagemArquivo?: CampaignEmailAttachment | null;
   incluirQrCode: boolean;
 }) {
   await ensureCampaignEmailTables();
@@ -148,7 +172,8 @@ export async function planAndSendCampaignEmail(input: {
   const recipients = await listRecipients({
     idCandidato: input.idCandidato,
     publico: input.publico,
-    eventoId: input.eventoId
+    eventoId: input.eventoId,
+    eleitorUid: input.eleitorUid
   });
 
   if (recipients.length === 0) {
@@ -190,7 +215,14 @@ export async function planAndSendCampaignEmail(input: {
       provider,
       initialStatus,
       limitedRecipients.length,
-      JSON.stringify({ total_original_destinatarios: recipients.length, limite_aplicado: maxRecipients })
+      JSON.stringify({
+        total_original_destinatarios: recipients.length,
+        limite_aplicado: maxRecipients,
+        eleitor_individual: input.publico === "eleitor_individual" ? input.eleitorUid : null,
+        imagem_arquivo: input.imagemArquivo
+          ? { filename: input.imagemArquivo.filename, contentType: input.imagemArquivo.contentType }
+          : null
+      })
     ]
   );
 
@@ -234,14 +266,17 @@ export async function planAndSendCampaignEmail(input: {
           nomeCandidato: identity.nome_remetente,
           mensagem,
           imagemUrl,
-          qrCodeUrl: input.incluirQrCode ? identity.qr_code_url : null
+          qrCodeUrl: input.incluirQrCode ? identity.qr_code_url : null,
+          imagemAnexadaNome: input.imagemArquivo?.filename ?? null
         }),
         text: buildEmailText({
           nomeEleitor: recipient.nome,
           nomeCandidato: identity.nome_remetente,
           mensagem,
-          qrCodeUrl: input.incluirQrCode ? identity.qr_code_url : null
-        })
+          qrCodeUrl: input.incluirQrCode ? identity.qr_code_url : null,
+          imagemAnexadaNome: input.imagemArquivo?.filename ?? null
+        }),
+        attachment: input.imagemArquivo ?? null
       });
       totalEnviados += 1;
       await updateRecipientStatus(dispatchId, recipient.eleitor_uid, "enviado", null);
@@ -340,12 +375,19 @@ async function listRecipients(input: {
   idCandidato: string;
   publico: CampaignEmailAudience;
   eventoId?: string | null;
+  eleitorUid?: string | null;
 }) {
   const values: unknown[] = [input.idCandidato];
   let joinClause = "";
   let whereClause = "";
 
-  if (input.publico !== "todos_com_email") {
+  if (input.publico === "eleitor_individual") {
+    if (!input.eleitorUid) {
+      throw new Error("Selecione um eleitor para a remessa individual.");
+    }
+    values.push(input.eleitorUid);
+    whereClause = "and e.eleitor_uid = $2";
+  } else if (input.publico !== "todos_com_email") {
     if (!input.eventoId) {
       throw new Error("Selecione um evento para remeter e-mail por público de evento.");
     }
@@ -373,7 +415,7 @@ async function listRecipients(input: {
       ${joinClause}
       where e.id_candidato = $1
         and nullif(trim(coalesce(e.email, '')), '') is not null
-        and e.email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$'
+        and e.email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
         and coalesce(e.opt_out, false) = false
         ${whereClause}
       order by lower(trim(e.email)), coalesce(e.ultimo_contato_em, e.atualizado_em, e.criado_em) desc
@@ -460,6 +502,7 @@ async function sendWithResend(input: {
   subject: string;
   html: string;
   text: string;
+  attachment: CampaignEmailAttachment | null;
 }) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -472,7 +515,10 @@ async function sendWithResend(input: {
       to: [input.recipient.email],
       subject: input.subject,
       html: input.html,
-      text: input.text
+      text: input.text,
+      attachments: input.attachment
+        ? [{ filename: input.attachment.filename, content: input.attachment.content }]
+        : undefined
     })
   });
 
@@ -488,17 +534,21 @@ function buildEmailHtml(input: {
   mensagem: string;
   imagemUrl: string | null;
   qrCodeUrl: string | null;
+  imagemAnexadaNome: string | null;
 }) {
   const greeting = input.nomeEleitor ? `<p>Olá, ${escapeHtml(input.nomeEleitor)}.</p>` : "<p>Olá.</p>";
   const message = escapeHtml(input.mensagem).replace(/\n/g, "<br />");
   const image = input.imagemUrl
     ? `<p><img src="${escapeHtml(input.imagemUrl)}" alt="Imagem da campanha" style="max-width:100%;height:auto;border-radius:8px" /></p>`
     : "";
+  const attachment = input.imagemAnexadaNome
+    ? `<p><strong>Imagem da campanha anexada:</strong> ${escapeHtml(input.imagemAnexadaNome)}</p>`
+    : "";
   const qr = input.qrCodeUrl
     ? `<p><strong>QR Code oficial da campanha</strong><br /><img src="${escapeHtml(input.qrCodeUrl)}" alt="QR Code oficial da campanha" width="220" height="220" /></p>`
     : "";
 
-  return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#123;line-height:1.5">${greeting}<p>${message}</p>${image}${qr}<p>Atenciosamente,<br />${escapeHtml(input.nomeCandidato)}</p></body></html>`;
+  return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#123;line-height:1.5">${greeting}<p>${message}</p>${image}${attachment}${qr}<p>Atenciosamente,<br />${escapeHtml(input.nomeCandidato)}</p></body></html>`;
 }
 
 function buildEmailText(input: {
@@ -506,11 +556,13 @@ function buildEmailText(input: {
   nomeCandidato: string;
   mensagem: string;
   qrCodeUrl: string | null;
+  imagemAnexadaNome: string | null;
 }) {
   return [
     input.nomeEleitor ? `Olá, ${input.nomeEleitor}.` : "Olá.",
     "",
     input.mensagem,
+    input.imagemAnexadaNome ? `\nImagem da campanha anexada: ${input.imagemAnexadaNome}` : "",
     input.qrCodeUrl ? `\nQR Code oficial da campanha: ${input.qrCodeUrl}` : "",
     "",
     `Atenciosamente, ${input.nomeCandidato}`
