@@ -41,6 +41,8 @@ export async function sendCampaignEmailAction(formData: FormData) {
     );
   }
 
+  let nextUrl = targetUrl;
+
   try {
     const result = await planAndSendCampaignEmail({
       idCandidato,
@@ -69,7 +71,7 @@ export async function sendCampaignEmailAction(formData: FormData) {
     });
 
     revalidatePath(targetUrl);
-    redirect(`${targetUrl}?feedback=sucesso&mensagem=${encodeURIComponent(buildSuccessMessage(result))}`);
+    nextUrl = `${targetUrl}?feedback=sucesso&mensagem=${encodeURIComponent(buildSuccessMessage(result))}`;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao preparar a remessa de e-mail.";
 
@@ -85,8 +87,10 @@ export async function sendCampaignEmailAction(formData: FormData) {
     });
 
     revalidatePath(targetUrl);
-    redirect(`${targetUrl}?feedback=erro&mensagem=${encodeURIComponent(message)}`);
+    nextUrl = `${targetUrl}?feedback=erro&mensagem=${encodeURIComponent(message)}`;
   }
+
+  redirect(nextUrl);
 }
 
 function buildSuccessMessage(result: {
