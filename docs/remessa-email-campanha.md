@@ -4,7 +4,7 @@
 
 Disponibilizar ao gestor da campanha uma rotina controlada para remeter mensagens por e-mail aos eleitores/usuários vinculados ao candidato, mantendo o candidato como emissor institucional da comunicação.
 
-## Escopo da V18.0.0
+## Escopo da V18.2.0
 
 - Acesso exclusivo ao perfil `gestor_campanha` vinculado ao candidato.
 - Remetente sempre associado ao candidato.
@@ -17,17 +17,56 @@ Disponibilizar ao gestor da campanha uma rotina controlada para remeter mensagen
   - presentes em um evento.
 - Mensagem com assunto, texto livre, URL opcional de imagem, imagem anexada do computador do gestor e inclusão opcional do QR Code oficial da campanha.
 - Registro de auditoria em governança e tabelas próprias de remessas/destinatários.
-- Envio real por Resend quando `RESEND_API_KEY` estiver configurada.
+- Envio real por Resend quando `EMAIL_PROVIDER=resend` ou, em modo automático, quando houver `RESEND_API_KEY` e não houver SMTP configurado.
+- Envio real por SMTP quando `EMAIL_PROVIDER=smtp` ou, em modo automático, quando houver `SMTP_HOST`, `SMTP_USER` e `SMTP_PASS`.
 - Sem provedor configurado, a remessa fica registrada como planejada, sem envio externo.
 
 ## Variáveis de ambiente
 
+### Modo automático
+
 ```env
+EMAIL_PROVIDER=auto
+EMAIL_MAX_RECIPIENTS_PER_DISPATCH=100
+```
+
+No modo automático, a plataforma prioriza SMTP quando `SMTP_HOST`, `SMTP_USER` e `SMTP_PASS` estiverem configurados. Caso contrário, usa Resend quando `RESEND_API_KEY` estiver configurada.
+
+### Resend
+
+```env
+EMAIL_PROVIDER=resend
 RESEND_API_KEY=...
 EMAIL_MAX_RECIPIENTS_PER_DISPATCH=100
 ```
 
-As variáveis `SMTP_*` já ficam reservadas no ambiente para evolução posterior, mas a rota operacional recomendada para esta primeira versão é Resend.
+O Resend exige domínio remetente verificado. E-mails públicos como Gmail, Outlook ou Hotmail não funcionam como remetente direto nesse modo.
+
+### SMTP Gmail ou Google Workspace
+
+```env
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=email.autorizado@gmail.com
+SMTP_PASS=senha_de_app_do_google
+EMAIL_HELO_DOMAIN=gapconsult.com.br
+EMAIL_MAX_RECIPIENTS_PER_DISPATCH=10
+```
+
+Para Gmail, use uma conta autorizada pelo candidato, com verificação em duas etapas e senha de app. O remetente informado na tela deve ser a própria conta autenticada ou um alias autorizado nessa conta.
+
+### SMTP com porta 465
+
+```env
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.seudominio.com.br
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=campanha@seudominio.com.br
+SMTP_PASS=senha_da_conta
+```
 
 ## Governança
 

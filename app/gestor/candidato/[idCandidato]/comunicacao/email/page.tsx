@@ -74,9 +74,9 @@ export default async function CampaignEmailPage({ params, searchParams }: Campai
         <article className="card">
           <span className="metric-label">Provedor de envio</span>
           <strong className="metric-value compact-text">
-            {context.provedor_configurado ? "Configurado" : "Não configurado"}
+            {labelProvider(context.provedor_envio)}
           </strong>
-          <div className="muted">Sem provedor, a remessa fica planejada e auditada, sem envio externo.</div>
+          <div className="muted">Modo ativo para envio externo. Sem provedor, a remessa fica apenas planejada e auditada.</div>
         </article>
       </section>
 
@@ -255,6 +255,16 @@ function formatDate(value: string | null | undefined) {
     minute: "2-digit",
     timeZone: "America/Sao_Paulo"
   }).format(new Date(value));
+}
+
+function labelProvider(value: string) {
+  const labels: Record<string, string> = {
+    smtp: "SMTP configurado",
+    resend: "Resend configurado",
+    sem_provedor: "Não configurado"
+  };
+
+  return labels[value] ?? value;
 }
 
 function labelAudience(value: string) {

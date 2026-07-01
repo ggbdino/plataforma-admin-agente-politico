@@ -102,7 +102,7 @@ function buildSuccessMessage(result: {
   firstFailureMessage?: string | null;
 }) {
   if (result.status === "planejada_sem_provedor") {
-    return `Remessa planejada para ${result.totalDestinatarios} destinatário(s). Configure RESEND_API_KEY para habilitar o envio real.`;
+    return `Remessa planejada para ${result.totalDestinatarios} destinatário(s). Configure RESEND_API_KEY ou SMTP_HOST/SMTP_USER/SMTP_PASS para habilitar o envio real.`;
   }
 
   if (result.totalFalhas > 0) {

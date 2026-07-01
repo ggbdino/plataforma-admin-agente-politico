@@ -18,6 +18,7 @@ export const env = {
   metaWhatsAppVerifyToken: process.env.META_WHATSAPP_VERIFY_TOKEN ?? "",
   metaWhatsAppBusinessAccountId: process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID ?? "",
   metaWhatsAppPhoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID ?? "",
+  emailProvider: (process.env.EMAIL_PROVIDER ?? "auto").toLowerCase(),
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   smtpHost: process.env.SMTP_HOST ?? "",
   smtpPort: process.env.SMTP_PORT ?? "",
@@ -47,7 +48,7 @@ export function getRequiredEnv(name: string): string {
   const value = process.env[name];
 
   if (!value) {
-    throw new Error(`Variavel obrigatoria ausente: ${name}`);
+    throw new Error(`Variável obrigatória ausente: ${name}`);
   }
 
   return value;

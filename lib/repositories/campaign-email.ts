@@ -1,3 +1,5 @@
+import net from "node:net";
+import tls from "node:tls";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ensureElectorEnrichmentColumns } from "@/lib/repositories/elector-schema";
@@ -26,6 +28,7 @@ export type CampaignEmailContext = {
   eleitores: { eleitor_uid: string; nome: string | null; email: string; telefone: string | null }[];
   ultimas_remessas: CampaignEmailDispatchSummary[];
   provedor_configurado: boolean;
+  provedor_envio: string;
 };
 
 export type CampaignEmailDispatchSummary = {
@@ -122,7 +125,8 @@ export async function getCampaignEmailContext(idCandidato: string): Promise<Camp
     eventos: eventsResult.rows,
     eleitores: electorsResult.rows,
     ultimas_remessas: dispatchesResult.rows,
-    provedor_configurado: Boolean(env.resendApiKey)
+    provedor_configurado: resolveEmailProvider() !== "sem_provedor",
+    provedor_envio: resolveEmailProvider()
   };
 }
 
@@ -182,8 +186,8 @@ export async function planAndSendCampaignEmail(input: {
 
   const maxRecipients = normalizeMaxRecipients(env.emailMaxRecipientsPerDispatch);
   const limitedRecipients = recipients.slice(0, maxRecipients);
-  const provider = env.resendApiKey ? "resend" : "sem_provedor";
-  const initialStatus = provider === "resend" ? "em_processamento" : "planejada_sem_provedor";
+  const provider = resolveEmailProvider();
+  const initialStatus = provider !== "sem_provedor" ? "em_processamento" : "planejada_sem_provedor";
 
   const dispatchResult = await db.query<{ id: string }>(
     `
@@ -236,10 +240,10 @@ export async function planAndSendCampaignEmail(input: {
       select $1::uuid, x.eleitor_uid, x.nome, x.email, $2, now(), now()
       from jsonb_to_recordset($3::jsonb) as x(eleitor_uid text, nome text, email text)
     `,
-    [dispatchId, provider === "resend" ? "pendente" : "planejado", JSON.stringify(limitedRecipients)]
+    [dispatchId, provider !== "sem_provedor" ? "pendente" : "planejado", JSON.stringify(limitedRecipients)]
   );
 
-  if (provider !== "resend") {
+  if (provider === "sem_provedor") {
     return {
       dispatchId,
       status: initialStatus,
@@ -256,8 +260,8 @@ export async function planAndSendCampaignEmail(input: {
 
   for (const recipient of limitedRecipients) {
     try {
-      await sendWithResend({
-        apiKey: env.resendApiKey,
+      await sendWithConfiguredProvider({
+        provider,
         fromEmail: emailRemetente,
         fromName: identity.nome_remetente,
         recipient,
@@ -498,6 +502,33 @@ async function ensureCampaignEmailTables() {
   `);
 }
 
+async function sendWithConfiguredProvider(input: {
+  provider: string;
+  fromEmail: string;
+  fromName: string;
+  recipient: Recipient;
+  subject: string;
+  html: string;
+  text: string;
+  attachment: CampaignEmailAttachment | null;
+}) {
+  if (input.provider === "smtp") {
+    await sendWithSmtp(input);
+    return;
+  }
+
+  await sendWithResend({
+    apiKey: env.resendApiKey,
+    fromEmail: input.fromEmail,
+    fromName: input.fromName,
+    recipient: input.recipient,
+    subject: input.subject,
+    html: input.html,
+    text: input.text,
+    attachment: input.attachment
+  });
+}
+
 async function sendWithResend(input: {
   apiKey: string;
   fromEmail: string;
@@ -529,6 +560,44 @@ async function sendWithResend(input: {
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`Resend recusou o envio (${response.status}): ${body.slice(0, 300)}`);
+  }
+}
+
+async function sendWithSmtp(input: {
+  fromEmail: string;
+  fromName: string;
+  recipient: Recipient;
+  subject: string;
+  html: string;
+  text: string;
+  attachment: CampaignEmailAttachment | null;
+}) {
+  if (!env.smtpHost || !env.smtpUser || !env.smtpPass) {
+    throw new Error("SMTP não configurado. Informe SMTP_HOST, SMTP_USER e SMTP_PASS.");
+  }
+
+  const client = await SmtpClient.connect({
+    host: env.smtpHost,
+    port: normalizeSmtpPort(env.smtpPort, env.smtpSecure),
+    secure: env.smtpSecure,
+    heloDomain: env.emailHeloDomain || "agente-politico.local"
+  });
+
+  try {
+    await client.authenticate(env.smtpUser, env.smtpPass);
+    await client.sendMail({
+      fromEmail: input.fromEmail,
+      fromName: input.fromName,
+      toEmail: input.recipient.email,
+      subject: input.subject,
+      html: input.html,
+      text: input.text,
+      attachment: input.attachment
+    });
+    await client.quit();
+  } catch (error) {
+    client.close();
+    throw error;
   }
 }
 
@@ -588,7 +657,7 @@ function summarizeProviderFailure(message: string) {
         return detail.slice(0, 240);
       }
     } catch {
-      // Mantem a mensagem textual do provedor quando o corpo nao vier em JSON valido.
+      // Mantém a mensagem textual do provedor quando o corpo não vier em JSON válido.
     }
   }
 
@@ -636,4 +705,273 @@ function escapeHtml(value: string) {
 
 function escapeEmailName(value: string) {
   return value.replace(/["<>]/g, "").trim() || "Campanha";
+}
+
+function resolveEmailProvider() {
+  const provider = env.emailProvider;
+  const hasSmtp = Boolean(env.smtpHost && env.smtpUser && env.smtpPass);
+  const hasResend = Boolean(env.resendApiKey);
+
+  if (provider === "smtp") {
+    return hasSmtp ? "smtp" : "sem_provedor";
+  }
+
+  if (provider === "resend") {
+    return hasResend ? "resend" : "sem_provedor";
+  }
+
+  if (hasSmtp) {
+    return "smtp";
+  }
+
+  if (hasResend) {
+    return "resend";
+  }
+
+  return "sem_provedor";
+}
+
+function normalizeSmtpPort(value: string | undefined, secure: boolean) {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return Math.trunc(parsed);
+  }
+  return secure ? 465 : 587;
+}
+
+type SmtpEnvelope = {
+  fromEmail: string;
+  fromName: string;
+  toEmail: string;
+  subject: string;
+  html: string;
+  text: string;
+  attachment: CampaignEmailAttachment | null;
+};
+
+class SmtpClient {
+  private socket: net.Socket | tls.TLSSocket;
+  private buffer = "";
+  private readonly host: string;
+  private readonly heloDomain: string;
+
+  private constructor(socket: net.Socket | tls.TLSSocket, host: string, heloDomain: string) {
+    this.socket = socket;
+    this.host = host;
+    this.heloDomain = heloDomain;
+  }
+
+  static async connect(input: { host: string; port: number; secure: boolean; heloDomain: string }) {
+    const socket = input.secure
+      ? tls.connect({ host: input.host, port: input.port, servername: input.host })
+      : net.connect({ host: input.host, port: input.port });
+
+    await waitForSocket(socket, input.secure ? "secureConnect" : "connect");
+    const client = new SmtpClient(socket, input.host, input.heloDomain);
+    await client.expect([220]);
+    const ehlo = await client.command(`EHLO ${input.heloDomain}`, [250]);
+
+    if (!input.secure && ehlo.some((line) => /STARTTLS/i.test(line))) {
+      await client.command("STARTTLS", [220]);
+      client.socket = tls.connect({ socket: client.socket, servername: input.host });
+      client.buffer = "";
+      await waitForSocket(client.socket, "secureConnect");
+      await client.command(`EHLO ${input.heloDomain}`, [250]);
+    }
+
+    return client;
+  }
+
+  async authenticate(user: string, pass: string) {
+    const token = Buffer.concat([Buffer.from([0]), Buffer.from(user), Buffer.from([0]), Buffer.from(pass)]).toString("base64");
+    await this.command(`AUTH PLAIN ${token}`, [235]);
+  }
+
+  async sendMail(input: SmtpEnvelope) {
+    await this.command(`MAIL FROM:<${input.fromEmail}>`, [250]);
+    await this.command(`RCPT TO:<${input.toEmail}>`, [250, 251]);
+    await this.command("DATA", [354]);
+    this.socket.write(`${dotStuff(buildMimeMessage(input))}\r\n.\r\n`);
+    await this.expect([250]);
+  }
+
+  async quit() {
+    await this.command("QUIT", [221]);
+    this.close();
+  }
+
+  close() {
+    this.socket.destroy();
+  }
+
+  private async command(command: string, expected: number[]) {
+    this.socket.write(`${command}\r\n`);
+    return this.expect(expected);
+  }
+
+  private async expect(expected: number[]) {
+    const lines = await this.readResponse();
+    const last = lines[lines.length - 1] ?? "";
+    const code = Number(last.slice(0, 3));
+    if (!expected.includes(code)) {
+      throw new Error(`SMTP recusou comando (${code || "sem código"}): ${lines.join(" ").slice(0, 300)}`);
+    }
+    return lines;
+  }
+
+  private async readResponse() {
+    const lines: string[] = [];
+    while (true) {
+      const line = await this.readLine();
+      lines.push(line);
+      if (/^\d{3} /.test(line)) {
+        return lines;
+      }
+    }
+  }
+
+  private async readLine(): Promise<string> {
+    const existing = this.takeLine();
+    if (existing) {
+      return existing;
+    }
+
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.socket.off("data", onData);
+        this.socket.off("error", onError);
+      };
+      const fail = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+      const done = (line: string) => {
+        cleanup();
+        resolve(line);
+      };
+      const timer = setTimeout(() => fail(new Error("Tempo esgotado aguardando resposta SMTP.")), 30000);
+      const onData = (chunk: Buffer) => {
+        this.buffer += chunk.toString("utf8");
+        const line = this.takeLine();
+        if (line) {
+          done(line);
+        }
+      };
+      const onError = (error: Error) => fail(error);
+      this.socket.on("data", onData);
+      this.socket.on("error", onError);
+    });
+  }
+
+  private takeLine() {
+    const index = this.buffer.indexOf("\n");
+    if (index < 0) {
+      return null;
+    }
+    const line = this.buffer.slice(0, index + 1).replace(/\r?\n$/, "");
+    this.buffer = this.buffer.slice(index + 1);
+    return line;
+  }
+}
+
+function waitForSocket(socket: net.Socket | tls.TLSSocket, event: "connect" | "secureConnect") {
+  return new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      clearTimeout(timer);
+      socket.off(event, onReady);
+      socket.off("error", onError);
+    };
+    const fail = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+    const done = () => {
+      cleanup();
+      resolve();
+    };
+    const timer = setTimeout(() => fail(new Error("Tempo esgotado conectando ao SMTP.")), 30000);
+    const onReady = () => done();
+    const onError = (error: Error) => fail(error);
+    socket.once(event, onReady);
+    socket.once("error", onError);
+  });
+}
+
+function buildMimeMessage(input: SmtpEnvelope) {
+  const mixedBoundary = `mixed_${cryptoRandom()}`;
+  const altBoundary = `alt_${cryptoRandom()}`;
+  const headers = [
+    `From: ${formatAddress(input.fromName, input.fromEmail)}`,
+    `To: <${input.toEmail}>`,
+    `Subject: ${encodeMimeHeader(input.subject)}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`
+  ];
+
+  const parts = [
+    ...headers,
+    "",
+    `--${mixedBoundary}`,
+    `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+    "",
+    `--${altBoundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    input.text,
+    "",
+    `--${altBoundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    input.html,
+    "",
+    `--${altBoundary}--`
+  ];
+
+  if (input.attachment) {
+    parts.push(
+      "",
+      `--${mixedBoundary}`,
+      `Content-Type: ${sanitizeMimeType(input.attachment.contentType)}; name="${sanitizeFilename(input.attachment.filename)}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${sanitizeFilename(input.attachment.filename)}"`,
+      "",
+      foldBase64(input.attachment.content)
+    );
+  }
+
+  parts.push("", `--${mixedBoundary}--`, "");
+  return parts.join("\r\n");
+}
+
+function dotStuff(message: string) {
+  return message.replace(/^\./gm, "..");
+}
+
+function formatAddress(name: string, email: string) {
+  return `${encodeMimeHeader(escapeEmailName(name))} <${email}>`;
+}
+
+function encodeMimeHeader(value: string) {
+  return /^[\x20-\x7e]*$/.test(value)
+    ? value.replace(/[\r\n]/g, " ")
+    : `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
+}
+
+function sanitizeFilename(value: string) {
+  return value.replace(/["\r\n]/g, "").slice(0, 120) || "imagem-campanha";
+}
+
+function sanitizeMimeType(value: string) {
+  return /^image\/[a-z0-9.+-]+$/i.test(value) ? value : "application/octet-stream";
+}
+
+function foldBase64(value: string) {
+  return value.replace(/(.{1,76})/g, "$1\r\n").trim();
+}
+
+function cryptoRandom() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
