@@ -95,7 +95,6 @@ export async function getCampaignEmailContext(idCandidato: string): Promise<Camp
           and email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
           and coalesce(opt_out, false) = false
         order by coalesce(nullif(trim(nome), ''), email)
-        limit 250
       `,
       [idCandidato]
     ),

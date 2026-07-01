@@ -1777,3 +1777,18 @@ button {
   gap: 8px;
   margin: 6px 0 4px;
 }
+
+.email-summary-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.email-summary-value {
+  display: block;
+  max-width: 100%;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  line-height: 1.25;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

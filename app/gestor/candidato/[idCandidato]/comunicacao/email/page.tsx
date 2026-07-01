@@ -66,14 +66,14 @@ export default async function CampaignEmailPage({ params, searchParams }: Campai
           <strong className="metric-value">{context.total_eleitores_com_email}</strong>
           <div className="muted">Somente registros com e-mail válido e sem opt-out entram na remessa.</div>
         </article>
-        <article className="card">
+        <article className="card email-summary-card">
           <span className="metric-label">Remetente do candidato</span>
-          <strong className="metric-value compact-text">{context.email_remetente ?? "Pendente"}</strong>
+          <strong className="metric-value email-summary-value">{context.email_remetente ?? "Pendente"}</strong>
           <div className="muted">Quando não houver e-mail registrado, informe-o no formulário abaixo.</div>
         </article>
-        <article className="card">
+        <article className="card email-summary-card">
           <span className="metric-label">Provedor de envio</span>
-          <strong className="metric-value compact-text">
+          <strong className="metric-value email-summary-value">
             {labelProvider(context.provedor_envio)}
           </strong>
           <div className="muted">Modo ativo para envio externo. Sem provedor, a remessa fica apenas planejada e auditada.</div>
