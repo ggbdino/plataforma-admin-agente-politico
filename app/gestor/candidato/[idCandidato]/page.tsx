@@ -69,6 +69,9 @@ export default async function CampaignManagerPage({
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/comunicacao/email`}>
             Remeter e-mails
           </Link>
+          <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/comunicacao/whatsapp`}>
+            Remeter WhatsApp
+          </Link>
         </div>
       </section>
 
@@ -196,8 +199,8 @@ export default async function CampaignManagerPage({
                 <label className="manager-channel-option">
                   <input defaultChecked name="campo" type="checkbox" value="email" />
                   <span>
-                    <strong>Email</strong>
-                    <small className="muted">Email cadastral quando disponível.</small>
+                    <strong>E-mail</strong>
+                    <small className="muted">E-mail cadastral quando disponível.</small>
                   </span>
                 </label>
                 <label className="manager-channel-option">
