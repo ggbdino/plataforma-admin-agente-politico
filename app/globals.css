@@ -1792,3 +1792,33 @@ button {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+.brand-header-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.compact-button {
+  min-height: 32px;
+  padding: 7px 12px;
+}
+
+.danger-button {
+  background: #b42318;
+  border-color: #b42318;
+  color: #fff;
+}
+
+.danger-button:hover {
+  background: #8f1d14;
+  border-color: #8f1d14;
+}
+
+@media (max-width: 760px) {
+  .brand-header-row {
+    flex-direction: column;
+  }
+}

@@ -66,9 +66,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <span>Senha</span>
             <input className="step-input" name="senha" type="password" />
           </label>
-          <button className="button" type="submit">
-            Abrir sistema
-          </button>
+          <div className="actions">
+            <button className="button" type="submit">
+              Abrir sistema
+            </button>
+            <Link className="button secondary" href="/recuperar-senha">
+              Esqueci minha senha
+            </Link>
+          </div>
         </form>
       </section>
     </main>

@@ -97,6 +97,17 @@ export async function ensurePlatformUserTables() {
           criado_em timestamptz default now()
         );
       `);
+
+      await db.query(`
+        create table if not exists paines_admin_recuperacao_senha (
+          id uuid primary key default gen_random_uuid(),
+          admin_usuario_id uuid not null references paines_admin_usuario(id) on delete cascade,
+          token_hash text not null unique,
+          expira_em timestamptz not null,
+          utilizado_em timestamptz,
+          criado_em timestamptz default now()
+        );
+      `);
     })();
   }
 
@@ -224,6 +235,148 @@ export async function createPlatformUser(input: {
     await client.query("commit");
 
     return userId;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+
+export async function getPlatformUserByEmail(email: string) {
+  await ensurePlatformUserTables();
+  const result = await db.query<PlatformUserRecord>(
+    `
+      select id, nome, email, perfil, status, ultimo_login_em::text as ultimo_login_em, criado_em::text as criado_em
+      from paines_admin_usuario
+      where email = $1
+      limit 1
+    `,
+    [email.trim().toLowerCase()]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function createPasswordResetToken(email: string) {
+  await ensurePlatformUserTables();
+  const user = await getPlatformUserByEmail(email);
+
+  if (!user || user.status !== "ativo") {
+    return null;
+  }
+
+  const rawToken = randomBytes(32).toString("hex");
+  await db.query(
+    `
+      insert into paines_admin_recuperacao_senha (admin_usuario_id, token_hash, expira_em)
+      values ($1, $2, now() + interval '1 hour')
+    `,
+    [user.id, hashToken(rawToken)]
+  );
+
+  return { user, rawToken };
+}
+
+export async function resetPlatformUserPasswordWithToken(rawToken: string, newPassword: string) {
+  await ensurePlatformUserTables();
+  const client = await db.connect();
+
+  try {
+    await client.query("begin");
+    const tokenResult = await client.query<{ id: string; admin_usuario_id: string }>(
+      `
+        select id, admin_usuario_id
+        from paines_admin_recuperacao_senha
+        where token_hash = $1
+          and expira_em > now()
+          and utilizado_em is null
+        limit 1
+      `,
+      [hashToken(rawToken)]
+    );
+    const token = tokenResult.rows[0];
+
+    if (!token) {
+      await client.query("rollback");
+      return false;
+    }
+
+    await client.query(
+      `update paines_admin_usuario set senha_hash = $2, atualizado_em = now() where id = $1`,
+      [token.admin_usuario_id, hashPassword(newPassword)]
+    );
+    await client.query(
+      `update paines_admin_recuperacao_senha set utilizado_em = now() where id = $1`,
+      [token.id]
+    );
+    await client.query(
+      `delete from paines_admin_sessoes where admin_usuario_id = $1`,
+      [token.admin_usuario_id]
+    );
+    await client.query("commit");
+    return true;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updatePlatformUserPassword(userId: string, newPassword: string) {
+  await ensurePlatformUserTables();
+  await db.query(
+    `update paines_admin_usuario set senha_hash = $2, atualizado_em = now() where id = $1`,
+    [userId, hashPassword(newPassword)]
+  );
+  await db.query(`delete from paines_admin_sessoes where admin_usuario_id = $1`, [userId]);
+}
+
+export async function deletePlatformUser(userId: string) {
+  await ensurePlatformUserTables();
+  await db.query(`delete from paines_admin_usuario where id = $1`, [userId]);
+}
+
+export async function updatePlatformUserAssignment(input: {
+  userId: string;
+  perfil: PlatformUserProfile;
+  permissoes: PlatformUserPermissionInput[];
+}) {
+  await ensurePlatformUserTables();
+  const client = await db.connect();
+
+  try {
+    await client.query("begin");
+    await client.query(
+      `update paines_admin_usuario set perfil = $2, atualizado_em = now() where id = $1`,
+      [input.userId, input.perfil]
+    );
+    await client.query(`delete from paines_admin_permissoes where admin_usuario_id = $1`, [input.userId]);
+
+    for (const permission of input.permissoes) {
+      await client.query(
+        `
+          insert into paines_admin_permissoes (
+            admin_usuario_id, id_candidato, escopo, pode_visualizar, pode_implantar,
+            pode_operar_funil, pode_operar_eventos, pode_ver_kpis, ativo
+          ) values ($1, $2, 'campanha', $3, $4, $5, $6, $7, true)
+        `,
+        [
+          input.userId,
+          permission.idCandidato,
+          permission.podeVisualizar,
+          permission.podeImplantar,
+          permission.podeOperarFunil,
+          permission.podeOperarEventos,
+          permission.podeVerKpis
+        ]
+      );
+    }
+
+    await client.query(`delete from paines_admin_sessoes where admin_usuario_id = $1`, [input.userId]);
+    await client.query("commit");
   } catch (error) {
     await client.query("rollback");
     throw error;
