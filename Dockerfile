@@ -10,6 +10,8 @@ ARG PORT=3000
 ENV NODE_ENV=$NODE_ENV
 ENV PORT=$PORT
 ENV NEXT_TELEMETRY_DISABLED=1
+# Valor fictício apenas para permitir o build do Next.js sem gravar segredos reais na imagem.
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
