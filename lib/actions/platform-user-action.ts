@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { env } from "@/lib/env";
 import {
   canManagePlatformUsers,
   getCurrentPlatformSession,
@@ -119,13 +120,7 @@ export async function authenticatePlatformAreaAction(formData: FormData) {
     redirect(`${redirectTo}?feedback=erro&mensagem=${encodeURIComponent("Usuário ou senha inválidos para este acesso.")}`);
   }
 
-  const { rawToken } = await createPlatformSession({
-    id: user.id,
-    nome: user.nome,
-    email: user.email,
-    perfil: user.perfil
-  });
-
+  const { rawToken } = await createPlatformSession({ id: user.id, nome: user.nome, email: user.email, perfil: user.perfil });
   await setCurrentPlatformSession(rawToken);
 
   await recordGovernanceEvent({
@@ -139,10 +134,9 @@ export async function authenticatePlatformAreaAction(formData: FormData) {
     origem: "platform-auth"
   });
 
-  const targetRoute =
-    redirectTo === "/" || redirectTo === "/acesso"
-      ? await getDefaultPlatformRoute({ userId: user.id, perfil: user.perfil })
-      : redirectTo;
+  const targetRoute = redirectTo === "/" || redirectTo === "/acesso"
+    ? await getDefaultPlatformRoute({ userId: user.id, perfil: user.perfil })
+    : redirectTo;
 
   redirect(`${targetRoute}?feedback=sucesso&mensagem=${encodeURIComponent("Acesso autenticado com sucesso.")}`);
 }
@@ -179,14 +173,12 @@ export async function requestPasswordResetAction(formData: FormData) {
 
   if (reset) {
     const resetUrl = `${await getRequestOrigin()}/redefinir-senha?token=${reset.rawToken}`;
-    const html = buildPasswordResetHtml(reset.user.nome, resetUrl);
-    const text = buildPasswordResetText(reset.user.nome, resetUrl);
     const provider = await sendPlatformTransactionalEmail({
       toEmail: reset.user.email,
       toName: reset.user.nome,
       subject: "Recuperação de senha da Plataforma Administrativa",
-      html,
-      text
+      html: buildPasswordResetHtml(reset.user.nome, resetUrl),
+      text: buildPasswordResetText(reset.user.nome, resetUrl)
     });
 
     await recordGovernanceEvent({
@@ -285,11 +277,7 @@ export async function adminUpdatePlatformUserAssignmentAction(formData: FormData
     redirect(`/admin/usuarios?feedback=erro&mensagem=${encodeURIComponent("Selecione o candidato vinculado ao usuário.")}`);
   }
 
-  await updatePlatformUserAssignment({
-    userId,
-    perfil,
-    permissoes: buildPermissionsForProfile(perfil, idCandidato || null)
-  });
+  await updatePlatformUserAssignment({ userId, perfil, permissoes: buildPermissionsForProfile(perfil, idCandidato || null) });
 
   await recordGovernanceEvent({
     idCandidato: idCandidato || null,
@@ -316,10 +304,7 @@ async function requireAdministratorSession() {
   return session;
 }
 
-function buildPermissionsForProfile(
-  perfil: PlatformUserProfile,
-  idCandidato: string | null
-): PlatformUserPermissionInput[] {
+function buildPermissionsForProfile(perfil: PlatformUserProfile, idCandidato: string | null): PlatformUserPermissionInput[] {
   if (perfil === "administrador" || !idCandidato) {
     return [];
   }
@@ -336,6 +321,10 @@ function buildPermissionsForProfile(
 }
 
 async function getRequestOrigin() {
+  if (env.appPublicBaseUrl) {
+    return env.appPublicBaseUrl.replace(/\/+$/, "");
+  }
+
   const requestHeaders = await headers();
   const proto = requestHeaders.get("x-forwarded-proto") ?? "https";
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";

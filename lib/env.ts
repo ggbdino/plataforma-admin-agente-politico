@@ -2,6 +2,8 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL,
   n8nBaseUrl: process.env.N8N_BASE_URL,
   n8nWebhookBaseUrl: process.env.N8N_WEBHOOK_BASE_URL ?? process.env.N8N_BASE_URL,
+  appForceHttps: process.env.APP_FORCE_HTTPS === "true",
+  appPublicBaseUrl: process.env.APP_PUBLIC_BASE_URL ?? "",
   publicEventsBaseUrl:
     process.env.PUBLIC_EVENTS_BASE_URL ??
     process.env.NEXT_PUBLIC_EVENTS_BASE_URL ??
