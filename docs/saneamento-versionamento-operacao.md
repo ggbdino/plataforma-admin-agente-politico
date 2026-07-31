@@ -49,6 +49,7 @@ Adotar duas camadas de controle:
 
 ## Release atual
 
+- `V20.0.1`: hotfix de implantação que corrige o checksum técnico do `package-lock.json` e mantém a funcionalidade de remessa WhatsApp por padrão de mensagem.
 - `V20.0.0`: adiciona remessa WhatsApp por padrão de mensagem para celulares de eleitores cadastrados na base do candidato, mantendo template aprovado da Meta, auditoria e rebuild manual no Easypanel.
 
 ## Procedimento mínimo para sincronizar workflows externos
