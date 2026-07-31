@@ -27,6 +27,7 @@ export async function sendCampaignWhatsAppAction(formData: FormData) {
   const businessAccountId = String(formData.get("businessAccountId") ?? "").trim() || null;
   const accessToken = String(formData.get("accessToken") ?? "").trim() || null;
   const numeroCampanha = String(formData.get("numeroCampanha") ?? "").trim() || null;
+  const padraoMensagem = String(formData.get("padraoMensagem") ?? "").trim() || null;
   const templateName = String(formData.get("templateName") ?? "").trim();
   const languageCode = String(formData.get("languageCode") ?? "pt_BR").trim() || "pt_BR";
   const variaveis = [1, 2, 3, 4, 5]
@@ -55,6 +56,7 @@ export async function sendCampaignWhatsAppAction(formData: FormData) {
       businessAccountId,
       accessToken,
       numeroCampanha,
+      padraoMensagem,
       templateName,
       languageCode,
       variaveis
@@ -113,3 +115,5 @@ function buildSuccessMessage(result: {
 
   return `Remessa processada pela ${result.provider}. ${result.totalEnviados} enviada(s), ${result.totalFalhas} com falha.`;
 }
+
+

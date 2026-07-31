@@ -88,8 +88,8 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
           <div>
             <h2 className="section-title">Preparar remessa</h2>
             <p className="subtitle">
-              Escolha o público, informe o template aprovado e preencha as variáveis exatamente na ordem
-              configurada no modelo da Meta.
+              Escolha um padrao de mensagem, selecione o publico da base do candidato e preencha as variaveis exatamente na ordem
+              configurada no template aprovado pela Meta.
             </p>
           </div>
           <span className="pill">Exclusivo do gestor</span>
@@ -144,25 +144,42 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
 
           <div className="step-form-grid">
             <label className="step-note">
-              <span>Template aprovado</span>
+              <span>Padrao de mensagem</span>
+              <select className="step-input" name="padraoMensagem">
+                {context.modelos_padrao.map((modelo) => (
+                  <option key={modelo.id} value={modelo.id}>
+                    {modelo.nome} - template {modelo.template_sugerido}
+                  </option>
+                ))}
+              </select>
+              <small className="muted">Use esta selecao para auditar a finalidade da remessa.</small>
+            </label>
+            <label className="step-note">
+              <span>Nome tecnico do template Meta</span>
               <input
                 className="step-input"
-                defaultValue={context.template_padrao ?? ""}
+                defaultValue={context.template_padrao ?? context.modelos_padrao[0]?.template_sugerido ?? ""}
+                list="modelos-whatsapp-meta"
                 name="templateName"
                 placeholder="nome_do_template_aprovado"
                 required
                 type="text"
               />
+              <datalist id="modelos-whatsapp-meta">
+                {context.modelos_padrao.map((modelo) => (
+                  <option key={modelo.id} value={modelo.template_sugerido} />
+                ))}
+              </datalist>
             </label>
             <label className="step-note">
               <span>Idioma do template</span>
               <input className="step-input" defaultValue={context.language_code} name="languageCode" type="text" />
             </label>
             <label className="step-note">
-              <span>Público da remessa</span>
+              <span>Publico da base do candidato</span>
               <select className="step-input" name="publico">
-                <option value="todos_com_telefone">Todos os eleitores com telefone</option>
-                <option value="eleitor_individual">Um eleitor específico</option>
+                <option value="todos_com_telefone">Todos os eleitores com celular/telefone</option>
+                <option value="eleitor_individual">Um eleitor especifico</option>
                 <option value="evento_todos">Todos os participantes de um evento</option>
                 <option value="evento_confirmados">Confirmados em um evento</option>
                 <option value="evento_presentes">Presentes em um evento</option>
@@ -210,14 +227,14 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
           </div>
 
           <div className="step-panel-callout">
-            Mensagens iniciadas pela campanha devem usar template aprovado pela Meta. Custos, limites,
+            Esta opcao envia mensagens do candidato para celulares de eleitores cadastrados na base selecionada. Mensagens iniciadas pela campanha devem usar template aprovado pela Meta. Custos, limites,
             qualidade do número e bloqueios ficam associados ao número do candidato e à respectiva conta
             de WhatsApp Business. Para testes, use público individual e limite baixo em WHATSAPP_MAX_RECIPIENTS_PER_DISPATCH.
           </div>
 
           <div className="actions">
             <button className="button" type="submit">
-              Registrar e enviar WhatsApp
+              Registrar e enviar remessa WhatsApp
             </button>
           </div>
         </form>
@@ -227,7 +244,7 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
         <div className="section-heading">
           <div>
             <h2 className="section-title">Histórico de remessas</h2>
-            <p className="subtitle">Últimas mensagens de WhatsApp registradas para este candidato.</p>
+            <p className="subtitle">Ultimas mensagens de WhatsApp registradas para este candidato.</p>
           </div>
         </div>
         {context.ultimas_remessas.length > 0 ? (
@@ -305,3 +322,4 @@ function labelStatus(value: string) {
 
   return labels[value] ?? value;
 }
+

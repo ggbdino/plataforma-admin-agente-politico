@@ -1,4 +1,4 @@
-﻿import { db } from "@/lib/db";
+import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ensureElectorEnrichmentColumns } from "@/lib/repositories/elector-schema";
 
@@ -8,6 +8,14 @@ export type CampaignWhatsAppAudience =
   | "evento_todos"
   | "evento_confirmados"
   | "evento_presentes";
+
+export type CampaignWhatsAppTemplatePreset = {
+  id: string;
+  nome: string;
+  descricao: string;
+  template_sugerido: string;
+  variaveis: string[];
+};
 
 export type CampaignWhatsAppContext = {
   id_candidato: string;
@@ -22,6 +30,7 @@ export type CampaignWhatsAppContext = {
   eleitores: { eleitor_uid: string; nome: string | null; telefone: string | null; email: string | null }[];
   ultimas_remessas: CampaignWhatsAppDispatchSummary[];
   meta_configurada: boolean;
+  modelos_padrao: CampaignWhatsAppTemplatePreset[];
 };
 
 export type CampaignWhatsAppDispatchSummary = {
@@ -51,6 +60,44 @@ type CandidateWhatsAppIdentity = {
   template_padrao: string | null;
   language_code: string | null;
 };
+
+const WHATSAPP_TEMPLATE_PRESETS: CampaignWhatsAppTemplatePreset[] = [
+  {
+    id: "apresentacao_candidato",
+    nome: "Apresentacao do candidato",
+    descricao: "Primeiro contato com eleitor cadastrado na base do candidato.",
+    template_sugerido: "apresentacao_do_candidato",
+    variaveis: ["nome do eleitor", "nome do candidato"]
+  },
+  {
+    id: "convite_evento",
+    nome: "Convite para evento",
+    descricao: "Chamada para agenda, reuniao, caminhada ou encontro da campanha.",
+    template_sugerido: "convite_evento_campanha",
+    variaveis: ["nome do eleitor", "nome do evento", "data ou local"]
+  },
+  {
+    id: "lembrete_evento",
+    nome: "Lembrete de evento",
+    descricao: "Reforco para eleitor ja convidado ou confirmado em um evento.",
+    template_sugerido: "lembrete_evento_campanha",
+    variaveis: ["nome do eleitor", "nome do evento", "horario"]
+  },
+  {
+    id: "mobilizacao_whatsapp",
+    nome: "Mobilizacao pelo WhatsApp",
+    descricao: "Mensagem geral de mobilizacao para base com telefone e opt-in.",
+    template_sugerido: "mobilizacao_whatsapp_campanha",
+    variaveis: ["nome do eleitor", "chamada principal"]
+  },
+  {
+    id: "hello_world",
+    nome: "Teste tecnico hello_world",
+    descricao: "Modelo padrao da Meta para teste controlado de envio.",
+    template_sugerido: "hello_world",
+    variaveis: []
+  }
+];
 
 export async function getCampaignWhatsAppContext(idCandidato: string): Promise<CampaignWhatsAppContext | null> {
   await ensureCampaignWhatsAppTables();
@@ -118,7 +165,8 @@ export async function getCampaignWhatsAppContext(idCandidato: string): Promise<C
     eventos: eventsResult.rows,
     eleitores: electorsResult.rows,
     ultimas_remessas: dispatchesResult.rows,
-    meta_configurada: Boolean(config.enabled && config.accessToken && config.phoneNumberId)
+    meta_configurada: Boolean(config.enabled && config.accessToken && config.phoneNumberId),
+    modelos_padrao: buildTemplatePresets(identity.template_padrao)
   };
 }
 
@@ -133,6 +181,7 @@ export async function planAndSendCampaignWhatsApp(input: {
   businessAccountId?: string | null;
   accessToken?: string | null;
   numeroCampanha?: string | null;
+  padraoMensagem?: string | null;
   templateName: string;
   languageCode: string;
   variaveis: string[];
@@ -196,7 +245,9 @@ export async function planAndSendCampaignWhatsApp(input: {
         total_original_destinatarios: recipients.length,
         limite_aplicado: maxRecipients,
         eleitor_individual: input.publico === "eleitor_individual" ? input.eleitorUid : null,
-        regra_meta: "mensagem_iniciada_pela_empresa_deve_usar_template_aprovado"
+        regra_meta: "mensagem_iniciada_pela_empresa_deve_usar_template_aprovado",
+        padrao_mensagem: normalizeText(input.padraoMensagem),
+        fonte_destinatarios: "base_eleitores_candidato"
       })
     ]
   );
@@ -511,6 +562,24 @@ function summarizeProviderFailure(message: string) {
   return normalized.slice(0, 260);
 }
 
+function buildTemplatePresets(templatePadrao: string | null) {
+  const customTemplate = normalizeTemplateName(templatePadrao);
+  if (!customTemplate || WHATSAPP_TEMPLATE_PRESETS.some((preset) => preset.template_sugerido === customTemplate)) {
+    return WHATSAPP_TEMPLATE_PRESETS;
+  }
+
+  return [
+    {
+      id: "template_salvo_candidato",
+      nome: "Template salvo do candidato",
+      descricao: "Modelo ja registrado para esta campanha.",
+      template_sugerido: customTemplate,
+      variaveis: ["conforme configurado na Meta"]
+    },
+    ...WHATSAPP_TEMPLATE_PRESETS
+  ];
+}
+
 function normalizeText(value: string | null | undefined) {
   const normalized = String(value ?? "").trim();
   return normalized || null;
@@ -534,3 +603,9 @@ function normalizePhone(value: string | null | undefined) {
   if (digits.length >= 10 && digits.length <= 11) return `55${digits}`;
   return digits.length >= 8 ? digits : null;
 }
+
+
+
+
+
+
