@@ -64,7 +64,7 @@ type CandidateWhatsAppIdentity = {
 const WHATSAPP_TEMPLATE_PRESETS: CampaignWhatsAppTemplatePreset[] = [
   {
     id: "apresentacao_candidato",
-    nome: "Apresentacao do candidato",
+    nome: "Apresentação do candidato",
     descricao: "Primeiro contato com eleitor cadastrado na base do candidato.",
     template_sugerido: "apresentacao_do_candidato",
     variaveis: ["nome do eleitor", "nome do candidato"]
@@ -72,28 +72,28 @@ const WHATSAPP_TEMPLATE_PRESETS: CampaignWhatsAppTemplatePreset[] = [
   {
     id: "convite_evento",
     nome: "Convite para evento",
-    descricao: "Chamada para agenda, reuniao, caminhada ou encontro da campanha.",
+    descricao: "Chamada para agenda, reunião, caminhada ou encontro da campanha.",
     template_sugerido: "convite_evento_campanha",
     variaveis: ["nome do eleitor", "nome do evento", "data ou local"]
   },
   {
     id: "lembrete_evento",
     nome: "Lembrete de evento",
-    descricao: "Reforco para eleitor ja convidado ou confirmado em um evento.",
+    descricao: "Reforço para eleitor já convidado ou confirmado em um evento.",
     template_sugerido: "lembrete_evento_campanha",
-    variaveis: ["nome do eleitor", "nome do evento", "horario"]
+    variaveis: ["nome do eleitor", "nome do evento", "horário"]
   },
   {
     id: "mobilizacao_whatsapp",
-    nome: "Mobilizacao pelo WhatsApp",
-    descricao: "Mensagem geral de mobilizacao para base com telefone e opt-in.",
+    nome: "Mobilização pelo WhatsApp",
+    descricao: "Mensagem geral de mobilização para base com telefone e opt-in.",
     template_sugerido: "mobilizacao_whatsapp_campanha",
     variaveis: ["nome do eleitor", "chamada principal"]
   },
   {
     id: "hello_world",
-    nome: "Teste tecnico hello_world",
-    descricao: "Modelo padrao da Meta para teste controlado de envio.",
+    nome: "Teste técnico hello_world",
+    descricao: "Modelo padrão da Meta para teste controlado de envio.",
     template_sugerido: "hello_world",
     variaveis: []
   }

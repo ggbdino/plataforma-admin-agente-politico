@@ -1,6 +1,13 @@
-# Remessa de WhatsApp da campanha - V19.0.0
+# Remessa de WhatsApp da campanha - V20.0.0
 
 A funcionalidade permite que o Gestor da Campanha envie mensagens pelo WhatsApp oficial do candidato para públicos controlados da base. O envio segue o modelo da Meta Cloud API para mensagens iniciadas pela empresa, portanto usa sempre um template previamente aprovado.
+
+## Atualização V20.0.0
+
+- A tela de WhatsApp passa a oferecer `Padrão de mensagem` para orientar a remessa por finalidade operacional.
+- O gestor continua informando o nome técnico do template aprovado na Meta.
+- A remessa registra `padrao_mensagem` e `fonte_destinatarios = base_eleitores_candidato` no metadata de auditoria.
+- O fluxo segue limitado aos eleitores da base do candidato com telefone válido e sem opt-out.
 
 ## Regras de acesso
 

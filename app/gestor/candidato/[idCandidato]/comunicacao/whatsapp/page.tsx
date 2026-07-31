@@ -88,7 +88,7 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
           <div>
             <h2 className="section-title">Preparar remessa</h2>
             <p className="subtitle">
-              Escolha um padrao de mensagem, selecione o publico da base do candidato e preencha as variaveis exatamente na ordem
+              Escolha um padrão de mensagem, selecione o público da base do candidato e preencha as variáveis exatamente na ordem
               configurada no template aprovado pela Meta.
             </p>
           </div>
@@ -144,7 +144,7 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
 
           <div className="step-form-grid">
             <label className="step-note">
-              <span>Padrao de mensagem</span>
+              <span>Padrão de mensagem</span>
               <select className="step-input" name="padraoMensagem">
                 {context.modelos_padrao.map((modelo) => (
                   <option key={modelo.id} value={modelo.id}>
@@ -152,10 +152,10 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
                   </option>
                 ))}
               </select>
-              <small className="muted">Use esta selecao para auditar a finalidade da remessa.</small>
+              <small className="muted">Use esta seleção para auditar a finalidade da remessa.</small>
             </label>
             <label className="step-note">
-              <span>Nome tecnico do template Meta</span>
+              <span>Nome técnico do template Meta</span>
               <input
                 className="step-input"
                 defaultValue={context.template_padrao ?? context.modelos_padrao[0]?.template_sugerido ?? ""}
@@ -176,10 +176,10 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
               <input className="step-input" defaultValue={context.language_code} name="languageCode" type="text" />
             </label>
             <label className="step-note">
-              <span>Publico da base do candidato</span>
+              <span>Público da base do candidato</span>
               <select className="step-input" name="publico">
                 <option value="todos_com_telefone">Todos os eleitores com celular/telefone</option>
-                <option value="eleitor_individual">Um eleitor especifico</option>
+                <option value="eleitor_individual">Um eleitor específico</option>
                 <option value="evento_todos">Todos os participantes de um evento</option>
                 <option value="evento_confirmados">Confirmados em um evento</option>
                 <option value="evento_presentes">Presentes em um evento</option>
@@ -227,7 +227,7 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
           </div>
 
           <div className="step-panel-callout">
-            Esta opcao envia mensagens do candidato para celulares de eleitores cadastrados na base selecionada. Mensagens iniciadas pela campanha devem usar template aprovado pela Meta. Custos, limites,
+            Esta opção envia mensagens do candidato para celulares de eleitores cadastrados na base selecionada. Mensagens iniciadas pela campanha devem usar template aprovado pela Meta. Custos, limites,
             qualidade do número e bloqueios ficam associados ao número do candidato e à respectiva conta
             de WhatsApp Business. Para testes, use público individual e limite baixo em WHATSAPP_MAX_RECIPIENTS_PER_DISPATCH.
           </div>
@@ -244,7 +244,7 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
         <div className="section-heading">
           <div>
             <h2 className="section-title">Histórico de remessas</h2>
-            <p className="subtitle">Ultimas mensagens de WhatsApp registradas para este candidato.</p>
+            <p className="subtitle">Últimas mensagens de WhatsApp registradas para este candidato.</p>
           </div>
         </div>
         {context.ultimas_remessas.length > 0 ? (

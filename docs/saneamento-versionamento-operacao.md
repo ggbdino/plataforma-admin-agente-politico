@@ -38,14 +38,18 @@ Adotar duas camadas de controle:
 2. Ajustar workflows no n8n.
 3. Exportar ou copiar os workflows atualizados para snapshot local.
 4. Atualizar documentação operacional se houver nova dependência manual.
-5. Incrementar a versão visível no arquivo `app/layout.tsx`.
+5. Incrementar a versão da aplicação em `lib/version.ts` e `package.json`/`package-lock.json`.
 6. Validar localmente ou no ambiente de homologação.
 7. Executar:
    - `git add .`
    - `git commit -m "fix: vX.Y.Z descrição"`
    - `git push`
-8. Implantar no Easypanel.
+8. No Easypanel, executar rebuild manual do serviço `plataforma-admin` após o `git push`. O serviço não usa auto-deploy por decisão operacional, para permitir acompanhamento da instalação.
 9. Registrar data, versão e observações no histórico operacional.
+
+## Release atual
+
+- `V20.0.0`: adiciona remessa WhatsApp por padrão de mensagem para celulares de eleitores cadastrados na base do candidato, mantendo template aprovado da Meta, auditoria e rebuild manual no Easypanel.
 
 ## Procedimento mínimo para sincronizar workflows externos
 
