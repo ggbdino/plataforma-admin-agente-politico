@@ -57,6 +57,9 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/comunicacao/email`}>
             Remeter e-mails
           </Link>
+          <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/comunicacao/sms`}>
+            Remeter SMS
+          </Link>
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/eventos/gestao`}>
             Eventos da campanha
           </Link>

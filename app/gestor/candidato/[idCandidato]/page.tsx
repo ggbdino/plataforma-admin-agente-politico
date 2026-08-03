@@ -72,6 +72,9 @@ export default async function CampaignManagerPage({
           <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/comunicacao/whatsapp`}>
             Remeter WhatsApp
           </Link>
+          <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/comunicacao/sms`}>
+            Remeter SMS
+          </Link>
         </div>
       </section>
 

@@ -30,6 +30,11 @@ export const env = {
   smtpPass: process.env.SMTP_PASS ?? "",
   emailHeloDomain: process.env.EMAIL_HELO_DOMAIN ?? "",
   emailMaxRecipientsPerDispatch: process.env.EMAIL_MAX_RECIPIENTS_PER_DISPATCH ?? "100",
+  smsProvider: (process.env.SMS_PROVIDER ?? "webhook").toLowerCase(),
+  smsWebhookUrl: process.env.SMS_WEBHOOK_URL ?? "",
+  smsApiKey: process.env.SMS_API_KEY ?? "",
+  smsSenderId: process.env.SMS_SENDER_ID ?? "",
+  smsMaxRecipientsPerDispatch: process.env.SMS_MAX_RECIPIENTS_PER_DISPATCH ?? "20",
   adminBootstrapCode: process.env.ADMIN_BOOTSTRAP_CODE ?? "",
   n8nWebhookCandidateSync:
     process.env.N8N_WEBHOOK_CANDIDATO_SYNC ?? "/webhook/candidato-sync",
