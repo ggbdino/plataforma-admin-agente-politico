@@ -49,6 +49,10 @@ Adotar duas camadas de controle:
 
 ## Release atual
 
+- `V21.1.1`: inclui o workflow n8n SMS individualizado (`21b`) no pacote de geração por candidato e gera os artefatos atuais para Brunex, Eri Castro e Ricardo Vale.
+
+- `V21.1.0`: padroniza a remessa SMS por candidato, com gateway, chave, remetente e limite próprios, preservando fallback global apenas para homologação e mantendo os custos vinculados ao contrato do candidato.
+
 - `V20.0.1`: hotfix de implantação que corrige o checksum técnico do `package-lock.json` e mantém a funcionalidade de remessa WhatsApp por padrão de mensagem.
 - `V20.0.0`: adiciona remessa WhatsApp por padrão de mensagem para celulares de eleitores cadastrados na base do candidato, mantendo template aprovado da Meta, auditoria e rebuild manual no Easypanel.
 

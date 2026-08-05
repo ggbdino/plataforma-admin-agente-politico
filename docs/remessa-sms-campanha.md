@@ -1,13 +1,14 @@
-# Remessa SMS da campanha - V21.0.0
+# Remessa SMS da campanha - V21.1.1
 
-A funcionalidade permite que o Gestor da Campanha envie mensagens curtas para os celulares dos eleitores vinculados ao candidato. A experiência corresponde ao recebimento no aplicativo nativo de mensagens do telefone, como SMS ou canal equivalente entregue por gateway contratado.
+A funcionalidade permite que o Gestor da Campanha envie mensagens curtas para os celulares dos eleitores vinculados ao candidato. A padronização da V21.1.1 segue o mesmo princípio da integração WhatsApp/Meta: cada candidato deve usar o próprio provedor, gateway, contrato e credencial, mantendo o custo diretamente sob responsabilidade da campanha.
 
 ## Regras de acesso
 
 - Apenas o perfil `gestor_campanha` pode preparar e enviar remessas SMS.
 - A remessa usa somente eleitores da base do candidato, com telefone válido e sem opt-out.
 - O administrador mantém governança e auditoria, mas a iniciativa operacional é do gestor da campanha.
-- O envio real depende de provedor SMS externo ou webhook de integração.
+- A GAP não concentra custo de envio. A plataforma apenas orquestra, registra e audita a remessa.
+- O envio real depende de gateway SMS externo contratado pelo candidato ou pela empresa da campanha.
 
 ## Públicos disponíveis
 
@@ -17,19 +18,35 @@ A funcionalidade permite que o Gestor da Campanha envie mensagens curtas para os
 - Confirmados em um evento.
 - Presentes em um evento.
 
-## Configuração técnica
+## Configuração por candidato
 
-Sem provedor configurado, a plataforma registra a remessa como planejada e auditada. Para envio real, configure:
+A tela `Remeter SMS`, na área do gestor da campanha, permite registrar a configuração operacional do candidato:
+
+- Provedor SMS.
+- URL do gateway do candidato.
+- Chave ou token do gateway.
+- Remetente/Sender.
+- Limite máximo de destinatários por remessa.
+
+Esses dados são gravados na tabela `campanha_sms_config`, vinculados ao `id_candidato`. A chave/token não é exibida novamente na interface; quando for necessário trocar a credencial, o gestor deve preencher o campo novamente.
+
+## Fallback global de homologação
+
+As variáveis globais continuam existindo apenas como fallback de homologação ou ambiente controlado:
 
 ```env
 SMS_PROVIDER=webhook
-SMS_WEBHOOK_URL=https://seu-gateway-ou-n8n/webhook/sms-campanha
-SMS_API_KEY=chave_do_gateway_ou_webhook
-SMS_SENDER_ID=numero_ou_identificador_do_remetente
+SMS_WEBHOOK_URL=https://seu-n8n-ou-gateway-de-homologacao/webhook/sms-campanha
+SMS_API_KEY=chave_de_homologacao
+SMS_SENDER_ID=numero_ou_identificador_padrao
 SMS_MAX_RECIPIENTS_PER_DISPATCH=1
 ```
 
-O webhook recebe um `POST` JSON por destinatário:
+Em produção, a recomendação é configurar o gateway diretamente por candidato para que o custo fique ligado ao contrato da própria campanha.
+
+## Payload enviado ao gateway
+
+A plataforma envia um `POST` JSON por destinatário para a URL configurada do candidato:
 
 ```json
 {
@@ -43,10 +60,62 @@ O webhook recebe um `POST` JSON por destinatário:
 }
 ```
 
+Quando houver chave/token, ela é enviada no cabeçalho HTTP:
+
+```http
+Authorization: Bearer chave_do_gateway
+```
+
+## Workflow n8n opcional
+
+O arquivo importável permanece disponível para quem quiser usar n8n como gateway do candidato ou como fallback de homologação:
+
+- `workflows/21_sms_campanha_gateway.json`
+- `plataforma-admin/external-workflows-snapshot/21_sms_campanha_gateway.json`
+
+Depois de importar e ativar o workflow no n8n, use a URL de produção do webhook na configuração do candidato. Nesse modelo, cada candidato pode ter seu próprio workflow, sua própria credencial e seu próprio provedor final.
+
+A partir da V21.1.1, o pacote de workflows por candidato também gera o fluxo individualizado `21b_sms_campanha_gateway_{slug}_{id}.json`, com path próprio:
+
+```text
+/webhook/agente-politico/{id_candidato}/sms-campanha
+```
+
+Para os candidatos já cadastrados no manifesto local foram gerados:
+
+- `21b_sms_campanha_gateway_brunex_0001.json`
+- `21b_sms_campanha_gateway_eri-castro_1313.json`
+- `21b_sms_campanha_gateway_ricardo-vale_ricardo-vale.json`
+
+Cada fluxo aceita variáveis específicas do candidato, com fallback para as variáveis globais de homologação. Exemplo para Ricardo Vale:
+
+```env
+SMS_API_KEY_RICARDO_VALE_RICARDO_VALE=chave_esperada_pelo_webhook
+SMS_GATEWAY_URL_RICARDO_VALE_RICARDO_VALE=https://url_do_provedor_sms_do_candidato
+SMS_GATEWAY_API_KEY_RICARDO_VALE_RICARDO_VALE=chave_real_do_provedor_sms_do_candidato
+SMS_SENDER_ID_RICARDO_VALE_RICARDO_VALE=5561982462447
+SMS_GATEWAY_DRY_RUN_RICARDO_VALE_RICARDO_VALE=false
+```
+
+No n8n do candidato, configure as variáveis do gateway real:
+
+```env
+SMS_API_KEY=chave_esperada_pelo_webhook
+SMS_GATEWAY_URL=https://url_do_provedor_sms
+SMS_GATEWAY_API_KEY=chave_real_do_provedor_sms
+SMS_GATEWAY_DRY_RUN=false
+```
+
+- `SMS_API_KEY` protege a chamada da plataforma para o n8n.
+- `SMS_GATEWAY_URL` é a URL do provedor SMS real, chamada pelo n8n.
+- `SMS_GATEWAY_API_KEY` é a chave do provedor SMS real.
+- `SMS_GATEWAY_DRY_RUN=true` deve ser usado apenas em homologação, pois valida a entrada sem enviar SMS real.
+
 ## Auditoria
 
 Cada remessa gera registros em:
 
+- `campanha_sms_config`
 - `remessas_sms_campanha`
 - `remessas_sms_destinatarios`
 - trilha de governança da campanha
@@ -55,5 +124,5 @@ Cada remessa gera registros em:
 
 - SMS é tarifado pelo provedor e pode ter cobrança por segmento de mensagem.
 - Mensagens com acentos ou muitos caracteres podem consumir mais de um segmento.
-- Para testes, use público individual e mantenha `SMS_MAX_RECIPIENTS_PER_DISPATCH=1`.
+- Para testes, use público individual e mantenha o limite por remessa baixo.
 - Use apenas contatos com base legítima, respeitando LGPD, legislação eleitoral e regras anti-spam.

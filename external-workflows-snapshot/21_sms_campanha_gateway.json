@@ -1,0 +1,208 @@
+{
+  "name": "21_sms_campanha_gateway",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sms-campanha",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_SMS_Campanha",
+      "name": "Webhook SMS Campanha",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [180, 260],
+      "webhookId": "agente-politico-sms-campanha"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const body = item.json.body || item.json || {};\n  const headers = item.json.headers || {};\n  const authHeader = String(headers.authorization || headers.Authorization || '').trim();\n  const expectedApiKey = String($env.SMS_API_KEY || '').trim();\n  const errors = [];\n\n  if (expectedApiKey && authHeader !== `Bearer ${expectedApiKey}`) {\n    errors.push('Authorization Bearer invalido para o gateway SMS.');\n  }\n\n  const phoneDigits = String(body.to || '').replace(/\\D/g, '');\n  const normalizedTo = phoneDigits.startsWith('55') ? phoneDigits : (phoneDigits.length >= 10 && phoneDigits.length <= 11 ? `55${phoneDigits}` : phoneDigits);\n  const message = String(body.message || body.mensagem || '').trim().slice(0, 320);\n  const idCandidato = String(body.idCandidato || body.id_candidato || '').trim();\n  const dispatchId = String(body.dispatchId || body.dispatch_id || '').trim();\n  const sender = String(body.from || body.senderId || body.sender_id || $env.SMS_SENDER_ID || '').trim();\n  const provider = String(body.provider || $env.SMS_PROVIDER || 'webhook').trim();\n  const gatewayUrl = String($env.SMS_GATEWAY_URL || '').trim();\n  const dryRun = ['true', '1', 'sim', 'yes'].includes(String($env.SMS_GATEWAY_DRY_RUN || '').trim().toLowerCase());\n\n  if (!normalizedTo || normalizedTo.length < 10) errors.push('Telefone destino ausente ou invalido.');\n  if (!message) errors.push('Mensagem SMS ausente.');\n  if (!idCandidato) errors.push('idCandidato ausente.');\n\n  const valido = errors.length === 0;\n  return {\n    json: {\n      valido,\n      autorizado: !expectedApiKey || authHeader === `Bearer ${expectedApiKey}`,\n      statusCode: valido ? 200 : (errors.some((error) => error.includes('Authorization')) ? 401 : 400),\n      errors,\n      provider,\n      gateway_url_configurado: Boolean(gatewayUrl),\n      dry_run: dryRun,\n      dispatchId,\n      idCandidato,\n      from: sender,\n      to: normalizedTo,\n      nome: body.nome || null,\n      message,\n      raw: body\n    }\n  };\n});"
+      },
+      "id": "Code_Validar_SMS",
+      "name": "Validar SMS Recebido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valido === true && $json.autorizado === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_SMS_Valido",
+      "name": "SMS valido e autorizado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.gateway_url_configurado === true && $json.dry_run !== true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_Enviar_Gateway",
+      "name": "Gateway SMS configurado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [980, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SMS_GATEWAY_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SMS_GATEWAY_API_KEY || $env.SMS_API_KEY || '' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"to\":\"{{$json.to}}\",\"from\":\"{{$json.from}}\",\"message\":\"{{$json.message}}\",\"externalId\":\"{{$json.dispatchId}}\",\"metadata\":{\"idCandidato\":\"{{$json.idCandidato}}\",\"nome\":\"{{$json.nome}}\",\"origem\":\"agente-politico\"}}",
+        "options": {}
+      },
+      "id": "HTTP_Enviar_SMS_Gateway",
+      "name": "Enviar para Gateway SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1240, 120]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => ({\n  json: {\n    status: 'ok',\n    provider: item.json.provider || 'gateway',\n    dispatchId: item.json.dispatchId,\n    idCandidato: item.json.idCandidato,\n    to: item.json.to,\n    enviado: true,\n    message: 'SMS encaminhado ao gateway configurado.'\n  }\n}));"
+      },
+      "id": "Code_Resumo_SMS_Enviado",
+      "name": "Resumir Envio SMS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "Respond_SMS_OK",
+      "name": "Responder SMS OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1760, 120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: $json.dry_run ? 'dry_run' : 'gateway_nao_configurado', message: $json.dry_run ? 'SMS validado em modo dry-run. Nenhum envio real foi feito.' : 'SMS validado, mas nao enviado. Configure SMS_GATEWAY_URL no n8n para habilitar envio real.', dispatchId: $json.dispatchId, idCandidato: $json.idCandidato, to: $json.to } }}",
+        "options": {
+          "responseCode": "={{$json.dry_run ? 200 : 503}}"
+        }
+      },
+      "id": "Respond_SMS_Sem_Gateway",
+      "name": "Responder Gateway Ausente",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1240, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'erro', errors: $json.errors, message: 'Requisicao SMS rejeitada pelo gateway n8n.' } }}",
+        "options": {
+          "responseCode": "={{$json.statusCode || 400}}"
+        }
+      },
+      "id": "Respond_SMS_Erro",
+      "name": "Responder SMS Erro",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 420]
+    }
+  ],
+  "connections": {
+    "Webhook SMS Campanha": {
+      "main": [[{"node": "Validar SMS Recebido", "type": "main", "index": 0}]]
+    },
+    "Validar SMS Recebido": {
+      "main": [[{"node": "SMS valido e autorizado?", "type": "main", "index": 0}]]
+    },
+    "SMS valido e autorizado?": {
+      "main": [
+        [{"node": "Gateway SMS configurado?", "type": "main", "index": 0}],
+        [{"node": "Responder SMS Erro", "type": "main", "index": 0}]
+      ]
+    },
+    "Gateway SMS configurado?": {
+      "main": [
+        [{"node": "Enviar para Gateway SMS", "type": "main", "index": 0}],
+        [{"node": "Responder Gateway Ausente", "type": "main", "index": 0}]
+      ]
+    },
+    "Enviar para Gateway SMS": {
+      "main": [[{"node": "Resumir Envio SMS", "type": "main", "index": 0}]]
+    },
+    "Resumir Envio SMS": {
+      "main": [[{"node": "Responder SMS OK", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1-sms-gateway",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {"name": "agente-politico"},
+    {"name": "sms"},
+    {"name": "gateway"},
+    {"name": "campanha"}
+  ]
+}

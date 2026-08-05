@@ -34,11 +34,12 @@ const TEMPLATE_FILES: Record<string, string> = {
   "04b": "04b_cadencia_eri_1313.json",
   "05b": "05b_governanca_eri_1313.json",
   "06b": "06_participacao_eventos_kpis.json",
-  "07": "07_qrcode_canais_agentes_brunex.json"
+  "07": "07_qrcode_canais_agentes_brunex.json",
+  "21b": "21_sms_campanha_gateway.json"
 };
 
 const LEGACY_PREFIXES = ["02a", "02b", "04b", "05b"] as const;
-const GENERATION_PREFIXES = ["02a", "02b", "02b_datafy", "04b", "05b", "06b", "07"] as const;
+const GENERATION_PREFIXES = ["02a", "02b", "02b_datafy", "04b", "05b", "06b", "07", "21b"] as const;
 
 export async function generateCandidateWorkflowBundle(
   input: CandidateWorkflowGenerationInput
@@ -339,6 +340,46 @@ function applyDatafyCandidateReplacements(
     .replaceAll("ricardo_vale", candidate.slug_underscore);
 }
 
+
+function applySmsCandidateReplacements(
+  templateContent: string,
+  candidate: CandidateWorkflowManifestEntry
+) {
+  const envSuffix = normalizeEnvSuffix(`${candidate.slug_underscore}_${candidate.id}`);
+  const workflowName = `21b_sms_campanha_gateway_${candidate.slug}_${candidate.id}`;
+  const webhookPath = `agente-politico/${candidate.id}/sms-campanha`;
+  const webhookId = `agente-politico-${candidate.id}-sms-campanha`;
+
+  return templateContent
+    .replaceAll("21_sms_campanha_gateway", workflowName)
+    .replaceAll('"path": "sms-campanha"', `"path": "${webhookPath}"`)
+    .replaceAll('"webhookId": "agente-politico-sms-campanha"', `"webhookId": "${webhookId}"`)
+    .replace(
+      "const idCandidato = String(body.idCandidato || body.id_candidato || '').trim();",
+      `const requestedIdCandidato = String(body.idCandidato || body.id_candidato || '').trim();\n  const idCandidato = '${candidate.id}';`
+    )
+    .replace(
+      "if (!idCandidato) errors.push('idCandidato ausente.');",
+      "if (requestedIdCandidato && requestedIdCandidato !== idCandidato) errors.push('idCandidato divergente para este workflow.');"
+    )
+    .replaceAll("String($env.SMS_API_KEY || '').trim()", `String($env.SMS_API_KEY_${envSuffix} || $env.SMS_API_KEY || '').trim()`)
+    .replaceAll("String(body.provider || $env.SMS_PROVIDER || 'webhook').trim()", `String(body.provider || $env.SMS_PROVIDER_${envSuffix} || $env.SMS_PROVIDER || 'webhook').trim()`)
+    .replaceAll("String($env.SMS_GATEWAY_URL || '').trim()", `String($env.SMS_GATEWAY_URL_${envSuffix} || $env.SMS_GATEWAY_URL || '').trim()`)
+    .replaceAll("String($env.SMS_GATEWAY_DRY_RUN || '').trim()", `String($env.SMS_GATEWAY_DRY_RUN_${envSuffix} || $env.SMS_GATEWAY_DRY_RUN || '').trim()`)
+    .replaceAll("String(body.from || body.senderId || body.sender_id || $env.SMS_SENDER_ID || '').trim()", `String(body.from || body.senderId || body.sender_id || $env.SMS_SENDER_ID_${envSuffix} || $env.SMS_SENDER_ID || '').trim()`)
+    .replaceAll('"url": "={{ $env.SMS_GATEWAY_URL }}"', `"url": "={{ $env.SMS_GATEWAY_URL_${envSuffix} || $env.SMS_GATEWAY_URL }}"`)
+    .replaceAll('"value": "=Bearer {{ $env.SMS_GATEWAY_API_KEY || $env.SMS_API_KEY || \'\' }}"', `"value": "=Bearer {{ $env.SMS_GATEWAY_API_KEY_${envSuffix} || $env.SMS_GATEWAY_API_KEY || $env.SMS_API_KEY_${envSuffix} || $env.SMS_API_KEY || '' }}"`);
+}
+
+function normalizeEnvSuffix(value: string) {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+}
 function normalizeForSlug(value: string) {
   return String(value)
     .normalize("NFD")

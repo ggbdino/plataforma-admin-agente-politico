@@ -42,7 +42,7 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
         <h1 className="title">Remessa de mensagens para celulares</h1>
         <p className="subtitle">
           Área exclusiva do gestor da campanha para enviar mensagens curtas aos telefones dos eleitores,
-          com limite operacional, trilha de auditoria e integração com gateway SMS configurável.
+          com limite operacional, trilha de auditoria e gateway SMS próprio do candidato.
         </p>
         <div className="hero-meta">
           <span className="pill">Candidato {context.nome_urna}</span>
@@ -75,12 +75,12 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
         <article className="card email-summary-card">
           <span className="metric-label">Identificação do remetente</span>
           <strong className="metric-value email-summary-value">{context.sender_id ?? "Pendente"}</strong>
-          <div className="muted">Pode ser o número oficial da campanha ou o sender configurado no gateway.</div>
+          <div className="muted">Pode ser o número oficial da campanha ou o remetente configurado no gateway.</div>
         </article>
         <article className="card email-summary-card">
           <span className="metric-label">Gateway SMS</span>
           <strong className="metric-value email-summary-value">{labelProvider(context.provedor_envio)}</strong>
-          <div className="muted">Sem gateway configurado, a remessa fica apenas planejada e auditada.</div>
+          <div className="muted">{gatewaySummary(context)}</div>
         </article>
       </section>
 
@@ -89,7 +89,7 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
           <div>
             <h2 className="section-title">Preparar SMS</h2>
             <p className="subtitle">
-              Escolha o público, escreva uma mensagem curta e confirme o envio para os celulares da base do candidato.
+              Configure o gateway contratado pelo candidato, escolha o público e confirme o envio para os celulares da base.
             </p>
           </div>
           <span className="pill">Exclusivo do gestor</span>
@@ -100,6 +100,37 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
 
           <div className="step-form-grid">
             <label className="step-note">
+              <span>Provedor SMS do candidato</span>
+              <select className="step-input" defaultValue={context.provedor_envio} name="provider">
+                <option value="webhook">Webhook / n8n do candidato</option>
+                <option value="zenvia">Zenvia</option>
+                <option value="twilio">Twilio</option>
+                <option value="totalvoice">TotalVoice</option>
+                <option value="infobip">Infobip</option>
+                <option value="vonage">Vonage</option>
+                <option value="outro">Outro provedor</option>
+              </select>
+            </label>
+            <label className="step-note">
+              <span>URL do gateway do candidato</span>
+              <input
+                className="step-input"
+                defaultValue={context.usa_fallback_global ? "" : context.gateway_url ?? ""}
+                name="gatewayUrl"
+                placeholder="https://gateway-do-candidato.example/webhook/sms"
+                type="url"
+              />
+            </label>
+            <label className="step-note">
+              <span>Chave ou token do gateway</span>
+              <input
+                className="step-input"
+                name="gatewayApiKey"
+                placeholder={context.gateway_api_key_configurada ? "Chave já registrada; preencha apenas para trocar" : "Chave do gateway SMS do candidato"}
+                type="password"
+              />
+            </label>
+            <label className="step-note">
               <span>Remetente/Sender</span>
               <input
                 className="step-input"
@@ -107,6 +138,17 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
                 name="senderId"
                 placeholder="Número da campanha ou sender do gateway"
                 type="text"
+              />
+            </label>
+            <label className="step-note">
+              <span>Limite por remessa</span>
+              <input
+                className="step-input"
+                defaultValue={context.max_recipients_per_dispatch}
+                max={250}
+                min={1}
+                name="maxRecipientsPerDispatch"
+                type="number"
               />
             </label>
             <label className="step-note">
@@ -157,7 +199,7 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
           </label>
 
           <div className="step-panel-callout">
-            Use SMS apenas para contatos com base legítima, respeitando LGPD, legislação eleitoral, descadastro e limites anti-spam do provedor. Para testes, selecione um eleitor específico e mantenha SMS_MAX_RECIPIENTS_PER_DISPATCH baixo.
+            A URL e a chave do gateway devem pertencer ao candidato ou à empresa contratada pela campanha. A GAP apenas orquestra e audita a remessa. Use SMS apenas para contatos com base legítima, respeitando LGPD, legislação eleitoral, descadastro e limites anti-spam do provedor.
           </div>
 
           <div className="actions">
@@ -232,9 +274,19 @@ function labelProvider(value: string) {
     zenvia: "Zenvia configurado",
     twilio: "Twilio configurado",
     totalvoice: "TotalVoice configurado",
+    infobip: "Infobip configurado",
+    vonage: "Vonage configurado",
+    outro: "Provedor configurado",
     sem_provedor: "Não configurado"
   };
   return labels[value] ?? value;
+}
+
+function gatewaySummary(context: Awaited<ReturnType<typeof getCampaignSmsContext>> & {}) {
+  if (!context) return "Sem candidato selecionado.";
+  if (context.usa_fallback_global) return "Usando fallback global de homologação. Para custos diretos, configure o gateway do candidato.";
+  if (context.provedor_configurado) return "Gateway do candidato configurado. Custos vinculados à conta informada pela campanha.";
+  return "Sem gateway do candidato, a remessa fica planejada e auditada.";
 }
 
 function labelAudience(value: string) {

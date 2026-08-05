@@ -23,7 +23,11 @@ export async function sendCampaignSmsAction(formData: FormData) {
   const publico = AUDIENCES.has(publicoRaw) ? publicoRaw : "todos_com_telefone";
   const eventoId = String(formData.get("eventoId") ?? "").trim() || null;
   const eleitorUid = String(formData.get("eleitorUid") ?? "").trim() || null;
+  const provider = String(formData.get("provider") ?? "webhook").trim() || "webhook";
+  const gatewayUrl = String(formData.get("gatewayUrl") ?? "").trim() || null;
+  const gatewayApiKey = String(formData.get("gatewayApiKey") ?? "").trim() || null;
   const senderId = String(formData.get("senderId") ?? "").trim() || null;
+  const maxRecipientsPerDispatch = String(formData.get("maxRecipientsPerDispatch") ?? "").trim() || null;
   const mensagem = String(formData.get("mensagem") ?? "").trim();
   const session = await getCurrentPlatformSession();
   const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_implantar");
@@ -43,7 +47,11 @@ export async function sendCampaignSmsAction(formData: FormData) {
       publico,
       eventoId,
       eleitorUid,
+      provider,
+      gatewayUrl,
+      gatewayApiKey,
       senderId,
+      maxRecipientsPerDispatch,
       mensagem
     });
 
@@ -90,7 +98,7 @@ function buildSuccessMessage(result: {
   firstFailureMessage?: string | null;
 }) {
   if (result.status === "planejada_sem_provedor") {
-    return `Remessa SMS planejada para ${result.totalDestinatarios} destinatário(s). Configure SMS_WEBHOOK_URL para habilitar envio real por gateway.`;
+    return `Remessa SMS planejada para ${result.totalDestinatarios} destinatário(s). Configure o gateway SMS do candidato para habilitar envio real.`;
   }
 
   if (result.totalFalhas > 0) {
