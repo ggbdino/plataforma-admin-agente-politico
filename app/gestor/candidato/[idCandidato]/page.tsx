@@ -2,9 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { registerCampaignChannelAction } from "@/lib/actions/campaign-manager-action";
+import { saveCampaignSmsConfigAction } from "@/lib/actions/campaign-sms-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignManagerContext } from "@/lib/repositories/implantation";
+import { getCampaignSmsContext } from "@/lib/repositories/campaign-sms";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ export default async function CampaignManagerPage({
   const session = await getCurrentPlatformSession();
   const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_implantar");
   const data = await getCampaignManagerContext(idCandidato);
+  const smsContext = hasAccess ? await getCampaignSmsContext(idCandidato) : null;
 
   if (!data) {
     notFound();
@@ -169,7 +172,87 @@ export default async function CampaignManagerPage({
             </article>
           </section>
 
+
           <section className="card" style={{ marginBottom: 20 }}>
+            <div className="section-heading">
+              <div>
+                <h2 className="section-title">Gateway SMS da campanha</h2>
+                <p className="subtitle">
+                  Configure uma única vez o webhook SMS contratado pelo candidato. Esta configuração é opcional e não bloqueia as demais etapas de implantação.
+                </p>
+              </div>
+              <span className="pill">Configuração opcional</span>
+            </div>
+            <form action={saveCampaignSmsConfigAction} className="manager-auth-form">
+              <input name="idCandidato" type="hidden" value={idCandidato} />
+              <input name="redirectTo" type="hidden" value={`/gestor/candidato/${idCandidato}`} />
+              <div className="step-form-grid">
+                <label className="step-note">
+                  <span>Provedor SMS do candidato</span>
+                  <select className="step-input" defaultValue={smsContext?.provedor_envio === "sem_provedor" ? "webhook" : smsContext?.provedor_envio ?? "webhook"} name="provider">
+                    <option value="webhook">Webhook / n8n do candidato</option>
+                    <option value="zenvia">Zenvia</option>
+                    <option value="twilio">Twilio</option>
+                    <option value="totalvoice">TotalVoice</option>
+                    <option value="infobip">Infobip</option>
+                    <option value="vonage">Vonage</option>
+                    <option value="outro">Outro provedor</option>
+                  </select>
+                </label>
+                <label className="step-note">
+                  <span>URL do gateway do candidato</span>
+                  <input
+                    className="step-input mono-wrap"
+                    defaultValue={smsContext?.gateway_url ?? smsContext?.gateway_url_sugerida ?? ""}
+                    name="gatewayUrl"
+                    placeholder="https://n8n.../webhook/agente-politico/candidato/sms-campanha"
+                    type="url"
+                  />
+                </label>
+                <label className="step-note">
+                  <span>Chave ou token do gateway</span>
+                  <input
+                    className="step-input"
+                    name="gatewayApiKey"
+                    placeholder={smsContext?.gateway_api_key_configurada ? "Chave já configurada. Preencha apenas para substituir." : "Token informado pelo gateway ou workflow SMS"}
+                    type="password"
+                  />
+                </label>
+                <label className="step-note">
+                  <span>Remetente/Sender</span>
+                  <input
+                    className="step-input"
+                    defaultValue={smsContext?.sender_id ?? data.numero_agente_oficial ?? ""}
+                    name="senderId"
+                    placeholder="Número da campanha ou sender do gateway"
+                    type="text"
+                  />
+                </label>
+                <label className="step-note">
+                  <span>Limite máximo por remessa</span>
+                  <input
+                    className="step-input"
+                    defaultValue={smsContext?.max_recipients_per_dispatch ?? 20}
+                    max={250}
+                    min={1}
+                    name="maxRecipientsPerDispatch"
+                    type="number"
+                  />
+                </label>
+              </div>
+              <div className="step-panel-callout">
+                O workflow SMS individualizado deve estar importado e ativo no n8n. Quando a chave já estiver gravada, deixe o campo em branco para preservá-la.
+              </div>
+              <div className="actions">
+                <button className="button" type="submit">
+                  Salvar configuração SMS
+                </button>
+                <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/comunicacao/sms`}>
+                  Abrir remessa SMS
+                </Link>
+              </div>
+            </form>
+          </section>          <section className="card" style={{ marginBottom: 20 }}>
             <div className="section-heading">
               <div>
                 <h2 className="section-title">Exportar dados dos usuários</h2>

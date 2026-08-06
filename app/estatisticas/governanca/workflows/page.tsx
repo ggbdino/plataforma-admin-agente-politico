@@ -6,6 +6,7 @@ import {
   triggerGovernanceWorkflowAction,
   updateCandidateOperationalDataAction
 } from "@/lib/actions/workflow-center-action";
+import { saveCampaignSmsConfigAction } from "@/lib/actions/campaign-sms-action";
 import { WorkflowCenterPanel } from "@/components/workflow-center-panel";
 import { listCandidates } from "@/lib/repositories/candidates";
 
@@ -47,6 +48,7 @@ export default async function WorkflowCenterPage({ searchParams }: WorkflowCente
       generateAction={generateCandidateWorkflowPackageAction}
       triggerAction={triggerGovernanceWorkflowAction}
       updateOperationalDataAction={updateCandidateOperationalDataAction}
+      saveSmsConfigAction={saveCampaignSmsConfigAction}
     />
   );
 }

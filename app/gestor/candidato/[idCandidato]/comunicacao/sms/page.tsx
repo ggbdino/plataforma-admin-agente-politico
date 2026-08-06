@@ -12,6 +12,8 @@ type CampaignSmsPageProps = {
   searchParams?: Promise<{ feedback?: string; mensagem?: string }>;
 };
 
+type CampaignSmsContext = NonNullable<Awaited<ReturnType<typeof getCampaignSmsContext>>>;
+
 export default async function CampaignSmsPage({ params, searchParams }: CampaignSmsPageProps) {
   const { idCandidato } = await params;
   const query = searchParams ? await searchParams : undefined;
@@ -42,7 +44,7 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
         <h1 className="title">Remessa de mensagens para celulares</h1>
         <p className="subtitle">
           Área exclusiva do gestor da campanha para enviar mensagens curtas aos telefones dos eleitores,
-          com limite operacional, trilha de auditoria e gateway SMS próprio do candidato.
+          com limite operacional, trilha de auditoria e workflow SMS associado ao candidato.
         </p>
         <div className="hero-meta">
           <span className="pill">Candidato {context.nome_urna}</span>
@@ -89,7 +91,7 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
           <div>
             <h2 className="section-title">Preparar SMS</h2>
             <p className="subtitle">
-              Configure o gateway contratado pelo candidato, escolha o público e confirme o envio para os celulares da base.
+              Escolha o público, escreva a mensagem e confirme o envio. O webhook técnico do n8n é resolvido automaticamente pela plataforma.
             </p>
           </div>
           <span className="pill">Exclusivo do gestor</span>
@@ -99,58 +101,6 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
           <input name="idCandidato" type="hidden" value={idCandidato} />
 
           <div className="step-form-grid">
-            <label className="step-note">
-              <span>Provedor SMS do candidato</span>
-              <select className="step-input" defaultValue={context.provedor_envio} name="provider">
-                <option value="webhook">Webhook / n8n do candidato</option>
-                <option value="zenvia">Zenvia</option>
-                <option value="twilio">Twilio</option>
-                <option value="totalvoice">TotalVoice</option>
-                <option value="infobip">Infobip</option>
-                <option value="vonage">Vonage</option>
-                <option value="outro">Outro provedor</option>
-              </select>
-            </label>
-            <label className="step-note">
-              <span>URL do gateway do candidato</span>
-              <input
-                className="step-input"
-                defaultValue={context.usa_fallback_global ? "" : context.gateway_url ?? ""}
-                name="gatewayUrl"
-                placeholder="https://gateway-do-candidato.example/webhook/sms"
-                type="url"
-              />
-            </label>
-            <label className="step-note">
-              <span>Chave ou token do gateway</span>
-              <input
-                className="step-input"
-                name="gatewayApiKey"
-                placeholder={context.gateway_api_key_configurada ? "Chave já registrada; preencha apenas para trocar" : "Chave do gateway SMS do candidato"}
-                type="password"
-              />
-            </label>
-            <label className="step-note">
-              <span>Remetente/Sender</span>
-              <input
-                className="step-input"
-                defaultValue={context.sender_id ?? ""}
-                name="senderId"
-                placeholder="Número da campanha ou sender do gateway"
-                type="text"
-              />
-            </label>
-            <label className="step-note">
-              <span>Limite por remessa</span>
-              <input
-                className="step-input"
-                defaultValue={context.max_recipients_per_dispatch}
-                max={250}
-                min={1}
-                name="maxRecipientsPerDispatch"
-                type="number"
-              />
-            </label>
             <label className="step-note">
               <span>Público da remessa</span>
               <select className="step-input" name="publico">
@@ -199,7 +149,7 @@ export default async function CampaignSmsPage({ params, searchParams }: Campaign
           </label>
 
           <div className="step-panel-callout">
-            A URL e a chave do gateway devem pertencer ao candidato ou à empresa contratada pela campanha. A GAP apenas orquestra e audita a remessa. Use SMS apenas para contatos com base legítima, respeitando LGPD, legislação eleitoral, descadastro e limites anti-spam do provedor.
+            O administrador deve importar e ativar o workflow SMS individualizado do candidato no n8n. A plataforma usa automaticamente o caminho técnico do candidato e mantém a trilha de auditoria da remessa. Use SMS apenas para contatos com base legítima, respeitando LGPD, legislação eleitoral, descadastro e limites anti-spam do provedor.
           </div>
 
           <div className="actions">
@@ -270,7 +220,7 @@ function formatDate(value: string | null | undefined) {
 
 function labelProvider(value: string) {
   const labels: Record<string, string> = {
-    webhook: "Webhook configurado",
+    webhook: "Webhook n8n associado",
     zenvia: "Zenvia configurado",
     twilio: "Twilio configurado",
     totalvoice: "TotalVoice configurado",
@@ -282,11 +232,12 @@ function labelProvider(value: string) {
   return labels[value] ?? value;
 }
 
-function gatewaySummary(context: Awaited<ReturnType<typeof getCampaignSmsContext>> & {}) {
-  if (!context) return "Sem candidato selecionado.";
-  if (context.usa_fallback_global) return "Usando fallback global de homologação. Para custos diretos, configure o gateway do candidato.";
-  if (context.provedor_configurado) return "Gateway do candidato configurado. Custos vinculados à conta informada pela campanha.";
-  return "Sem gateway do candidato, a remessa fica planejada e auditada.";
+function gatewaySummary(context: CampaignSmsContext) {
+  if (context.gateway_origem === "webhook_automatico") return "Webhook n8n associado automaticamente ao candidato. O gestor não precisa informar a URL.";
+  if (context.gateway_origem === "env_candidato") return "Webhook definido pelo administrador nas variáveis de ambiente do candidato.";
+  if (context.gateway_origem === "configuracao_candidato") return "Gateway específico do candidato registrado pela administração.";
+  if (context.gateway_origem === "fallback_global") return "Usando fallback global de homologação. Para produção, confirme o workflow SMS individualizado do candidato.";
+  return "Sem gateway ativo, a remessa fica planejada e auditada.";
 }
 
 function labelAudience(value: string) {

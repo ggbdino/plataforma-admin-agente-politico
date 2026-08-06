@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import {
   planAndSendCampaignSms,
+  saveCampaignSmsConfig,
   type CampaignSmsAudience
 } from "@/lib/repositories/campaign-sms";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
@@ -23,11 +24,7 @@ export async function sendCampaignSmsAction(formData: FormData) {
   const publico = AUDIENCES.has(publicoRaw) ? publicoRaw : "todos_com_telefone";
   const eventoId = String(formData.get("eventoId") ?? "").trim() || null;
   const eleitorUid = String(formData.get("eleitorUid") ?? "").trim() || null;
-  const provider = String(formData.get("provider") ?? "webhook").trim() || "webhook";
-  const gatewayUrl = String(formData.get("gatewayUrl") ?? "").trim() || null;
-  const gatewayApiKey = String(formData.get("gatewayApiKey") ?? "").trim() || null;
-  const senderId = String(formData.get("senderId") ?? "").trim() || null;
-  const maxRecipientsPerDispatch = String(formData.get("maxRecipientsPerDispatch") ?? "").trim() || null;
+
   const mensagem = String(formData.get("mensagem") ?? "").trim();
   const session = await getCurrentPlatformSession();
   const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_implantar");
@@ -47,11 +44,6 @@ export async function sendCampaignSmsAction(formData: FormData) {
       publico,
       eventoId,
       eleitorUid,
-      provider,
-      gatewayUrl,
-      gatewayApiKey,
-      senderId,
-      maxRecipientsPerDispatch,
       mensagem
     });
 
@@ -89,6 +81,96 @@ export async function sendCampaignSmsAction(formData: FormData) {
   redirect(nextUrl);
 }
 
+export async function saveCampaignSmsConfigAction(formData: FormData) {
+  const idCandidato = String(formData.get("idCandidato") ?? "").trim();
+  const redirectTo = String(formData.get("redirectTo") ?? `/gestor/candidato/${idCandidato}`).trim();
+  const provider = String(formData.get("provider") ?? "webhook").trim() || "webhook";
+  const gatewayUrl = String(formData.get("gatewayUrl") ?? "").trim() || null;
+  const gatewayApiKey = String(formData.get("gatewayApiKey") ?? "").trim() || null;
+  const senderId = String(formData.get("senderId") ?? "").trim() || null;
+  const maxRecipientsPerDispatch = String(formData.get("maxRecipientsPerDispatch") ?? "").trim() || null;
+  const session = await getCurrentPlatformSession();
+  const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_implantar");
+  const targetUrl = buildRedirectUrl(redirectTo, idCandidato);
+
+  if (!session || !hasAccess || !["gestor_campanha", "administrador"].includes(session.perfil)) {
+    redirect(withFeedback(targetUrl, "erro", "A configuração SMS é restrita ao gestor da campanha e ao administrador."));
+  }
+
+  if (!idCandidato) {
+    redirect(withFeedback(targetUrl, "erro", "Selecione um candidato antes de configurar o gateway SMS."));
+  }
+
+  try {
+    await saveCampaignSmsConfig({
+      idCandidato,
+      provider,
+      gatewayUrl,
+      gatewayApiKey,
+      senderId,
+      maxRecipientsPerDispatch
+    });
+
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: session.perfil === "administrador" ? "admin" : "campanha",
+      ator: session.email,
+      categoria: "sms_campanha",
+      acao: "configurar_gateway_sms",
+      descricao: "Configuração do gateway SMS do candidato atualizada.",
+      status: "sucesso",
+      origem: session.perfil === "administrador" ? "workflow-center" : "gestor-campanha"
+    });
+
+    revalidatePath(`/gestor/candidato/${idCandidato}`);
+    revalidatePath(`/gestor/candidato/${idCandidato}/comunicacao/sms`);
+    revalidatePath("/estatisticas/governanca/workflows");
+    redirect(withFeedback(targetUrl, "sucesso", "Gateway SMS do candidato configurado com sucesso."));
+  } catch (error) {
+    if (isNextRedirectError(error)) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : "Falha ao configurar o gateway SMS.";
+
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: session.perfil === "administrador" ? "admin" : "campanha",
+      ator: session.email,
+      categoria: "sms_campanha",
+      acao: "configurar_gateway_sms_erro",
+      descricao: message,
+      status: "erro",
+      origem: session.perfil === "administrador" ? "workflow-center" : "gestor-campanha"
+    });
+
+    revalidatePath(targetUrl);
+    redirect(withFeedback(targetUrl, "erro", message));
+  }
+}
+
+function withFeedback(targetUrl: string, feedback: "sucesso" | "erro", mensagem: string) {
+  const separator = targetUrl.includes("?") ? "&" : "?";
+  return `${targetUrl}${separator}feedback=${feedback}&mensagem=${encodeURIComponent(mensagem)}`;
+}
+function buildRedirectUrl(redirectTo: string, idCandidato: string) {
+  if (!idCandidato || redirectTo.includes("?")) return redirectTo;
+  if (redirectTo === "/estatisticas/governanca/workflows") {
+    return `${redirectTo}?candidato=${encodeURIComponent(idCandidato)}`;
+  }
+  return redirectTo;
+}
+function isNextRedirectError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const possibleRedirect = error as { digest?: unknown; message?: unknown };
+  return (
+    (typeof possibleRedirect.digest === "string" && possibleRedirect.digest.startsWith("NEXT_REDIRECT")) ||
+    possibleRedirect.message === "NEXT_REDIRECT"
+  );
+}
 function buildSuccessMessage(result: {
   status: string;
   totalDestinatarios: number;
@@ -98,7 +180,7 @@ function buildSuccessMessage(result: {
   firstFailureMessage?: string | null;
 }) {
   if (result.status === "planejada_sem_provedor") {
-    return `Remessa SMS planejada para ${result.totalDestinatarios} destinatário(s). Configure o gateway SMS do candidato para habilitar envio real.`;
+    return `Remessa SMS planejada para ${result.totalDestinatarios} destinatário(s). Confirme com o administrador se o workflow SMS do candidato foi importado e ativado no n8n.`;
   }
 
   if (result.totalFalhas > 0) {

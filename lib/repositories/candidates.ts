@@ -4,6 +4,7 @@ import type { CandidateListItem } from "@/lib/types";
 export async function listCandidates(): Promise<CandidateListItem[]> {
   await ensureCandidateOperationalColumns();
   await ensureImplantationQrColumns();
+  await ensureCampaignSmsConfigTable();
 
   const result = await db.query<CandidateListItem>(
     `
@@ -34,7 +35,12 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
         coalesce(stats.etapas_com_erro, 0) as etapas_com_erro,
         stats.proxima_etapa,
         manager_update.executado_em::text as ultima_atualizacao_gestora_em,
-        manager_update.resumo as ultima_atualizacao_gestora_resumo
+        manager_update.resumo as ultima_atualizacao_gestora_resumo,
+        sms.provider as sms_provider,
+        sms.gateway_url as sms_gateway_url,
+        (sms.gateway_api_key is not null and btrim(sms.gateway_api_key) <> '') as sms_gateway_api_key_configurada,
+        sms.sender_id as sms_sender_id,
+        sms.max_recipients_per_dispatch as sms_max_recipients_per_dispatch
       from candidatos c
       left join implantacoes_candidato ic
         on ic.id_candidato = c.id_candidato
@@ -64,6 +70,8 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
         from implantacao_etapas_candidato iec
         where iec.id_candidato = c.id_candidato
       ) stats on true
+      left join campanha_sms_config sms
+        on sms.id_candidato = c.id_candidato
       left join lateral (
         select
           ei.iniciado_em as executado_em,
@@ -108,5 +116,21 @@ async function ensureCandidateOperationalColumns() {
     alter table candidatos
       add column if not exists numero_tre_tse text,
       add column if not exists telefone_candidato text
+  `);
+}
+
+async function ensureCampaignSmsConfigTable() {
+  await db.query(`
+    create table if not exists campanha_sms_config (
+      id_candidato varchar(120) primary key references candidatos(id_candidato) on delete cascade,
+      provider text,
+      gateway_url text,
+      gateway_api_key text,
+      sender_id text,
+      max_recipients_per_dispatch integer,
+      status text not null default 'ativo',
+      criado_em timestamptz default now(),
+      atualizado_em timestamptz default now()
+    )
   `);
 }

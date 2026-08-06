@@ -49,6 +49,8 @@ Adotar duas camadas de controle:
 
 ## Release atual
 
+- `V21.1.2`: remove URL/token técnico da tela do gestor de SMS e associa automaticamente o webhook n8n individualizado do candidato pela plataforma.
+
 - `V21.1.1`: inclui o workflow n8n SMS individualizado (`21b`) no pacote de geração por candidato e gera os artefatos atuais para Brunex, Eri Castro e Ricardo Vale.
 
 - `V21.1.0`: padroniza a remessa SMS por candidato, com gateway, chave, remetente e limite próprios, preservando fallback global apenas para homologação e mantendo os custos vinculados ao contrato do candidato.

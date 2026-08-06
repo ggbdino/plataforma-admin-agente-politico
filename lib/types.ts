@@ -19,6 +19,11 @@ export type CandidateListItem = {
   proxima_etapa: string | null;
   ultima_atualizacao_gestora_em: string | null;
   ultima_atualizacao_gestora_resumo: string | null;
+  sms_provider: string | null;
+  sms_gateway_url: string | null;
+  sms_gateway_api_key_configurada: boolean;
+  sms_sender_id: string | null;
+  sms_max_recipients_per_dispatch: number | null;
 };
 
 export type ImplantationHeader = {

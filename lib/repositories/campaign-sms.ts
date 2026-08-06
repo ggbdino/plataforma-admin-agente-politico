@@ -24,6 +24,8 @@ export type CampaignSmsContext = {
   sender_id: string | null;
   max_recipients_per_dispatch: number;
   usa_fallback_global: boolean;
+  gateway_origem: string;
+  gateway_url_sugerida: string | null;
 };
 
 export type CampaignSmsDispatchSummary = {
@@ -58,6 +60,7 @@ type SmsConfig = {
   maxRecipients: number;
   configured: boolean;
   usesGlobalFallback: boolean;
+  source: "configuracao_candidato" | "env_candidato" | "fallback_global" | "nao_configurado";
 };
 
 type Recipient = {
@@ -134,7 +137,9 @@ export async function getCampaignSmsContext(idCandidato: string): Promise<Campai
     gateway_api_key_configurada: Boolean(config.gatewayApiKey),
     sender_id: config.senderId,
     max_recipients_per_dispatch: config.maxRecipients,
-    usa_fallback_global: config.usesGlobalFallback
+    usa_fallback_global: config.usesGlobalFallback,
+    gateway_origem: config.source,
+    gateway_url_sugerida: buildAutomaticCandidateSmsWebhookUrl(identity.id_candidato)
   };
 }
 
@@ -146,11 +151,6 @@ export async function planAndSendCampaignSms(input: {
   eventoId?: string | null;
   eleitorUid?: string | null;
   mensagem: string;
-  provider?: string | null;
-  gatewayUrl?: string | null;
-  gatewayApiKey?: string | null;
-  senderId?: string | null;
-  maxRecipientsPerDispatch?: string | number | null;
 }) {
   await ensureCampaignSmsTables();
   await ensureElectorEnrichmentColumns();
@@ -160,15 +160,6 @@ export async function planAndSendCampaignSms(input: {
 
   const mensagem = normalizeSmsMessage(input.mensagem);
   if (!mensagem) throw new Error("Informe o texto da mensagem SMS antes de preparar a remessa.");
-
-  await saveCampaignSmsConfig({
-    idCandidato: input.idCandidato,
-    provider: input.provider || identity.sms_provider,
-    gatewayUrl: input.gatewayUrl || identity.sms_gateway_url,
-    gatewayApiKey: input.gatewayApiKey || identity.sms_gateway_api_key,
-    senderId: input.senderId || identity.sms_sender_id || identity.numero_campanha,
-    maxRecipientsPerDispatch: input.maxRecipientsPerDispatch || identity.sms_max_recipients_per_dispatch
-  });
 
   const updatedIdentity = await getCandidateSmsIdentity(input.idCandidato);
   if (!updatedIdentity) throw new Error("Configuração SMS do candidato não localizada.");
@@ -298,7 +289,7 @@ async function getCandidateSmsIdentity(idCandidato: string): Promise<CandidateSm
   return result.rows[0] ?? null;
 }
 
-async function saveCampaignSmsConfig(input: {
+export async function saveCampaignSmsConfig(input: {
   idCandidato: string;
   provider?: string | null;
   gatewayUrl?: string | null;
@@ -489,18 +480,27 @@ async function sendWithConfiguredProvider(input: {
 
 function resolveSmsConfig(identity: CandidateSmsIdentity): SmsConfig {
   const statusAtivo = (identity.sms_status || "ativo") === "ativo";
+  const envSuffix = normalizeEnvSuffix(`${identity.nome_urna}_${identity.id_candidato}`);
   const candidateGatewayUrl = statusAtivo ? normalizeOptionalUrl(identity.sms_gateway_url) : null;
-  const usesGlobalFallback = !candidateGatewayUrl && Boolean(env.smsWebhookUrl);
-  const gatewayUrl = candidateGatewayUrl || normalizeOptionalUrl(env.smsWebhookUrl);
-  const gatewayApiKey = candidateGatewayUrl ? normalizeText(identity.sms_gateway_api_key) : normalizeText(env.smsApiKey);
-  const provider = gatewayUrl
-    ? candidateGatewayUrl
-      ? normalizeProvider(identity.sms_provider)
-      : normalizeProvider(env.smsProvider)
-    : "sem_provedor";
-  const senderId = normalizeText(identity.sms_sender_id || env.smsSenderId || identity.numero_campanha);
+  const envCandidateGatewayUrl = normalizeOptionalUrl(readProcessEnv(`SMS_WEBHOOK_URL_${envSuffix}`));
+  const fallbackGatewayUrl = normalizeOptionalUrl(env.smsWebhookUrl);
+  const gatewayUrl = candidateGatewayUrl || envCandidateGatewayUrl || fallbackGatewayUrl;
+  const source = candidateGatewayUrl
+    ? "configuracao_candidato"
+    : envCandidateGatewayUrl
+      ? "env_candidato"
+      : fallbackGatewayUrl
+        ? "fallback_global"
+        : "nao_configurado";
+  const gatewayApiKey = normalizeText(
+    identity.sms_gateway_api_key || readProcessEnv(`SMS_API_KEY_${envSuffix}`) || env.smsApiKey
+  );
+  const provider = gatewayUrl ? normalizeProvider(identity.sms_provider || env.smsProvider) : "sem_provedor";
+  const senderId = normalizeText(
+    identity.sms_sender_id || readProcessEnv(`SMS_SENDER_ID_${envSuffix}`) || env.smsSenderId || identity.numero_campanha
+  );
   const maxRecipients = normalizeMaxRecipients(
-    identity.sms_max_recipients_per_dispatch ?? env.smsMaxRecipientsPerDispatch
+    identity.sms_max_recipients_per_dispatch || readProcessEnv(`SMS_MAX_RECIPIENTS_PER_DISPATCH_${envSuffix}`) || env.smsMaxRecipientsPerDispatch
   );
 
   return {
@@ -510,10 +510,34 @@ function resolveSmsConfig(identity: CandidateSmsIdentity): SmsConfig {
     senderId,
     maxRecipients,
     configured: Boolean(gatewayUrl),
-    usesGlobalFallback
+    usesGlobalFallback: source === "fallback_global",
+    source
   };
 }
 
+function buildAutomaticCandidateSmsWebhookUrl(idCandidato: string) {
+  const webhookBaseUrl = normalizeText(env.n8nWebhookBaseUrl);
+  if (!webhookBaseUrl) return null;
+  try {
+    return new URL(`/webhook/agente-politico/${encodeURIComponent(idCandidato)}/sms-campanha`, webhookBaseUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeEnvSuffix(value: string) {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+}
+
+function readProcessEnv(name: string) {
+  return process.env[name] ?? "";
+}
 function summarizeProviderFailure(message: string) {
   const normalized = message.replace(/\s+/g, " ").trim();
   return normalized ? normalized.slice(0, 240) : "Falha desconhecida no envio SMS.";

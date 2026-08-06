@@ -16,6 +16,7 @@ type WorkflowCenterPanelProps = {
   generateAction: (payload: FormData) => void;
   triggerAction: (payload: FormData) => void;
   updateOperationalDataAction: (payload: FormData) => void;
+  saveSmsConfigAction: (payload: FormData) => void;
 };
 
 const BATCH_WORKFLOWS = [
@@ -91,7 +92,8 @@ export function WorkflowCenterPanel({
   feedback,
   generateAction,
   triggerAction,
-  updateOperationalDataAction
+  updateOperationalDataAction,
+  saveSmsConfigAction
 }: WorkflowCenterPanelProps) {
   const [selectedCandidateId, setSelectedCandidateId] = useState(defaultCandidateId);
   const [governanceResource, setGovernanceResource] = useState("");
@@ -251,6 +253,82 @@ export function WorkflowCenterPanel({
           <div className="workflow-card-footer">
             <button className="button workflow-action-button" type="submit">
               Atualizar dados operacionais
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="card workflow-candidate-panel" style={{ marginBottom: 16 }}>
+        <form
+          action={saveSmsConfigAction}
+          className="manager-auth-form workflow-operational-form"
+          key={`${selectedCandidateId}-sms`}
+          style={{ marginTop: 18 }}
+        >
+          <input name="redirectTo" type="hidden" value="/estatisticas/governanca/workflows" />
+          <input name="idCandidato" type="hidden" value={selectedCandidateId} />
+          <div className="step-panel-callout">
+            <strong>Gateway SMS do candidato</strong>
+            <span>
+              Configuração opcional para remessas por celular. O candidato contrata o provedor e informa a URL do workflow/gateway e a chave uma única vez, sem exigir reimplantação da plataforma.
+            </span>
+          </div>
+          <div className="step-form-grid">
+            <label className="step-note">
+              <span>Provedor SMS</span>
+              <select className="step-input" defaultValue={selectedCandidate?.sms_provider ?? "webhook"} name="provider">
+                <option value="webhook">Webhook / n8n do candidato</option>
+                <option value="zenvia">Zenvia</option>
+                <option value="twilio">Twilio</option>
+                <option value="totalvoice">TotalVoice</option>
+                <option value="infobip">Infobip</option>
+                <option value="vonage">Vonage</option>
+                <option value="outro">Outro provedor</option>
+              </select>
+            </label>
+            <label className="step-note">
+              <span>URL do gateway</span>
+              <input
+                className="step-input mono-wrap"
+                defaultValue={selectedCandidate?.sms_gateway_url ?? ""}
+                name="gatewayUrl"
+                placeholder={`/webhook/agente-politico/${selectedCandidateId}/sms-campanha`}
+                type="url"
+              />
+            </label>
+            <label className="step-note">
+              <span>Chave ou token</span>
+              <input
+                className="step-input"
+                name="gatewayApiKey"
+                placeholder={selectedCandidate?.sms_gateway_api_key_configurada ? "Chave já configurada. Preencha apenas para substituir." : "Token do gateway SMS"}
+                type="password"
+              />
+            </label>
+            <label className="step-note">
+              <span>Remetente/Sender</span>
+              <input
+                className="step-input"
+                defaultValue={selectedCandidate?.sms_sender_id ?? selectedCandidate?.numero_agente_oficial ?? ""}
+                name="senderId"
+                type="text"
+              />
+            </label>
+            <label className="step-note">
+              <span>Limite por remessa</span>
+              <input
+                className="step-input"
+                defaultValue={selectedCandidate?.sms_max_recipients_per_dispatch ?? 20}
+                max={250}
+                min={1}
+                name="maxRecipientsPerDispatch"
+                type="number"
+              />
+            </label>
+          </div>
+          <div className="workflow-card-footer">
+            <button className="button workflow-action-button" type="submit">
+              Salvar gateway SMS
             </button>
           </div>
         </form>
