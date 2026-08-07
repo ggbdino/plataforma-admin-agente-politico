@@ -149,6 +149,9 @@ export function WorkflowCenterPanel({
           <a className="button secondary" href="/estatisticas/governanca">
             Voltar para governança
           </a>
+          <a className="button secondary" href="#gateway-sms-candidato">
+            Configurar gateway SMS
+          </a>
         </div>
       </section>
 
@@ -258,8 +261,16 @@ export function WorkflowCenterPanel({
         </form>
       </section>
 
-      <section className="card workflow-candidate-panel" style={{ marginBottom: 16 }}>
-        <form
+      <section className="card workflow-candidate-panel" id="gateway-sms-candidato" style={{ marginBottom: 16 }}>
+        <div className="section-heading">
+          <div>
+            <h2 className="section-title">Configurar gateway SMS do candidato</h2>
+            <p className="subtitle">
+              Área administrativa para gravar a URL e a chave do gateway SMS uma única vez por candidato.
+            </p>
+          </div>
+          <span className="pill">Administrador</span>
+        </div>        <form
           action={saveSmsConfigAction}
           className="manager-auth-form workflow-operational-form"
           key={`${selectedCandidateId}-sms`}
@@ -268,7 +279,7 @@ export function WorkflowCenterPanel({
           <input name="redirectTo" type="hidden" value="/estatisticas/governanca/workflows" />
           <input name="idCandidato" type="hidden" value={selectedCandidateId} />
           <div className="step-panel-callout">
-            <strong>Gateway SMS do candidato</strong>
+            <strong>Configuração opcional de SMS</strong>
             <span>
               Configuração opcional para remessas por celular. O candidato contrata o provedor e informa a URL do workflow/gateway e a chave uma única vez, sem exigir reimplantação da plataforma.
             </span>
