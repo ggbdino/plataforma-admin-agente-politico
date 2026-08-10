@@ -385,6 +385,52 @@ export type CampaignConversationExplorer = {
     | null;
 };
 
+export type CampaignOutreachSummary = {
+  total_membros: number;
+  membros_ativos: number;
+  tarefas_ativas: number;
+  tarefas_concluidas: number;
+  percentual_realizacao_medio: number;
+};
+
+export type CampaignOutreachTaskMetric = {
+  id: string;
+  titulo: string;
+  tipo_tarefa: string;
+  descricao: string | null;
+  localidade: string | null;
+  cidade: string | null;
+  uf: string | null;
+  meta_quantidade: number;
+  data_inicio: string | null;
+  data_limite: string | null;
+  status: string;
+  total_membros: number;
+  realizado_total: number;
+  percentual_realizacao: number;
+};
+
+export type CampaignOutreachMemberMetric = {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  email: string | null;
+  cidade: string | null;
+  uf: string | null;
+  bairro: string | null;
+  grupo: string | null;
+  papel: string | null;
+  status: string;
+  total_tarefas: number;
+  tarefas_concluidas: number;
+  percentual_realizacao: number;
+};
+
+export type CampaignOutreachSnapshot = {
+  resumo: CampaignOutreachSummary;
+  tarefas: CampaignOutreachTaskMetric[];
+  membros: CampaignOutreachMemberMetric[];
+};
 export type CampaignAnalyticsSnapshot = {
   cabecalho: CampaignAnalyticsHeader;
   resumo: CampaignAnalyticsSummary;
@@ -405,6 +451,7 @@ export type CampaignAnalyticsSnapshot = {
   evolucaoDiaria: CampaignDailyMetric[];
   crescimentoBase: CampaignBaseGrowthPoint[];
   conversasRecentes: CampaignRecentConversation[];
+  equipeDivulgacao: CampaignOutreachSnapshot;
 };
 
 export type AdminCampaignStatItem = {

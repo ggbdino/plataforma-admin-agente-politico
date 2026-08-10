@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getOutreachIntelligenceSnapshot } from "@/lib/repositories/campaign-outreach-team";
 import type { QueryResultRow } from "pg";
 import type {
   AdminCampaignStatItem,
@@ -808,6 +809,7 @@ export async function getCampaignAnalyticsSnapshot(
 
   const saudeFunil = withFunnelHealthSemaphore(funnelHealthResult.rows[0]);
   const alertas = buildCampaignOperationalAlerts(qualityResult.rows[0], saudeFunil);
+  const equipeDivulgacao = await getOutreachIntelligenceSnapshot(idCandidato);
 
   return {
     cabecalho,
@@ -828,7 +830,8 @@ export async function getCampaignAnalyticsSnapshot(
     relatorioImportacao: buildImportReportSummary(importReportResult.rows[0]),
     evolucaoDiaria: dailyResult.rows,
     crescimentoBase: growthResult.rows,
-    conversasRecentes: recentConversationsResult.rows
+    conversasRecentes: recentConversationsResult.rows,
+    equipeDivulgacao
   };
 }
 

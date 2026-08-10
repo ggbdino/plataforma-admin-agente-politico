@@ -268,6 +268,80 @@ export default async function CampaignIntelligencePage({
         )}
       </section>
 
+      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+        <div className="section-heading">
+          <div>
+            <h2 className="section-title">Equipe de Divulgação e tarefas territoriais</h2>
+            <p className="subtitle">Tarefas de mobilização criadas pelo gestor e nível de realização por membro da equipe.</p>
+          </div>
+          <span className="pill ok">{formatPercent(snapshot.equipeDivulgacao.resumo.percentual_realizacao_medio)} realizado</span>
+        </div>
+        <div className="grid grid-4" style={{ marginBottom: 18 }}>
+          <article className="metric-card"><span className="metric-label">Membros ativos</span><strong className="metric-value">{snapshot.equipeDivulgacao.resumo.membros_ativos}</strong><span className="muted">{snapshot.equipeDivulgacao.resumo.total_membros} no cadastro</span></article>
+          <article className="metric-card"><span className="metric-label">Tarefas ativas</span><strong className="metric-value">{snapshot.equipeDivulgacao.resumo.tarefas_ativas}</strong><span className="muted">Em execução pela equipe</span></article>
+          <article className="metric-card"><span className="metric-label">Tarefas concluídas</span><strong className="metric-value">{snapshot.equipeDivulgacao.resumo.tarefas_concluidas}</strong><span className="muted">Validadas por evidência</span></article>
+          <article className="metric-card"><span className="metric-label">Acompanhamento</span><strong className="metric-value">{snapshot.equipeDivulgacao.tarefas.length}</strong><span className="muted">Tarefa(s) cadastrada(s)</span></article>
+        </div>
+        {snapshot.equipeDivulgacao.tarefas.length > 0 ? (
+          <div className="analytics-stack" style={{ marginBottom: 18 }}>
+            {snapshot.equipeDivulgacao.tarefas.slice(0, 8).map((task, index) => (
+              <div className="analytics-bar-row" key={task.id}>
+                <div className="analytics-bar-label">
+                  <strong>{task.titulo}</strong>
+                  <span className="muted">
+                    {labelOutreachTaskType(task.tipo_tarefa)} | {task.total_membros} membro(s) | {task.realizado_total}/{task.meta_quantidade || 0} realizado(s)
+                  </span>
+                </div>
+                <div className="analytics-bar-track">
+                  <div
+                    className="analytics-bar-fill"
+                    style={{
+                      width: `${Math.max(Math.min(Number(task.percentual_realizacao || 0), 100), 4)}%`,
+                      background: getCampaignChartColor(index + 5)
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="step-panel-callout" style={{ marginBottom: 18 }}>
+            Nenhuma tarefa da Equipe de Divulgação foi criada para esta campanha.
+          </div>
+        )}
+        <div className="responsive-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Membro</th>
+                <th>Território</th>
+                <th>Grupo</th>
+                <th>Tarefas</th>
+                <th>Realização</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.equipeDivulgacao.membros.slice(0, 12).map((member) => (
+                <tr key={member.id}>
+                  <td><strong>{member.nome}</strong><br /><span className="muted">{member.papel ?? "Membro"}</span></td>
+                  <td>{[member.cidade, member.uf].filter(Boolean).join("/") || member.bairro || "-"}</td>
+                  <td>{member.grupo ?? "-"}</td>
+                  <td>{member.tarefas_concluidas}/{member.total_tarefas}</td>
+                  <td>{formatPercent(member.percentual_realizacao)}</td>
+                </tr>
+              ))}
+              {snapshot.equipeDivulgacao.membros.length === 0 ? <tr><td colSpan={5}>Equipe ainda não importada.</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+        {session?.perfil === "gestor_campanha" || session?.perfil === "administrador" ? (
+          <div className="actions" style={{ marginTop: 18 }}>
+            <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/divulgacao`}>
+              Gerenciar Equipe de Divulgação
+            </Link>
+          </div>
+        ) : null}
+      </section>
       <section className="card analytics-panel">
         <div className="section-heading">
           <div>
@@ -367,6 +441,20 @@ function buildPieSegments(funil: { etapa_funil: string; total: number }[]) {
   });
 }
 
+
+function labelOutreachTaskType(value: string) {
+  const labels: Record<string, string> = {
+    inserir_contatos: "Inserir novos contatos",
+    convidar_eventos: "Convidar para eventos",
+    captar_eleitores: "Captar eleitores",
+    visitar_locais: "Visitar locais",
+    participar_reunioes: "Participar de reuniões",
+    panfletar: "Panfletar",
+    divulgar_localidade: "Divulgar em localidade",
+    outros: "Outras ações"
+  };
+  return labels[value] ?? labelText(value);
+}
 function getCampaignChartColor(index: number) {
   const palette = ["#ff7a59", "#ffa94d", "#ffd43b", "#69db7c", "#38d9a9", "#4dabf7", "#748ffc", "#da77f2"];
   return palette[index % palette.length];
