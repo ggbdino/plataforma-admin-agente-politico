@@ -319,35 +319,103 @@ export async function recordOutreachEvidence(input: {
   const member = await resolveEvidenceMember(input.idCandidato, input.memberId, input.memberPhone);
   if (!member) throw new Error("Membro da Equipe de Divulgação não localizado para registrar a evidência.");
 
-  const quantidade = normalizeNumber(input.quantidadeValidada ?? 1);
-  await db.query(
-    `
-      insert into campanha_divulgacao_evidencias (
-        tarefa_id, membro_id, canal, mensagem, quantidade_validada, status_validacao, origem, criado_em
-      ) values ($1::uuid, $2::uuid, $3, $4, $5, 'validada', $6, now())
-    `,
-    [input.taskId, member.id, normalizeText(input.canal) || "whatsapp", normalizeText(input.mensagem), quantidade, normalizeText(input.origem) || "whatsapp_candidato"]
-  );
+  const quantidade = Math.max(normalizeNumber(input.quantidadeValidada ?? 1), 1);
+  const taskId = normalizeText(input.taskId);
+  if (!taskId) throw new Error("Informe a tarefa da Equipe de Divulgação para registrar a evidência.");
 
-  await db.query(
-    `
-      update campanha_divulgacao_tarefa_membros tm
-      set realizado_quantidade = coalesce(tm.realizado_quantidade, 0) + $3,
-          percentual_realizacao = case
-            when coalesce(tm.meta_individual, 0) <= 0 then 100
-            else least(round(((coalesce(tm.realizado_quantidade, 0) + $3)::numeric / greatest(tm.meta_individual, 1)::numeric) * 100, 2), 100)
-          end,
-          status = case
-            when coalesce(tm.meta_individual, 0) <= 0 or coalesce(tm.realizado_quantidade, 0) + $3 >= tm.meta_individual then 'concluida'
-            else 'em_andamento'
-          end,
-          atualizado_em = now()
-      where tm.tarefa_id = $1::uuid and tm.membro_id = $2::uuid
-    `,
-    [input.taskId, member.id, quantidade]
-  );
+  const client = await db.connect();
+  try {
+    await client.query("begin");
+
+    const taskResult = await client.query<{ id: string; meta_quantidade: number }>(
+      `
+        select id::text as id, coalesce(meta_quantidade, 0)::int as meta_quantidade
+        from campanha_divulgacao_tarefas
+        where id = $1::uuid and id_candidato = $2
+        limit 1
+      `,
+      [taskId, input.idCandidato]
+    );
+
+    const task = taskResult.rows[0];
+    if (!task) {
+      throw new Error("Tarefa da Equipe de Divulgação não localizada para este candidato.");
+    }
+
+    await client.query(
+      `
+        insert into campanha_divulgacao_tarefa_membros (tarefa_id, membro_id, meta_individual, status, atualizado_em)
+        values ($1::uuid, $2::uuid, greatest($3::int, 1), 'pendente', now())
+        on conflict (tarefa_id, membro_id) do nothing
+      `,
+      [task.id, member.id, quantidade]
+    );
+
+    await client.query(
+      `
+        insert into campanha_divulgacao_evidencias (
+          tarefa_id, membro_id, canal, mensagem, quantidade_validada, status_validacao, origem, criado_em
+        ) values ($1::uuid, $2::uuid, $3, $4, $5, 'validada', $6, now())
+      `,
+      [task.id, member.id, normalizeText(input.canal) || "whatsapp", normalizeText(input.mensagem), quantidade, normalizeText(input.origem) || "whatsapp_candidato"]
+    );
+
+    const updateResult = await client.query(
+      `
+        update campanha_divulgacao_tarefa_membros tm
+        set realizado_quantidade = coalesce(tm.realizado_quantidade, 0) + $3,
+            percentual_realizacao = case
+              when coalesce(tm.meta_individual, 0) <= 0 then 100
+              else least(round(((coalesce(tm.realizado_quantidade, 0) + $3)::numeric / greatest(tm.meta_individual, 1)::numeric) * 100, 2), 100)
+            end,
+            status = case
+              when coalesce(tm.meta_individual, 0) <= 0 or coalesce(tm.realizado_quantidade, 0) + $3 >= tm.meta_individual then 'concluida'
+              else 'em_andamento'
+            end,
+            atualizado_em = now()
+        where tm.tarefa_id = $1::uuid and tm.membro_id = $2::uuid
+      `,
+      [task.id, member.id, quantidade]
+    );
+
+    if (updateResult.rowCount === 0) {
+      throw new Error("Não foi possível atualizar o vínculo entre tarefa e membro da Equipe de Divulgação.");
+    }
+
+    await client.query(
+      `
+        with progresso as (
+          select
+            t.id,
+            coalesce(t.meta_quantidade, 0) as meta_quantidade,
+            coalesce(sum(tm.realizado_quantidade), 0) as realizado_total,
+            count(tm.membro_id) filter (where tm.status <> 'concluida') as pendentes
+          from campanha_divulgacao_tarefas t
+          left join campanha_divulgacao_tarefa_membros tm on tm.tarefa_id = t.id
+          where t.id = $1::uuid and t.id_candidato = $2
+          group by t.id
+        )
+        update campanha_divulgacao_tarefas t
+        set status = case
+              when progresso.meta_quantidade > 0 and progresso.realizado_total >= progresso.meta_quantidade then 'concluida'
+              when progresso.meta_quantidade <= 0 and progresso.pendentes = 0 then 'concluida'
+              else 'ativa'
+            end,
+            atualizado_em = now()
+        from progresso
+        where t.id = progresso.id
+      `,
+      [task.id, input.idCandidato]
+    );
+
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
-
 async function resolveEvidenceMember(idCandidato: string, memberId?: string | null, memberPhone?: string | null) {
   const normalizedPhone = normalizePhone(memberPhone);
   const result = await db.query<{ id: string }>(
@@ -441,8 +509,77 @@ export async function ensureOutreachTables() {
       criado_em timestamptz not null default now()
     )
   `);
+
+  await repairOutreachEvidenceAggregates();
 }
 
+
+async function repairOutreachEvidenceAggregates() {
+  await db.query(`
+    with evidence_totals as (
+      select tarefa_id, membro_id, greatest(coalesce(sum(quantidade_validada), 0)::int, 1) as total_validado
+      from campanha_divulgacao_evidencias
+      where status_validacao = 'validada'
+      group by tarefa_id, membro_id
+    )
+    insert into campanha_divulgacao_tarefa_membros (tarefa_id, membro_id, meta_individual, realizado_quantidade, percentual_realizacao, status, atualizado_em)
+    select
+      evidence_totals.tarefa_id,
+      evidence_totals.membro_id,
+      evidence_totals.total_validado,
+      evidence_totals.total_validado,
+      100,
+      'concluida',
+      now()
+    from evidence_totals
+    on conflict (tarefa_id, membro_id) do nothing
+  `);
+
+  await db.query(`
+    with evidence_totals as (
+      select tarefa_id, membro_id, coalesce(sum(quantidade_validada), 0)::int as total_validado
+      from campanha_divulgacao_evidencias
+      where status_validacao = 'validada'
+      group by tarefa_id, membro_id
+    )
+    update campanha_divulgacao_tarefa_membros tm
+    set realizado_quantidade = evidence_totals.total_validado,
+        percentual_realizacao = case
+          when coalesce(tm.meta_individual, 0) <= 0 then 100
+          else least(round((evidence_totals.total_validado::numeric / greatest(tm.meta_individual, 1)::numeric) * 100, 2), 100)
+        end,
+        status = case
+          when coalesce(tm.meta_individual, 0) <= 0 or evidence_totals.total_validado >= tm.meta_individual then 'concluida'
+          else 'em_andamento'
+        end,
+        atualizado_em = now()
+    from evidence_totals
+    where tm.tarefa_id = evidence_totals.tarefa_id
+      and tm.membro_id = evidence_totals.membro_id
+  `);
+
+  await db.query(`
+    with progresso as (
+      select
+        t.id,
+        coalesce(t.meta_quantidade, 0) as meta_quantidade,
+        coalesce(sum(tm.realizado_quantidade), 0) as realizado_total,
+        count(tm.membro_id) filter (where tm.status <> 'concluida') as pendentes
+      from campanha_divulgacao_tarefas t
+      left join campanha_divulgacao_tarefa_membros tm on tm.tarefa_id = t.id
+      group by t.id
+    )
+    update campanha_divulgacao_tarefas t
+    set status = case
+          when progresso.meta_quantidade > 0 and progresso.realizado_total >= progresso.meta_quantidade then 'concluida'
+          when progresso.meta_quantidade <= 0 and progresso.pendentes = 0 then 'concluida'
+          else t.status
+        end,
+        atualizado_em = now()
+    from progresso
+    where t.id = progresso.id
+  `);
+}
 function parseMembersCsv(text: string): ParsedMember[] {
   const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   if (lines.length === 0) return [];

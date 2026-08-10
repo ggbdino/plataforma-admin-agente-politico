@@ -73,3 +73,27 @@ A página de Inteligência passa a apresentar:
 ## Próximo avanço recomendado
 
 Criar ou ajustar o workflow n8n de WhatsApp do candidato para classificar mensagens de membros da equipe, identificar tarefa, quantidade e evidência, e chamar o endpoint de evidências com a chave configurada.
+## Workflows n8n individualizados - V22.1.0
+
+O pacote de implantação por candidato passa a gerar o fluxo `22b_divulgacao_evidencias_{slug}_{id}.json`.
+
+Arquivos gerados para a base atual:
+
+- `22b_divulgacao_evidencias_brunex_0001.json`
+- `22b_divulgacao_evidencias_eri-castro_1313.json`
+- `22b_divulgacao_evidencias_ricardo-vale_ricardo-vale.json`
+
+Cada fluxo possui um webhook dedicado:
+
+- `agente-politico/0001/divulgacao/evidencias`
+- `agente-politico/1313/divulgacao/evidencias`
+- `agente-politico/ricardo-vale/divulgacao/evidencias`
+
+Variáveis exigidas no n8n:
+
+```env
+PLATAFORMA_ADMIN_BASE_URL=https://n8n-plataforma-admin.kb0fgy.easypanel.host
+OUTREACH_EVIDENCE_API_KEY=<mesma chave configurada no plataforma_admin>
+```
+
+O workflow `22b` deve ser chamado pelo fluxo de WhatsApp/classificação do próprio candidato quando uma conversa indicar realização de tarefa da Equipe de Divulgação.

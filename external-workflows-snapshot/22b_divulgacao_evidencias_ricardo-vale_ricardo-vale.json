@@ -1,0 +1,129 @@
+{
+  "name": "22b_divulgacao_evidencias_ricardo-vale_ricardo-vale",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agente-politico/ricardo-vale/divulgacao/evidencias",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_Divulgacao_Evidencias",
+      "name": "Webhook Evidencias Divulgacao",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [180, 260],
+      "webhookId": "agente-politico-ricardo-vale-divulgacao-evidencias"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const body = item.json.body || item.json || {};\n  const headers = item.json.headers || {};\n  const authHeader = String(headers.authorization || headers.Authorization || '').trim();\n  const expectedApiKey = String($env.OUTREACH_EVIDENCE_API_KEY || '').trim();\n  const platformBaseUrl = String($env.PLATAFORMA_ADMIN_BASE_URL || $env.PLATFORM_ADMIN_BASE_URL || '').trim().replace(/\\\/$/, '');\n  const requestedIdCandidato = String(body.idCandidato || body.id_candidato || '').trim();\n  const idCandidato = 'ricardo-vale';\n  const taskId = String(body.taskId || body.tarefaId || body.tarefa_id || '').trim();\n  const memberId = String(body.memberId || body.membroId || body.membro_id || '').trim();\n  const phoneDigits = String(body.telefone || body.memberPhone || body.whatsapp || '').replace(/\\D/g, '');\n  const normalizedPhone = phoneDigits ? (phoneDigits.startsWith('55') ? phoneDigits : (phoneDigits.length >= 10 && phoneDigits.length <= 11 ? `55${phoneDigits}` : phoneDigits)) : '';\n  const mensagem = String(body.mensagem || body.message || body.evidencia || '').trim();\n  const quantidadeValidada = Number(body.quantidadeValidada || body.quantidade || 1);\n  const errors = [];\n\n  if (expectedApiKey && authHeader !== `Bearer ${expectedApiKey}`) errors.push('Authorization Bearer invalido para evidencia da Equipe de Divulgacao.');\n  if (!platformBaseUrl) errors.push('PLATAFORMA_ADMIN_BASE_URL nao configurada no n8n.');\n  if (requestedIdCandidato && requestedIdCandidato !== idCandidato) errors.push('idCandidato divergente para este workflow.');\n  if (!taskId) errors.push('taskId/tarefaId ausente.');\n  if (!memberId && !normalizedPhone) errors.push('Informe membroId/memberId ou telefone do membro.');\n  if (!Number.isFinite(quantidadeValidada) || quantidadeValidada <= 0) errors.push('Quantidade validada deve ser maior que zero.');\n\n  const valido = errors.length === 0;\n  return {\n    json: {\n      valido,\n      autorizado: !expectedApiKey || authHeader === `Bearer ${expectedApiKey}`,\n      statusCode: valido ? 200 : (errors.some((error) => error.includes('Authorization')) ? 401 : 400),\n      errors,\n      requestedIdCandidato,\n      idCandidato,\n      taskId,\n      memberId: memberId || null,\n      telefone: normalizedPhone || null,\n      mensagem,\n      quantidadeValidada: Math.trunc(quantidadeValidada),\n      canal: String(body.canal || 'whatsapp').trim(),\n      origem: String(body.origem || 'n8n-whatsapp-divulgacao').trim(),\n      platformUrl: platformBaseUrl ? `${platformBaseUrl}/api/campanhas/${idCandidato}/divulgacao/evidencias` : '',\n      raw: body\n    }\n  };\n});"
+      },
+      "id": "Code_Validar_Evidencia",
+      "name": "Validar Evidencia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valido === true && $json.autorizado === true }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_Evidencia_Valida",
+      "name": "Evidencia valida e autorizada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.platformUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.OUTREACH_EVIDENCE_API_KEY || '' }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"taskId\":\"{{$json.taskId}}\",\"memberId\":\"{{$json.memberId}}\",\"telefone\":\"{{$json.telefone}}\",\"mensagem\":\"{{$json.mensagem}}\",\"quantidadeValidada\":{{$json.quantidadeValidada}},\"canal\":\"{{$json.canal}}\",\"origem\":\"{{$json.origem}}\"}",
+        "options": {}
+      },
+      "id": "HTTP_Registrar_Evidencia_Plataforma",
+      "name": "Registrar Evidencia na Plataforma",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => ({\n  json: {\n    status: 'ok',\n    message: 'Evidencia da Equipe de Divulgacao registrada na plataforma.',\n    resposta_plataforma: item.json\n  }\n}));"
+      },
+      "id": "Code_Resumo_Evidencia",
+      "name": "Resumir Evidencia Registrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1240, 160]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "Respond_Evidencia_OK",
+      "name": "Responder Evidencia OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1500, 160]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'erro', errors: $json.errors, message: 'Evidencia da Equipe de Divulgacao rejeitada pelo workflow n8n.' } }}",
+        "options": { "responseCode": "={{$json.statusCode || 400}}" }
+      },
+      "id": "Respond_Evidencia_Erro",
+      "name": "Responder Evidencia Erro",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 420]
+    }
+  ],
+  "connections": {
+    "Webhook Evidencias Divulgacao": { "main": [[{ "node": "Validar Evidencia", "type": "main", "index": 0 }]] },
+    "Validar Evidencia": { "main": [[{ "node": "Evidencia valida e autorizada?", "type": "main", "index": 0 }]] },
+    "Evidencia valida e autorizada?": {
+      "main": [
+        [{ "node": "Registrar Evidencia na Plataforma", "type": "main", "index": 0 }],
+        [{ "node": "Responder Evidencia Erro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Registrar Evidencia na Plataforma": { "main": [[{ "node": "Resumir Evidencia Registrada", "type": "main", "index": 0 }]] },
+    "Resumir Evidencia Registrada": { "main": [[{ "node": "Responder Evidencia OK", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1-divulgacao-evidencias",
+  "meta": { "templateCredsSetupCompleted": false },
+  "pinData": {},
+  "tags": [
+    { "name": "agente-politico" },
+    { "name": "divulgacao" },
+    { "name": "whatsapp" },
+    { "name": "campanha" }
+  ]
+}
+

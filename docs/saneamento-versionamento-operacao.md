@@ -49,6 +49,10 @@ Adotar duas camadas de controle:
 
 ## Release atual
 
+- `V22.1.1`: corrige registro de evidências da Equipe de Divulgação garantindo vínculo entre tarefa e membro, atualização transacional do percentual e exibição do ID da tarefa para testes no n8n.
+
+- `V22.1.0`: adiciona o workflow n8n individualizado `22b` para registrar evidências da Equipe de Divulgação por candidato, gerando os artefatos atuais para Brunex, Eri Castro e Ricardo Vale.
+
 - `V21.1.2`: remove URL/token técnico da tela do gestor de SMS e associa automaticamente o webhook n8n individualizado do candidato pela plataforma.
 
 - `V21.1.1`: inclui o workflow n8n SMS individualizado (`21b`) no pacote de geração por candidato e gera os artefatos atuais para Brunex, Eri Castro e Ricardo Vale.

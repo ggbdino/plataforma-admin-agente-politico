@@ -40,6 +40,7 @@ $templateFiles = @{
   "06b" = "06_participacao_eventos_kpis.json"
   "07"  = "07_qrcode_canais_agentes_brunex.json"
   "21b" = "21_sms_campanha_gateway.json"
+  "22b" = "22_divulgacao_evidencias_whatsapp.json"
 }
 
 foreach ($file in $templateFiles.Values) {
@@ -91,6 +92,7 @@ function Build-FlowName([string]$Prefix, $Candidate) {
     "07"  { return "07_qrcode_canais_agentes_${slugUnderscore}_$($Candidate.id)" }
     "06b" { return "06b_participacao_eventos_${slugUnderscore}_$($Candidate.id)" }
     "21b" { return "21b_sms_campanha_gateway_${slug}_$($Candidate.id)" }
+    "22b" { return "22b_divulgacao_evidencias_${slug}_$($Candidate.id)" }
     default { throw "Prefixo de fluxo nÃ£o suportado no nome: $Prefix" }
   }
 }
@@ -106,6 +108,7 @@ function Build-FlowContent([string]$Prefix, $TemplateContent, $Candidate) {
     "02b" { return Apply-CommonCandidateReplacements $TemplateContent $Candidate }
     "02b_datafy" { return Apply-DatafyCandidateReplacements $TemplateContent $Candidate }
     "21b" { return Apply-SmsCandidateReplacements $TemplateContent $Candidate }
+    "22b" { return Apply-OutreachEvidenceCandidateReplacements $TemplateContent $Candidate }
     "04b" { return Apply-CommonCandidateReplacements $TemplateContent $Candidate }
     "05b" { return Apply-CommonCandidateReplacements $TemplateContent $Candidate }
     "07" {
@@ -173,6 +176,21 @@ function Apply-SmsCandidateReplacements([string]$Content, $Candidate) {
   $content = $content.Replace("String(body.from || body.senderId || body.sender_id || `$env.SMS_SENDER_ID || '').trim()", "String(body.from || body.senderId || body.sender_id || `$env.SMS_SENDER_ID_$envSuffix || `$env.SMS_SENDER_ID || '').trim()")
   $content = $content.Replace('"url": "={{ $env.SMS_GATEWAY_URL }}"', "`"url`": `"={{ `$env.SMS_GATEWAY_URL_$envSuffix || `$env.SMS_GATEWAY_URL }}`"")
   $content = $content.Replace('"value": "=Bearer {{ $env.SMS_GATEWAY_API_KEY || $env.SMS_API_KEY || '''' }}"', "`"value`": `"=Bearer {{ `$env.SMS_GATEWAY_API_KEY_$envSuffix || `$env.SMS_GATEWAY_API_KEY || `$env.SMS_API_KEY_$envSuffix || `$env.SMS_API_KEY || '' }}`"")
+  return $content
+}
+function Apply-OutreachEvidenceCandidateReplacements([string]$Content, $Candidate) {
+  $slug = [string]$Candidate.slug
+  $id = [string]$Candidate.id
+  $workflowName = "22b_divulgacao_evidencias_${slug}_$id"
+  $webhookPath = "agente-politico/$id/divulgacao/evidencias"
+  $webhookId = "agente-politico-$id-divulgacao-evidencias"
+
+  $content = $Content
+  $content = $content.Replace('22_divulgacao_evidencias_whatsapp', $workflowName)
+  $content = $content.Replace('"path": "divulgacao/evidencias"', "`"path`": `"$webhookPath`"")
+  $content = $content.Replace('"webhookId": "agente-politico-divulgacao-evidencias"', "`"webhookId`": `"$webhookId`"")
+  $content = $content.Replace("const idCandidato = String(body.idCandidato || body.id_candidato || '').trim();", "const idCandidato = '$id';")
+  $content = $content.Replace("if (!idCandidato) errors.push('idCandidato ausente.');", "if (requestedIdCandidato && requestedIdCandidato !== idCandidato) errors.push('idCandidato divergente para este workflow.');")
   return $content
 }
 function Apply-DatafyCandidateReplacements([string]$Content, $Candidate) {
@@ -249,7 +267,7 @@ if ($CleanupLegacy) {
 }
 
 foreach ($candidate in $candidates) {
-  foreach ($prefix in @("02a", "02b", "02b_datafy", "04b", "05b", "06b", "07", "21b")) {
+  foreach ($prefix in @("02a", "02b", "02b_datafy", "04b", "05b", "06b", "07", "21b", "22b")) {
     $templateName = $templateFiles[$prefix]
     $templatePath = Join-Path $sourceDir $templateName
     $templateContent = [System.IO.File]::ReadAllText($templatePath, [System.Text.Encoding]::UTF8)

@@ -35,11 +35,12 @@ const TEMPLATE_FILES: Record<string, string> = {
   "05b": "05b_governanca_eri_1313.json",
   "06b": "06_participacao_eventos_kpis.json",
   "07": "07_qrcode_canais_agentes_brunex.json",
-  "21b": "21_sms_campanha_gateway.json"
+  "21b": "21_sms_campanha_gateway.json",
+  "22b": "22_divulgacao_evidencias_whatsapp.json"
 };
 
 const LEGACY_PREFIXES = ["02a", "02b", "04b", "05b"] as const;
-const GENERATION_PREFIXES = ["02a", "02b", "02b_datafy", "04b", "05b", "06b", "07", "21b"] as const;
+const GENERATION_PREFIXES = ["02a", "02b", "02b_datafy", "04b", "05b", "06b", "07", "21b", "22b"] as const;
 
 export async function generateCandidateWorkflowBundle(
   input: CandidateWorkflowGenerationInput
@@ -212,6 +213,10 @@ function buildFlowName(prefix: string, candidate: CandidateWorkflowManifestEntry
       return `06b_participacao_eventos_${candidate.slug_underscore}_${candidate.id}`;
     case "07":
       return `07_qrcode_canais_agentes_${candidate.slug_underscore}_${candidate.id}`;
+    case "21b":
+      return `21b_sms_campanha_gateway_${candidate.slug}_${candidate.id}`;
+    case "22b":
+      return `22b_divulgacao_evidencias_${candidate.slug}_${candidate.id}`;
     default:
       throw new Error(`Prefixo de workflow nao suportado: ${prefix}`);
   }
@@ -260,6 +265,10 @@ function buildFlowContent(
           "where p.data_confirmacao >= current_date - interval '90 days'",
           `where p.id_candidato = '${candidate.id}' and p.data_confirmacao >= current_date - interval '90 days'`
         );
+    case "21b":
+      return applySmsCandidateReplacements(templateContent, candidate);
+    case "22b":
+      return applyOutreachEvidenceCandidateReplacements(templateContent, candidate);
     case "07":
       return templateContent
         .replace(
@@ -371,6 +380,28 @@ function applySmsCandidateReplacements(
     .replaceAll('"value": "=Bearer {{ $env.SMS_GATEWAY_API_KEY || $env.SMS_API_KEY || \'\' }}"', `"value": "=Bearer {{ $env.SMS_GATEWAY_API_KEY_${envSuffix} || $env.SMS_GATEWAY_API_KEY || $env.SMS_API_KEY_${envSuffix} || $env.SMS_API_KEY || '' }}"`);
 }
 
+
+function applyOutreachEvidenceCandidateReplacements(
+  templateContent: string,
+  candidate: CandidateWorkflowManifestEntry
+) {
+  const workflowName = `22b_divulgacao_evidencias_${candidate.slug}_${candidate.id}`;
+  const webhookPath = `agente-politico/${candidate.id}/divulgacao/evidencias`;
+  const webhookId = `agente-politico-${candidate.id}-divulgacao-evidencias`;
+
+  return templateContent
+    .replaceAll("22_divulgacao_evidencias_whatsapp", workflowName)
+    .replaceAll('"path": "divulgacao/evidencias"', `"path": "${webhookPath}"`)
+    .replaceAll('"webhookId": "agente-politico-divulgacao-evidencias"', `"webhookId": "${webhookId}"`)
+    .replace(
+      "const idCandidato = String(body.idCandidato || body.id_candidato || '').trim();",
+      `const idCandidato = '${candidate.id}';`
+    )
+    .replace(
+      "if (!idCandidato) errors.push('idCandidato ausente.');",
+      "if (requestedIdCandidato && requestedIdCandidato !== idCandidato) errors.push('idCandidato divergente para este workflow.');"
+    );
+}
 function normalizeEnvSuffix(value: string) {
   return String(value)
     .normalize("NFD")
