@@ -87,6 +87,30 @@ export default async function OutreachTeamPage({ params, searchParams }: Outreac
         {renderMetric("WhatsApp oficial", context.numero_agente_oficial ?? "Não definido", "Canal de validação")}
       </section>
 
+      <section className="card analytics-panel" style={{ marginBottom: 20 }}>
+        <div className="section-heading">
+          <div>
+            <h2 className="section-title">IDs técnicos das tarefas para teste n8n</h2>
+            <p className="subtitle">
+              Use estes identificadores no campo <span className="mono">taskId</span> do workflow 22b ou na validação automática das evidências recebidas pelo WhatsApp.
+            </p>
+          </div>
+          <span className="pill">Teste operacional</span>
+        </div>
+        {context.tarefas.length > 0 ? (
+          <div className="key-value">
+            {context.tarefas.map((task) => (
+              <div key={task.id}>
+                <strong>{task.titulo}</strong>
+                <span className="mono mono-wrap">{task.id}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="step-panel-callout">Crie uma tarefa de mobilização para exibir o ID técnico usado pelo n8n.</div>
+        )}
+      </section>
+
       <section className="grid grid-2" style={{ marginBottom: 20 }}>
         <article className="card">
           <div className="section-heading">
@@ -191,6 +215,9 @@ export default async function OutreachTeamPage({ params, searchParams }: Outreac
                   <span className="muted">
                     {labelTaskType(task.tipo_tarefa)} | {task.total_membros} membro(s) | {task.realizado_total}/{task.meta_quantidade || 0} realizado(s) | {labelStatus(task.status)}
                   </span>
+                  <div className="step-panel-callout" style={{ marginTop: 8 }}>
+                    ID técnico para n8n: <span className="mono mono-wrap">{task.id}</span>
+                  </div>
                 </div>
                 <div className="analytics-bar-track">
                   <div className="analytics-bar-fill" style={{ width: `${Math.max(Math.min(task.percentual_realizacao, 100), 4)}%`, background: getColor(index) }} />

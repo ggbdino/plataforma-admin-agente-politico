@@ -49,6 +49,8 @@ Adotar duas camadas de controle:
 
 ## Release atual
 
+- `V22.1.2`: destaca os IDs técnicos das tarefas da Equipe de Divulgação em bloco próprio para teste operacional no n8n e no fluxo de validação por WhatsApp.
+
 - `V22.1.1`: corrige registro de evidências da Equipe de Divulgação garantindo vínculo entre tarefa e membro, atualização transacional do percentual e exibição do ID da tarefa para testes no n8n.
 
 - `V22.1.0`: adiciona o workflow n8n individualizado `22b` para registrar evidências da Equipe de Divulgação por candidato, gerando os artefatos atuais para Brunex, Eri Castro e Ricardo Vale.
