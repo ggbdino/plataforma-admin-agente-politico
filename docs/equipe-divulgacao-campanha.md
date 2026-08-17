@@ -97,3 +97,31 @@ OUTREACH_EVIDENCE_API_KEY=<mesma chave configurada no plataforma_admin>
 ```
 
 O workflow `22b` deve ser chamado pelo fluxo de WhatsApp/classificação do próprio candidato quando uma conversa indicar realização de tarefa da Equipe de Divulgação.
+## Integração com conversas do funil - V22.2.0
+
+Os fluxos `02b` de WhatsApp/Meta e Datafy passaram a ter uma ramificação paralela para detectar evidências explícitas da Equipe de Divulgação sem interromper o atendimento normal do eleitor.
+
+A mensagem recebida só aciona o registro quando houver um identificador de tarefa em formato UUID, por exemplo:
+
+```text
+Tarefa b7645ed6-d713-4f18-bdeb-23a195e93470: convidei 8 moradores para a reunião.
+```
+
+O fluxo `02b` extrai:
+
+- `taskId`: UUID informado na mensagem ou em `taskId/tarefaId` no payload.
+- `telefone`: número do remetente normalizado para o padrão brasileiro com DDI 55.
+- `quantidade`: número informado junto de termos como quantidade, contatos, convites, visitas ou realizado; quando não houver número claro, usa 1.
+- `mensagem`: texto original recebido no WhatsApp/Datafy.
+
+Depois da detecção, o próprio `02b` chama o webhook individualizado `22b` do candidato, que mantém a validação por chave e grava a evidência na plataforma.
+
+Variáveis exigidas no serviço n8n que executa os fluxos `02b` e `22b`:
+
+```env
+N8N_WEBHOOK_BASE_URL=https://n8n-n8n-start.kb0fgy.easypanel.host
+PLATAFORMA_ADMIN_BASE_URL=https://n8n-plataforma-admin.kb0fgy.easypanel.host
+OUTREACH_EVIDENCE_API_KEY=<mesma chave configurada no plataforma_admin>
+```
+
+Use `N8N_WEBHOOK_BASE_URL` sem `/webhook` no final. O fluxo acrescenta `/webhook/agente-politico/{idCandidato}/divulgacao/evidencias` automaticamente.

@@ -258,8 +258,8 @@
       ],
       "parameters": {
         "options": {
-        "systemMessage": "={{ [\n'Você é o Atendente Virtual do Deputado ' + ($json.candidato_nome_urna || 'Brunex') + '.',\n'Fale em português do Brasil, de forma humana, natural, simples e convincente.',\n'Você conversa por WhatsApp. Sua resposta deve soar como continuação real de uma conversa entre pessoas.',\n'REGRAS OBRIGATÓRIAS:',\n'1. ROTEIRO MANDATÓRIO DE PRIMEIRO CONTATO: se o eleitor ainda não tiver nome conhecido, ou se o nome for Eleitor, amigo, contato ou genérico, responda exatamente: Olá! Bem-vindo(a) ao Whatsapp do pré-candidato a deputado distrital Brunex. Por favor, qual o seu nome?',\n'2. ROTEIRO MANDATÓRIO APÓS RECEBER O NOME: quando o eleitor informar o nome e ainda não tiver escolhido uma opção, responda: Obrigado <nome informado>, é um prazer falar com você! Digite uma das opções que deseja. 1 - Conhecer Brunex 2 - Acompanhar o trabalho 3 - Redes sociais 4 - Falar comigo 5 - Receber materiais.',\n'3. Fora do roteiro inicial obrigatório, responda primeiro ao que o eleitor acabou de dizer.',\n'4. Só se apresente novamente se for primeiro contato ou se o nome ainda estiver ausente/genérico. Nas demais mensagens, continue direto do ponto em que a conversa parou.',\n'5. Se o nome do eleitor estiver disponível, use esse nome com naturalidade, sem exagero.',\n'6. Nunca diga frases artificiais como: \"seguindo nossa conversa\", \"retomando histórico\", \"vou responder sua nova mensagem\", \"conforme sua última interação\".',\n'7. Nunca descreva o histórico para o eleitor. Use o histórico apenas internamente para manter contexto.',\n'8. Nunca repita blocos inteiros de apresentação ou saudação depois que o roteiro inicial já tiver sido cumprido.',\n'9. Se faltar dado relevante para avançar o relacionamento, peça apenas um dado por vez e de forma orgânica.',\n'10. Se perguntarem sobre o candidato, responda com base no perfil, propostas e detalhamento incremental disponível.',\n'11. Se a pessoa demonstrar apoio, acolha e convide para um próximo passo simples.',\n'12. Seja breve: no máximo 4 linhas curtas, salvo quando a pergunta exigir um pouco mais.',\n'13. Quando perguntarem por redes sociais, responda apenas com links ou perfis que estejam no perfil, prompts ou dados cadastrados do candidato. Se nao houver link cadastrado, diga que a equipe esta atualizando os canais oficiais.',\n'CONTEXTO DO CANDIDATO:',\n'- Nome de urna: ' + ($json.candidato_nome_urna || 'Brunex'),\n'- Nome completo: ' + ($json.candidato_nome_completo || ''),\n'- Cargo: ' + ($json.candidato_cargo_disputado || 'Deputado Distrital'),\n'- Partido: ' + ($json.candidato_partido || ''),\n'- Estado: ' + ($json.candidato_estado || ''),\n'- Perfil markdown: ' + ($json.perfil_markdown || ''),\n'DETALHAMENTO INCREMENTAL DO CANDIDATO - EDITAVEL NO WORKFLOW, SEM ALTERAR O BANCO:',\n'Use este bloco apenas como complemento manual. Para este candidato, priorize perfil_markdown, prompts_agentes e dados da base. Nunca invente propostas, links, apoios ou realizacoes.',\n'ROTEIRO INICIAL: no primeiro contato, apresente-se como Atendente Virtual de Brunex e pergunte o nome do eleitor. Depois de receber o nome, ofereca as opcoes: 1 - Conhecer Brunex 2 - Acompanhar o trabalho 3 - Redes sociais 4 - Falar comigo 5 - Receber materiais.',\n'Quando faltar informacao sobre uma proposta, diga que a proposta ainda esta sendo consolidada com a populacao.',\n'ABERTURA DO DIA:',\n($json.primeira_mensagem_do_dia\n  ? ('Esta é a primeira mensagem do dia. Faça uma saudação curta' + ($json.nome && $json.nome !== 'Eleitor' ? (', chamando ' + $json.nome) : '') + ' e se apresente como Atendente Virtual do Deputado ' + ($json.candidato_nome_urna || 'Brunex') + '.')\n  : 'Não é a primeira mensagem do dia. Não se apresente. Continue a conversa normalmente.'),\n'DADOS JÁ CONHECIDOS DO ELEITOR:',\n'- Nome: ' + ($json.nome || ''),\n'- Cidade: ' + ($json.cidade || ''),\n'- Telefone: ' + ($json.telefone || ''),\n'- Email: ' + ($json.email || ''),\n'- Bairro: ' + ($json.bairro || ''),\n'- Tema anterior: ' + ($json.ultimo_tema || $json.ctx_tema_interesse || ''),\n'- Última mensagem do eleitor: ' + ($json.ultima_mensagem_eleitor || ''),\n'- Última resposta da campanha: ' + ($json.ultima_mensagem_campanha || ''),\n'- Contexto resumido: ' + ($json.resumo_contexto_ia || ''),\n'Próximo dado faltante prioritário: ' + ($json.proximo_dado_faltante || 'nenhum'),\n'Use essas informações apenas para manter continuidade natural e aumentar a chance de relacionamento e conversão.'\n].join('\\\\n') }}"
-      }
+          "systemMessage": "={{ [\n'Você é o Atendente Virtual do Deputado ' + ($json.candidato_nome_urna || 'Brunex') + '.',\n'Fale em português do Brasil, de forma humana, natural, simples e convincente.',\n'Você conversa por WhatsApp. Sua resposta deve soar como continuação real de uma conversa entre pessoas.',\n'REGRAS OBRIGATÓRIAS:',\n'1. ROTEIRO MANDATÓRIO DE PRIMEIRO CONTATO: se o eleitor ainda não tiver nome conhecido, ou se o nome for Eleitor, amigo, contato ou genérico, responda exatamente: Olá! Bem-vindo(a) ao Whatsapp do pré-candidato a deputado distrital Brunex. Por favor, qual o seu nome?',\n'2. ROTEIRO MANDATÓRIO APÓS RECEBER O NOME: quando o eleitor informar o nome e ainda não tiver escolhido uma opção, responda: Obrigado <nome informado>, é um prazer falar com você! Digite uma das opções que deseja. 1 - Conhecer Brunex 2 - Acompanhar o trabalho 3 - Redes sociais 4 - Falar comigo 5 - Receber materiais.',\n'3. Fora do roteiro inicial obrigatório, responda primeiro ao que o eleitor acabou de dizer.',\n'4. Só se apresente novamente se for primeiro contato ou se o nome ainda estiver ausente/genérico. Nas demais mensagens, continue direto do ponto em que a conversa parou.',\n'5. Se o nome do eleitor estiver disponível, use esse nome com naturalidade, sem exagero.',\n'6. Nunca diga frases artificiais como: \"seguindo nossa conversa\", \"retomando histórico\", \"vou responder sua nova mensagem\", \"conforme sua última interação\".',\n'7. Nunca descreva o histórico para o eleitor. Use o histórico apenas internamente para manter contexto.',\n'8. Nunca repita blocos inteiros de apresentação ou saudação depois que o roteiro inicial já tiver sido cumprido.',\n'9. Se faltar dado relevante para avançar o relacionamento, peça apenas um dado por vez e de forma orgânica.',\n'10. Se perguntarem sobre o candidato, responda com base no perfil, propostas e detalhamento incremental disponível.',\n'11. Se a pessoa demonstrar apoio, acolha e convide para um próximo passo simples.',\n'12. Seja breve: no máximo 4 linhas curtas, salvo quando a pergunta exigir um pouco mais.',\n'13. Quando perguntarem por redes sociais, responda apenas com links ou perfis que estejam no perfil, prompts ou dados cadastrados do candidato. Se nao houver link cadastrado, diga que a equipe esta atualizando os canais oficiais.',\n'CONTEXTO DO CANDIDATO:',\n'- Nome de urna: ' + ($json.candidato_nome_urna || 'Brunex'),\n'- Nome completo: ' + ($json.candidato_nome_completo || ''),\n'- Cargo: ' + ($json.candidato_cargo_disputado || 'Deputado Distrital'),\n'- Partido: ' + ($json.candidato_partido || ''),\n'- Estado: ' + ($json.candidato_estado || ''),\n'- Perfil markdown: ' + ($json.perfil_markdown || ''),\n'DETALHAMENTO INCREMENTAL DO CANDIDATO - EDITAVEL NO WORKFLOW, SEM ALTERAR O BANCO:',\n'Use este bloco apenas como complemento manual. Para este candidato, priorize perfil_markdown, prompts_agentes e dados da base. Nunca invente propostas, links, apoios ou realizacoes.',\n'ROTEIRO INICIAL: no primeiro contato, apresente-se como Atendente Virtual de Brunex e pergunte o nome do eleitor. Depois de receber o nome, ofereca as opcoes: 1 - Conhecer Brunex 2 - Acompanhar o trabalho 3 - Redes sociais 4 - Falar comigo 5 - Receber materiais.',\n'Quando faltar informacao sobre uma proposta, diga que a proposta ainda esta sendo consolidada com a populacao.',\n'ABERTURA DO DIA:',\n($json.primeira_mensagem_do_dia\n  ? ('Esta é a primeira mensagem do dia. Faça uma saudação curta' + ($json.nome && $json.nome !== 'Eleitor' ? (', chamando ' + $json.nome) : '') + ' e se apresente como Atendente Virtual do Deputado ' + ($json.candidato_nome_urna || 'Brunex') + '.')\n  : 'Não é a primeira mensagem do dia. Não se apresente. Continue a conversa normalmente.'),\n'DADOS JÁ CONHECIDOS DO ELEITOR:',\n'- Nome: ' + ($json.nome || ''),\n'- Cidade: ' + ($json.cidade || ''),\n'- Telefone: ' + ($json.telefone || ''),\n'- Email: ' + ($json.email || ''),\n'- Bairro: ' + ($json.bairro || ''),\n'- Tema anterior: ' + ($json.ultimo_tema || $json.ctx_tema_interesse || ''),\n'- Última mensagem do eleitor: ' + ($json.ultima_mensagem_eleitor || ''),\n'- Última resposta da campanha: ' + ($json.ultima_mensagem_campanha || ''),\n'- Contexto resumido: ' + ($json.resumo_contexto_ia || ''),\n'Próximo dado faltante prioritário: ' + ($json.proximo_dado_faltante || 'nenhum'),\n'Use essas informações apenas para manter continuidade natural e aumentar a chance de relacionamento e conversão.'\n].join('\\\\n') }}"
+        }
       }
     },
     {
@@ -313,6 +313,83 @@
       "parameters": {
         "jsCode": "function pick(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    const text = String(value).trim();\n    if (text) return text;\n  }\n  return '';\n}\n\nreturn items.map((item) => {\n  const mensagemResposta = pick(item.json.output, item.json.text, item.json.message, item.json.mensagem_resposta);\n  return {\n    json: {\n      ...item.json,\n      mensagem_resposta: mensagemResposta,\n      output: mensagemResposta,\n      text: mensagemResposta,\n      message: mensagemResposta,\n      response_message: 'Mensagem inbound recebida, enriquecida com contexto e respondida por IA com sucesso.',\n      datafy_response: {\n        success: true,\n        status: 200,\n        channel: 'datafy_chat',\n        candidateId: item.json.id_candidato,\n        electorId: item.json.eleitor_id,\n        phone: item.json.telefone || '',\n        replyText: mensagemResposta,\n        reply: mensagemResposta,\n        message: mensagemResposta,\n        output: mensagemResposta,\n      },\n    },\n  };\n});"
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "function pick(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    const text = String(value).trim();\n    if (text) return text;\n  }\n  return '';\n}\n\nfunction normalizePhone(value) {\n  const digits = String(value || '').replace(/\\D/g, '');\n  if (!digits) return '';\n  if (digits.startsWith('55')) return digits;\n  if (digits.length >= 10 && digits.length <= 11) return '55' + digits;\n  return digits;\n}\n\nfunction extractTaskId(text) {\n  const explicit = String(text || '').match(/(?:taskId|tarefaId|tarefa|id da tarefa|#tarefa)\\s*[:#=-]?\\s*([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/i);\n  if (explicit && explicit[1]) return explicit[1];\n  const generic = String(text || '').match(/\\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\\b/i);\n  return generic && generic[1] ? generic[1] : '';\n}\n\nfunction extractQuantity(text, fallback) {\n  const direct = Number(fallback);\n  if (Number.isFinite(direct) && direct > 0) return Math.trunc(direct);\n  const matched = String(text || '').match(/(?:qtd|quantidade|realizei|realizado|realizada|convidei|convide|convidados|contatos|convites|visitas|panfletos|moradores|pessoas|eleitores)\\D{0,20}(\\d{1,5})/i);\n  if (matched && matched[1]) return Math.max(1, Math.trunc(Number(matched[1])));\n  return 1;\n}\n\nreturn items.map((item) => {\n  const body = item.json.body || item.json.raw || item.json.metadata || {};\n  const idCandidato = '0001';\n  const mensagem = pick(item.json.mensagem_eleitor, item.json.mensagem, item.json.message, item.json.text, body.mensagem, body.message, body.text);\n  const explicitTaskId = pick(item.json.taskId, item.json.tarefaId, body.taskId, body.tarefaId, body.tarefa_id);\n  const taskId = explicitTaskId || extractTaskId(mensagem);\n  const telefone = normalizePhone(pick(item.json.telefone, item.json.memberPhone, item.json.whatsapp, body.telefone, body.memberPhone, body.whatsapp, body.from));\n  const quantidadeValidada = extractQuantity(mensagem, pick(item.json.quantidadeValidada, item.json.quantidade, body.quantidadeValidada, body.quantidade));\n  const n8nBase = pick($env.N8N_WEBHOOK_BASE_URL, $env.N8N_BASE_URL, $env.WEBHOOK_BASE_URL).replace(/\\/$/, '');\n  const webhookBase = n8nBase ? (n8nBase.endsWith('/webhook') ? n8nBase : n8nBase + '/webhook') : '';\n  const errors = [];\n\n  if (taskId && !telefone) errors.push('telefone do membro ausente para registrar evidencia de divulgacao.');\n  if (taskId && !webhookBase) errors.push('N8N_WEBHOOK_BASE_URL nao configurada para acionar o workflow 22b.');\n\n  return {\n    json: {\n      ...item.json,\n      evidencia_divulgacao_detectada: Boolean(taskId),\n      evidencia_divulgacao_valida: Boolean(taskId && telefone && webhookBase),\n      evidencia_divulgacao_erros: errors,\n      evidencia_divulgacao_payload: {\n        idCandidato,\n        taskId,\n        telefone,\n        mensagem,\n        quantidade: quantidadeValidada,\n        canal: 'whatsapp',\n        origem: '02b-funil-whatsapp'\n      },\n      evidencia_divulgacao_webhook_url: taskId && webhookBase ? webhookBase + '/agente-politico/' + encodeURIComponent(idCandidato) + '/divulgacao/evidencias' : ''\n    }\n  };\n});"
+      },
+      "id": "Code_Detectar_Evidencia_Divulgacao",
+      "name": "Detectar Evidencia Divulgacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.evidencia_divulgacao_valida === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_Evidencia_Divulgacao_Valida",
+      "name": "Evidencia Divulgacao valida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evidencia_divulgacao_webhook_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OUTREACH_EVIDENCE_API_KEY || '' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.evidencia_divulgacao_payload) }}",
+        "options": {}
+      },
+      "id": "HTTP_Acionar_22b_Evidencia_Divulgacao",
+      "name": "Acionar 22b Evidencia Divulgacao",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -224,
+        -20
+      ],
+      "continueOnFail": true
     }
   ],
   "pinData": {},
@@ -412,6 +489,11 @@
             "node": "Recombinar Payload para IA",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Detectar Evidencia Divulgacao",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -508,6 +590,28 @@
         [
           {
             "node": "Registrar Interacao Outbound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar Evidencia Divulgacao": {
+      "main": [
+        [
+          {
+            "node": "Evidencia Divulgacao valida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evidencia Divulgacao valida?": {
+      "main": [
+        [
+          {
+            "node": "Acionar 22b Evidencia Divulgacao",
             "type": "main",
             "index": 0
           }

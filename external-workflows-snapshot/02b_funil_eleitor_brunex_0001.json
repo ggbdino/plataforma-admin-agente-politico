@@ -209,6 +209,83 @@
         1220,
         420
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function pick(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    const text = String(value).trim();\n    if (text) return text;\n  }\n  return '';\n}\n\nfunction normalizePhone(value) {\n  const digits = String(value || '').replace(/\\D/g, '');\n  if (!digits) return '';\n  if (digits.startsWith('55')) return digits;\n  if (digits.length >= 10 && digits.length <= 11) return '55' + digits;\n  return digits;\n}\n\nfunction extractTaskId(text) {\n  const explicit = String(text || '').match(/(?:taskId|tarefaId|tarefa|id da tarefa|#tarefa)\\s*[:#=-]?\\s*([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/i);\n  if (explicit && explicit[1]) return explicit[1];\n  const generic = String(text || '').match(/\\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\\b/i);\n  return generic && generic[1] ? generic[1] : '';\n}\n\nfunction extractQuantity(text, fallback) {\n  const direct = Number(fallback);\n  if (Number.isFinite(direct) && direct > 0) return Math.trunc(direct);\n  const matched = String(text || '').match(/(?:qtd|quantidade|realizei|realizado|realizada|convidei|convide|convidados|contatos|convites|visitas|panfletos|moradores|pessoas|eleitores)\\D{0,20}(\\d{1,5})/i);\n  if (matched && matched[1]) return Math.max(1, Math.trunc(Number(matched[1])));\n  return 1;\n}\n\nreturn items.map((item) => {\n  const body = item.json.body || item.json.raw || item.json.metadata || {};\n  const idCandidato = '0001';\n  const mensagem = pick(item.json.mensagem_eleitor, item.json.mensagem, item.json.message, item.json.text, body.mensagem, body.message, body.text);\n  const explicitTaskId = pick(item.json.taskId, item.json.tarefaId, body.taskId, body.tarefaId, body.tarefa_id);\n  const taskId = explicitTaskId || extractTaskId(mensagem);\n  const telefone = normalizePhone(pick(item.json.telefone, item.json.memberPhone, item.json.whatsapp, body.telefone, body.memberPhone, body.whatsapp, body.from));\n  const quantidadeValidada = extractQuantity(mensagem, pick(item.json.quantidadeValidada, item.json.quantidade, body.quantidadeValidada, body.quantidade));\n  const n8nBase = pick($env.N8N_WEBHOOK_BASE_URL, $env.N8N_BASE_URL, $env.WEBHOOK_BASE_URL).replace(/\\/$/, '');\n  const webhookBase = n8nBase ? (n8nBase.endsWith('/webhook') ? n8nBase : n8nBase + '/webhook') : '';\n  const errors = [];\n\n  if (taskId && !telefone) errors.push('telefone do membro ausente para registrar evidencia de divulgacao.');\n  if (taskId && !webhookBase) errors.push('N8N_WEBHOOK_BASE_URL nao configurada para acionar o workflow 22b.');\n\n  return {\n    json: {\n      ...item.json,\n      evidencia_divulgacao_detectada: Boolean(taskId),\n      evidencia_divulgacao_valida: Boolean(taskId && telefone && webhookBase),\n      evidencia_divulgacao_erros: errors,\n      evidencia_divulgacao_payload: {\n        idCandidato,\n        taskId,\n        telefone,\n        mensagem,\n        quantidade: quantidadeValidada,\n        canal: 'whatsapp',\n        origem: '02b-funil-whatsapp'\n      },\n      evidencia_divulgacao_webhook_url: taskId && webhookBase ? webhookBase + '/agente-politico/' + encodeURIComponent(idCandidato) + '/divulgacao/evidencias' : ''\n    }\n  };\n});"
+      },
+      "id": "Code_Detectar_Evidencia_Divulgacao",
+      "name": "Detectar Evidencia Divulgacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.evidencia_divulgacao_valida === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "If_Evidencia_Divulgacao_Valida",
+      "name": "Evidencia Divulgacao valida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1220,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evidencia_divulgacao_webhook_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OUTREACH_EVIDENCE_API_KEY || '' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.evidencia_divulgacao_payload) }}",
+        "options": {}
+      },
+      "id": "HTTP_Acionar_22b_Evidencia_Divulgacao",
+      "name": "Acionar 22b Evidencia Divulgacao",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1480,
+        520
+      ],
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -239,6 +316,11 @@
         [
           {
             "node": "Upsert Eleitor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Detectar Evidencia Divulgacao",
             "type": "main",
             "index": 0
           }
@@ -312,6 +394,28 @@
         [
           {
             "node": "Responder Evento Ignorado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar Evidencia Divulgacao": {
+      "main": [
+        [
+          {
+            "node": "Evidencia Divulgacao valida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evidencia Divulgacao valida?": {
+      "main": [
+        [
+          {
+            "node": "Acionar 22b Evidencia Divulgacao",
             "type": "main",
             "index": 0
           }
