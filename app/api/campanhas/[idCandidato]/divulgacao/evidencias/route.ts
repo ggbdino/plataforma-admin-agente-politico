@@ -31,15 +31,11 @@ export async function POST(request: Request, { params }: EvidenceRouteProps) {
     const memberPhone = String(body.memberPhone ?? body.telefone ?? body.whatsapp ?? "").trim() || null;
     const mensagem = String(body.mensagem ?? body.message ?? body.evidencia ?? "").trim();
 
-    if (!taskId) {
-      return NextResponse.json({ success: false, message: "Informe taskId ou tarefaId." }, { status: 400 });
-    }
-
     if (!memberId && !memberPhone) {
       return NextResponse.json({ success: false, message: "Informe memberId/membroId ou telefone do membro." }, { status: 400 });
     }
 
-    await recordOutreachEvidence({
+    const result = await recordOutreachEvidence({
       idCandidato,
       taskId,
       memberId,
@@ -50,7 +46,7 @@ export async function POST(request: Request, { params }: EvidenceRouteProps) {
       origem: body.origem ?? "n8n-whatsapp"
     });
 
-    return NextResponse.json({ success: true, idCandidato, taskId, memberId, memberPhone });
+    return NextResponse.json({ success: true, idCandidato, taskId: result.taskId, memberId: result.memberId, memberPhone });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao registrar evidência da Equipe de Divulgação.";
     return NextResponse.json({ success: false, message }, { status: 500 });

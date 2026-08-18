@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { PoolClient } from "pg";
 
 export type OutreachMember = {
   id: string;
@@ -307,7 +308,7 @@ export async function createOutreachTask(input: {
 
 export async function recordOutreachEvidence(input: {
   idCandidato: string;
-  taskId: string;
+  taskId?: string | null;
   memberPhone?: string | null;
   memberId?: string | null;
   mensagem: string;
@@ -320,27 +321,18 @@ export async function recordOutreachEvidence(input: {
   if (!member) throw new Error("Membro da Equipe de Divulgação não localizado para registrar a evidência.");
 
   const quantidade = Math.max(normalizeNumber(input.quantidadeValidada ?? 1), 1);
-  const taskId = normalizeText(input.taskId);
-  if (!taskId) throw new Error("Informe a tarefa da Equipe de Divulgação para registrar a evidência.");
+  const requestedTaskId = normalizeText(input.taskId);
 
   const client = await db.connect();
   try {
     await client.query("begin");
 
-    const taskResult = await client.query<{ id: string; meta_quantidade: number }>(
-      `
-        select id::text as id, coalesce(meta_quantidade, 0)::int as meta_quantidade
-        from campanha_divulgacao_tarefas
-        where id = $1::uuid and id_candidato = $2
-        limit 1
-      `,
-      [taskId, input.idCandidato]
-    );
-
-    const task = taskResult.rows[0];
-    if (!task) {
-      throw new Error("Tarefa da Equipe de Divulgação não localizada para este candidato.");
-    }
+    const task = await resolveEvidenceTask(client, {
+      idCandidato: input.idCandidato,
+      memberId: member.id,
+      taskId: requestedTaskId,
+      mensagem: input.mensagem
+    });
 
     await client.query(
       `
@@ -409,6 +401,7 @@ export async function recordOutreachEvidence(input: {
     );
 
     await client.query("commit");
+    return { taskId: task.id, memberId: member.id };
   } catch (error) {
     await client.query("rollback");
     throw error;
@@ -416,6 +409,129 @@ export async function recordOutreachEvidence(input: {
     client.release();
   }
 }
+type EvidenceTaskCandidate = {
+  id: string;
+  titulo: string;
+  tipo_tarefa: string;
+  descricao: string | null;
+  localidade: string | null;
+  cidade: string | null;
+  uf: string | null;
+  meta_quantidade: number;
+};
+
+async function resolveEvidenceTask(client: PoolClient, input: {
+  idCandidato: string;
+  memberId: string;
+  taskId?: string | null;
+  mensagem: string;
+}) {
+  const taskId = normalizeText(input.taskId);
+  if (taskId) {
+    const taskResult = await client.query<{ id: string; meta_quantidade: number }>(
+      `
+        select id::text as id, coalesce(meta_quantidade, 0)::int as meta_quantidade
+        from campanha_divulgacao_tarefas
+        where id = $1::uuid and id_candidato = $2
+        limit 1
+      `,
+      [taskId, input.idCandidato]
+    );
+
+    const task = taskResult.rows[0];
+    if (!task) {
+      throw new Error("Tarefa da Equipe de Divulgacao nao localizada para este candidato.");
+    }
+    return task;
+  }
+
+  const tasksResult = await client.query<EvidenceTaskCandidate>(
+    `
+      select t.id::text as id, t.titulo, t.tipo_tarefa, t.descricao, t.localidade, t.cidade, t.uf,
+             coalesce(t.meta_quantidade, 0)::int as meta_quantidade
+      from campanha_divulgacao_tarefas t
+      join campanha_divulgacao_tarefa_membros tm on tm.tarefa_id = t.id
+      where t.id_candidato = $1
+        and tm.membro_id = $2::uuid
+        and t.status not in ('concluida', 'cancelada')
+      order by
+        case t.status when 'ativa' then 1 when 'planejada' then 2 else 3 end,
+        coalesce(t.data_limite, t.criado_em) asc
+    `,
+    [input.idCandidato, input.memberId]
+  );
+
+  if (tasksResult.rows.length === 0) {
+    throw new Error("Nenhuma tarefa ativa foi localizada para este membro da Equipe de Divulgacao.");
+  }
+
+  if (tasksResult.rows.length === 1) {
+    return tasksResult.rows[0];
+  }
+
+  const mensagem = normalizeSearchText(input.mensagem);
+  const inferredType = inferTaskTypeFromMessage(mensagem);
+  const ranked = tasksResult.rows
+    .map((task) => ({ task, score: scoreEvidenceTask(task, mensagem, inferredType) }))
+    .sort((a, b) => b.score - a.score);
+
+  const best = ranked[0];
+  const second = ranked[1];
+  if (!best || best.score < 3 || (second && best.score === second.score)) {
+    throw new Error("Nao foi possivel associar a evidencia a uma tarefa ativa com seguranca. Informe a localidade, o tipo da acao ou valide manualmente.");
+  }
+
+  return best.task;
+}
+
+function scoreEvidenceTask(task: EvidenceTaskCandidate, mensagem: string, inferredType: string | null) {
+  let score = 0;
+  if (inferredType && task.tipo_tarefa === inferredType) score += 5;
+  if (fieldMatchesMessage(task.localidade, mensagem)) score += 4;
+  if (fieldMatchesMessage(task.cidade, mensagem)) score += 4;
+  if (fieldMatchesMessage(task.uf, mensagem)) score += 1;
+  score += keywordOverlapScore(task.titulo, mensagem, 3);
+  score += keywordOverlapScore(task.descricao, mensagem, 2);
+  return score;
+}
+
+function inferTaskTypeFromMessage(message: string) {
+  const rules: Array<[string, RegExp]> = [
+    ["inserir_contatos", /\b(contatei|contato|contatos|numero|numeros|telefone|telefones|cadastrei|cadastro|inseri|inclui)\b/i],
+    ["convidar_eventos", /\b(convidei|convidado|convidados|convite|convidar|evento|reuniao|reunioes|encontro)\b/i],
+    ["captar_eleitores", /\b(captei|captacao|eleitor|eleitores|apoio|apoiador|voto|votos|adesao)\b/i],
+    ["visitar_locais", /\b(visitei|visita|visitas|local|locais|comercio|lideranca|liderancas)\b/i],
+    ["participar_reunioes", /\b(participei|participacao|reuniao|reunioes|encontro|agenda)\b/i],
+    ["panfletar", /\b(panfletei|panfleto|panfletos|panfletagem|material|materiais)\b/i],
+    ["divulgar_localidade", /\b(divulguei|divulgacao|divulgar|compartilhei|postei|publiquei)\b/i]
+  ];
+  return rules.find(([, pattern]) => pattern.test(message))?.[0] ?? null;
+}
+
+function fieldMatchesMessage(value: unknown, message: string) {
+  const normalized = normalizeSearchText(value);
+  return normalized.length >= 2 && message.includes(normalized);
+}
+
+function keywordOverlapScore(value: unknown, message: string, maxScore: number) {
+  const words = normalizeSearchText(value)
+    .split(/\s+/)
+    .filter((word) => word.length >= 4);
+  if (words.length === 0) return 0;
+  const matches = words.filter((word) => message.includes(word)).length;
+  return Math.min(matches, maxScore);
+}
+
+function normalizeSearchText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function resolveEvidenceMember(idCandidato: string, memberId?: string | null, memberPhone?: string | null) {
   const normalizedPhone = normalizePhone(memberPhone);
   const result = await db.query<{ id: string }>(
