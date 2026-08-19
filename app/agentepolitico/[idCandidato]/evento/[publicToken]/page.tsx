@@ -34,10 +34,7 @@ export default async function PublicCandidateEventConfirmationPage({
     notFound();
   }
 
-  if (!isPublicEventConfirmationWindowOpen(data.evento.data_evento)) {
-    notFound();
-  }
-
+  const isConfirmationOpen = isPublicEventConfirmationWindowOpen(data.evento.data_evento);
   const politicalIdentity = buildPoliticalIdentity({
     nomeUrna: data.nome_urna,
     partido: data.partido,
@@ -107,6 +104,22 @@ export default async function PublicCandidateEventConfirmationPage({
                 ) : null}
               </section>
               <div className="step-panel-callout">Contamos com sua presença!</div>
+              <div className="actions">
+                <PublicExitButton />
+              </div>
+            </>
+          ) : !isConfirmationOpen ? (
+            <>
+              <h2 className="section-title">Confirmacao encerrada</h2>
+              <p className="subtitle">
+                O evento existe, mas o prazo de confirmacao publica ja foi encerrado.
+              </p>
+              <section className="feedback-banner error">
+                <strong>Confirmacao indisponivel.</strong>
+                <div style={{ marginTop: 6 }}>
+                  Para confirmar presenca ou regularizar a participacao, fale diretamente com a equipe da campanha.
+                </div>
+              </section>
               <div className="actions">
                 <PublicExitButton />
               </div>

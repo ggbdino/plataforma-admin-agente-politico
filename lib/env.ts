@@ -7,7 +7,8 @@ export const env = {
   publicEventsBaseUrl:
     process.env.PUBLIC_EVENTS_BASE_URL ??
     process.env.NEXT_PUBLIC_EVENTS_BASE_URL ??
-    "https://gapconsult.com.br",
+    process.env.APP_PUBLIC_BASE_URL ??
+    "https://n8n-plataforma-admin.kb0fgy.easypanel.host",
   n8nApiKey: process.env.N8N_API_KEY ?? "",
   evolutionApiBaseUrl: process.env.EVOLUTION_API_BASE_URL ?? "",
   evolutionApiKey: process.env.EVOLUTION_API_KEY ?? "",

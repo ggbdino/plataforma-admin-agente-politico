@@ -49,6 +49,8 @@ Adotar duas camadas de controle:
 
 ## Release atual
 
+- `V22.3.1`: corrige links publicos de eventos, exibindo URL completa nas telas de gestao e presenca, preservando links antigos/absolutos e mostrando mensagem de confirmacao encerrada em vez de 404 quando o evento existe.
+
 - `V22.3.0`: adiciona evidencias naturais da Equipe de Divulgacao. Os fluxos `02b` passam a detectar frases operacionais sem UUID, como `contatei 5 novos numeros em Taguatinga`, e o endpoint da plataforma associa a evidencia a tarefa ativa do membro por telefone, tipo de acao e territorio para auditoria posterior.
 
 - `V22.2.2`: corrige o acionamento do `22b` pelos fluxos `02b`, enviando o payload de evidencia como objeto JSON e usando fallback para o webhook de producao quando a variavel `N8N_WEBHOOK_BASE_URL` nao estiver disponivel no executor do n8n.

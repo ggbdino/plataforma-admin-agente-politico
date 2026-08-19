@@ -163,6 +163,16 @@ export async function getCampaignEventConfirmationContextByPublicLink(
     return null;
   }
 
+  const publicToken = extractPublicEventToken(normalizedLink);
+  const linkCandidates = Array.from(
+    new Set(
+      [
+        normalizedLink,
+        publicToken ? `/e/${publicToken}` : null
+      ].filter((value): value is string => Boolean(value))
+    )
+  );
+
   const result = await db.query<{
     id_candidato: string;
     nome_urna: string;
@@ -205,10 +215,21 @@ export async function getCampaignEventConfirmationContextByPublicLink(
         order by ci.atualizado_em desc
         limit 1
       ) official on true
-      where e.link_confirmacao = $1
+      where e.link_confirmacao = any($1::text[])
+         or (
+           $2::text is not null
+           and (
+             e.link_confirmacao = $2
+             or e.link_confirmacao = '/e/' || $2
+             or e.link_confirmacao like '%/e/' || $2
+             or e.link_confirmacao like '%/e/' || $2 || '?%'
+             or e.link_confirmacao like '%/agentepolitico/%/evento/' || $2
+             or e.link_confirmacao like '%/agentepolitico/%/evento/' || $2 || '?%'
+           )
+         )
       limit 1
     `,
-    [normalizedLink]
+    [linkCandidates, publicToken]
   );
 
   const candidate = result.rows[0];
@@ -1034,7 +1055,55 @@ function normalizeText(value: string | undefined | null) {
   return normalized || null;
 }
 
+function extractPublicEventToken(value: string | undefined | null) {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const tokenFromPublicRoute = normalized.match(/(?:^|\/)e\/([A-Za-z0-9]+)(?:[/?#]|$)/);
+
+  if (tokenFromPublicRoute?.[1]) {
+    return tokenFromPublicRoute[1];
+  }
+
+  const tokenFromLegacyRoute = normalized.match(
+    /(?:^|\/)agentepolitico\/[^/]+\/evento\/([A-Za-z0-9]+)(?:[/?#]|$)/
+  );
+
+  if (tokenFromLegacyRoute?.[1]) {
+    return tokenFromLegacyRoute[1];
+  }
+
+  return /^[A-Za-z0-9]{16,}$/.test(normalized) ? normalized : null;
+}
+
 async function normalizeEventPublicLinks() {
+  await db.query(
+    `
+      update eventos_campanha
+      set link_confirmacao = regexp_replace(
+        link_confirmacao,
+        '^https?://[^/]+(/e/[A-Za-z0-9]+)([?#].*)?$',
+        '\\1'
+      )
+      where link_confirmacao ~ '^https?://[^/]+/e/[A-Za-z0-9]+([?#].*)?$'
+    `
+  );
+
+  await db.query(
+    `
+      update eventos_campanha
+      set link_confirmacao = regexp_replace(
+        link_confirmacao,
+        '^https?://[^/]+/agentepolitico/[^/]+/evento/([^/?#]+)([?#].*)?$',
+        '/e/\\1'
+      )
+      where link_confirmacao ~ '^https?://[^/]+/agentepolitico/[^/]+/evento/([^/?#]+)([?#].*)?$'
+    `
+  );
+
   await db.query(
     `
       update eventos_campanha
@@ -1044,6 +1113,14 @@ async function normalizeEventPublicLinks() {
         '/e/\\1'
       )
       where link_confirmacao ~ '^/agentepolitico/[^/]+/evento/([^/?#]+)$'
+    `
+  );
+
+  await db.query(
+    `
+      update eventos_campanha
+      set link_confirmacao = '/e/' || btrim(link_confirmacao)
+      where link_confirmacao ~ '^[A-Za-z0-9]{16,}$'
     `
   );
 

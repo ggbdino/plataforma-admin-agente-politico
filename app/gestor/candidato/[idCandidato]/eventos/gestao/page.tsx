@@ -7,6 +7,7 @@ import {
 } from "@/lib/actions/event-management-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
+import { buildPublicEventUrl } from "@/lib/public-events";
 import { getCampaignEventManagementContext } from "@/lib/repositories/event-attendance";
 import type { CampaignEventParticipantStatusFilter } from "@/lib/types";
 
@@ -48,6 +49,7 @@ export default async function CampaignEventManagementPage({
 
   const selectedEvent = data.eventoSelecionado;
   const publicLink = selectedEvent?.link_confirmacao ?? null;
+  const publicEventUrl = publicLink ? buildPublicEventUrl(publicLink) : null;
   const deletableSelectedEvent =
     selectedEvent && new Date(selectedEvent.data_evento).getTime() > Date.now() ? selectedEvent : null;
   const isDeleteConfirmationOpen = deletableSelectedEvent
@@ -224,13 +226,13 @@ export default async function CampaignEventManagementPage({
                     <div>
                       <strong>Link público</strong>
                       <div className="mono mono-wrap">
-                        {publicLink ?? "-"}
+                        {publicEventUrl ?? "-"}
                       </div>
                     </div>
                   </div>
-                  {publicLink ? (
+                  {publicEventUrl ? (
                     <div className="actions" style={{ marginTop: 12 }}>
-                      <CopyLinkButton value={publicLink} />
+                      <CopyLinkButton value={publicEventUrl} />
                     </div>
                   ) : null}
                   <div className="actions" style={{ marginTop: 16 }}>
@@ -247,7 +249,7 @@ export default async function CampaignEventManagementPage({
                     >
                       Abrir modo telão
                     </Link>
-                    <Link className="button secondary" href={publicLink ?? "#"} target="_blank">
+                    <Link className="button secondary" href={publicEventUrl ?? "#"} target="_blank">
                       Abrir link de divulgação
                     </Link>
                   </div>
@@ -316,7 +318,12 @@ export default async function CampaignEventManagementPage({
                 <span className="pill">{data.eventos.length} evento(s)</span>
               </div>
               <div className="grid" style={{ marginTop: 16 }}>
-                {data.eventos.map((event) => (
+                {data.eventos.map((event) => {
+                  const eventPublicUrl = event.link_confirmacao
+                    ? buildPublicEventUrl(event.link_confirmacao)
+                    : null;
+
+                  return (
                   <article className="regional-card" key={event.id}>
                     <div className="regional-card-head">
                       <div>
@@ -351,14 +358,15 @@ export default async function CampaignEventManagementPage({
                       </Link>
                       <Link
                         className="button secondary"
-                        href={event.link_confirmacao ?? "#"}
+                        href={eventPublicUrl ?? "#"}
                         target="_blank"
                       >
                         Link do evento
                       </Link>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </article>
 
