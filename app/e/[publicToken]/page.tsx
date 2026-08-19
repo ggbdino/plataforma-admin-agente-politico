@@ -273,21 +273,37 @@ function resolvePartyLogoPath(partido: string | null) {
   }
 
   const knownPartyLogos: Record<string, string> = {
+    AGIR: "/partidos/agir.png",
+    AVANTE: "/partidos/avante.png",
+    CIDADANIA: "/partidos/cidadania.png",
+    DC: "/partidos/dc.png",
+    DEMOCRATA: "/partidos/democrata.png",
     MDB: "/partidos/mdb.png",
+    MISSAO: "/partidos/missao.png",
+    MOBILIZA: "/partidos/mobiliza.png",
+    NOVO: "/partidos/novo.png",
+    PCB: "/partidos/pcb.png",
+    PCDOB: "/partidos/pcdob.png",
+    PCO: "/partidos/pco.png",
     PDT: "/partidos/pdt.png",
     PL: "/partidos/pl.png",
     PODE: "/partidos/pode.png",
     PP: "/partidos/pp.png",
     PRD: "/partidos/prd.png",
+    PRTB: "/partidos/prtb.png",
     PSB: "/partidos/psb.png",
     PSD: "/partidos/psd.png",
     PSDB: "/partidos/psdb.png",
     PSOL: "/partidos/psol.png",
+    PSTU: "/partidos/pstu.png",
     PT: "/partidos/pt.png",
     PV: "/partidos/pv.png",
+    REDE: "/partidos/rede.png",
     REPUBLICANOS: "/partidos/republicanos.png",
     SOLIDARIEDADE: "/partidos/solidariedade.png",
-    UNIAOBRASIL: "/partidos/uniaobrasil.png"
+    UNIAO: "/partidos/uniao.png",
+    UNIAOBRASIL: "/partidos/uniao.png",
+    UP: "/partidos/up.png"
   };
 
   return knownPartyLogos[acronym] ?? null;

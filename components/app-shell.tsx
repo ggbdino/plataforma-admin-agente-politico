@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutPlatformAreaAction } from "@/lib/actions/platform-user-action";
@@ -24,7 +23,7 @@ export function AppShell({ appVersion, children, userSession }: AppShellProps) {
         <div className="page-shell">
           <header className="brand-bar">
             <div className="brand-lockup" aria-label="GAP Consult Tecnologia">
-              <Image alt="Logo oficial da GAP Consult Tecnologia" className="brand-logo" height={56} priority src="/gap-logo-oficial.png" width={271} />
+              <img alt="Logo oficial da GAP Consult Tecnologia" className="brand-logo" src="/gap-logo-oficial.png" />
             </div>
           </header>
         </div>
@@ -39,7 +38,7 @@ export function AppShell({ appVersion, children, userSession }: AppShellProps) {
         <header className="brand-bar">
           <div className="brand-header-row">
             <Link className="brand-lockup" href="/">
-              <Image alt="Logo oficial da GAP Consult Tecnologia" className="brand-logo" height={56} priority src="/gap-logo-oficial.png" width={271} />
+              <img alt="Logo oficial da GAP Consult Tecnologia" className="brand-logo" src="/gap-logo-oficial.png" />
               <div>
                 <span className="brand-kicker">GAP Consult Tecnologia</span>
                 <div className="brand-title-row">
