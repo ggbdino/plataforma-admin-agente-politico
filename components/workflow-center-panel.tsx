@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PasswordInput } from "@/components/password-input";
 import type { CandidateListItem } from "@/lib/types";
 
 type WorkflowFeedback = {
@@ -309,11 +310,9 @@ export function WorkflowCenterPanel({
             </label>
             <label className="step-note">
               <span>Chave ou token</span>
-              <input
-                className="step-input"
+              <PasswordInput
                 name="gatewayApiKey"
                 placeholder={selectedCandidate?.sms_gateway_api_key_configurada ? "Chave já configurada. Preencha apenas para substituir." : "Token do gateway SMS"}
-                type="password"
               />
             </label>
             <label className="step-note">

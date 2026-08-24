@@ -509,6 +509,39 @@ button {
   font: inherit;
 }
 
+.password-input-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.password-input-wrap .step-input {
+  padding-right: 44px;
+}
+
+.password-toggle-button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent-deep);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.password-toggle-button:hover,
+.password-toggle-button:focus-visible {
+  background: rgba(36, 135, 211, 0.1);
+  outline: 1px solid rgba(36, 135, 211, 0.26);
+}
+
 .step-textarea {
   width: 100%;
   min-height: 88px;

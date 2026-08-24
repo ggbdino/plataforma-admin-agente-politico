@@ -53,6 +53,7 @@ Adotar duas camadas de controle:
 - `V22.4.0`: consolida a UX por perfil, restringe as telas de candidatos e implantacao a usuarios autorizados e remove atalhos incompatíveis com o perfil autenticado.
 - `V22.5.0`: adiciona guias didáticos de implantação, exclusão e consulta operacional por perfil, com link configurável do formulário de cadastro do candidato.
 - `V22.6.0`: configura o link oficial do formulario, adiciona exclusao logica reversivel e passa a arquivar dados em JSON antes da exclusao definitiva.
+- `V22.6.1`: remove botao redundante da tela inicial de inteligencia e padroniza visualizacao de senhas e tokens com icone de olho.
 
 - `V22.3.2`: corrige exibicao das logos nas paginas publicas de confirmacao de eventos. A logo da GAP passa a ser carregada diretamente do diretorio publico e a legenda partidaria usa fallback por sigla enquanto nao houver arquivo oficial em `public/partidos`. Reforca que o dominio publico dos eventos e uma configuracao global da plataforma, nao uma configuracao por evento.
 

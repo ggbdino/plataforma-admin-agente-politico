@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PasswordInput } from "@/components/password-input";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, getDefaultPlatformRoute } from "@/lib/auth";
 import {
@@ -47,7 +48,7 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
             </label>
             <label className="step-note">
               <span>Senha do usuário</span>
-              <input className="step-input" name="senha" type="password" />
+              <PasswordInput name="senha" />
             </label>
             <button className="button" type="submit">
               Entrar em Inteligência da Campanha
@@ -86,9 +87,6 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
           <span className="pill">{APP_VERSION}</span>
         </div>
         <div className="actions" style={{ marginTop: 18 }}>
-          <Link className="button secondary" href="/">
-            Voltar ao início
-          </Link>
           <Link className="button secondary" href="/api/estatisticas/exportar">
             Exportar executivo
           </Link>

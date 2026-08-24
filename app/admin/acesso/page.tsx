@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PasswordInput } from "@/components/password-input";
 import { authenticateAdminBootstrapAction } from "@/lib/actions/platform-user-action";
 
 type AdminAccessPageProps = {
@@ -41,7 +42,7 @@ export default async function AdminAccessPage({ searchParams }: AdminAccessPageP
         <form action={authenticateAdminBootstrapAction} className="manager-auth-form">
           <label className="step-note">
             <span>Código especial do administrador</span>
-            <input className="step-input" name="codigo" type="password" />
+            <PasswordInput name="codigo" />
           </label>
           <button className="button" type="submit">
             Liberar administração de usuários

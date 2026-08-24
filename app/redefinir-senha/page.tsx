@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PasswordInput } from "@/components/password-input";
 import { resetPasswordAction } from "@/lib/actions/platform-user-action";
 
 export const dynamic = "force-dynamic";
@@ -39,11 +40,11 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
           <input name="token" type="hidden" value={token} />
           <label className="step-note">
             <span>Nova senha</span>
-            <input className="step-input" minLength={8} name="senha" required type="password" />
+            <PasswordInput minLength={8} name="senha" required />
           </label>
           <label className="step-note">
             <span>Confirmar nova senha</span>
-            <input className="step-input" minLength={8} name="confirmarSenha" required type="password" />
+            <PasswordInput minLength={8} name="confirmarSenha" required />
           </label>
           <button className="button" disabled={!token} type="submit">
             Alterar senha

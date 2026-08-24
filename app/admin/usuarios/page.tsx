@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PasswordInput } from "@/components/password-input";
 import {
   canManagePlatformUsers,
   getCurrentPlatformSession,
@@ -148,7 +149,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
           <div className="step-form-grid">
             <label className="step-note"><span>Nome</span><input className="step-input" name="nome" required type="text" /></label>
             <label className="step-note"><span>E-mail</span><input className="step-input" name="email" required type="email" /></label>
-            <label className="step-note"><span>Senha inicial</span><input className="step-input" minLength={8} name="senha" required type="password" /></label>
+            <label className="step-note"><span>Senha inicial</span><PasswordInput minLength={8} name="senha" required /></label>
             <label className="step-note">
               <span>Perfil</span>
               <select className="step-input" name="perfil" defaultValue={availableProfiles[0] ?? "operador"}>
@@ -198,7 +199,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
             <form action={adminUpdatePlatformUserPasswordAction} className="manager-auth-form card analytics-panel">
               <h3 className="section-title">Alterar senha</h3>
               <label className="step-note"><span>Usuário</span>{renderUserSelect(visibleUsers)}</label>
-              <label className="step-note"><span>Nova senha</span><input className="step-input" minLength={8} name="senha" required type="password" /></label>
+              <label className="step-note"><span>Nova senha</span><PasswordInput minLength={8} name="senha" required /></label>
               <div className="step-panel-callout">As sessões abertas do usuário serão encerradas.</div>
               <button className="button" type="submit">Alterar senha</button>
             </form>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PasswordInput } from "@/components/password-input";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, getDefaultPlatformRoute } from "@/lib/auth";
 
@@ -64,7 +65,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </label>
           <label className="step-note">
             <span>Senha</span>
-            <input className="step-input" name="senha" type="password" />
+            <PasswordInput name="senha" />
           </label>
           <div className="actions">
             <button className="button" type="submit">

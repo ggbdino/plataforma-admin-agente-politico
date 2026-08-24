@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PasswordInput } from "@/components/password-input";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
 import { getCurrentPlatformSession, getDefaultPlatformRoute, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
@@ -71,7 +72,7 @@ export default async function CampaignIntelligencePage({
             </label>
             <label className="step-note">
               <span>Senha do usuário</span>
-              <input className="step-input" name="senha" type="password" />
+              <PasswordInput name="senha" />
             </label>
             <button className="button" type="submit">
               Entrar

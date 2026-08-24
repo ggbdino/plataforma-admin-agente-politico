@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PasswordInput } from "@/components/password-input";
 import { sendCampaignWhatsAppAction } from "@/lib/actions/campaign-whatsapp-action";
 import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignWhatsAppContext } from "@/lib/repositories/campaign-whatsapp";
@@ -136,11 +137,9 @@ export default async function CampaignWhatsAppPage({ params, searchParams }: Cam
 
           <label className="step-note">
             <span>Token de acesso da Meta</span>
-            <input
-              className="step-input"
+            <PasswordInput
               name="accessToken"
               placeholder="Cole o token apenas quando quiser atualizar a credencial salva"
-              type="password"
             />
             <small className="muted">O token é necessário para envio real. Deixe em branco para usar o token já registrado ou a variável de ambiente.</small>
           </label>

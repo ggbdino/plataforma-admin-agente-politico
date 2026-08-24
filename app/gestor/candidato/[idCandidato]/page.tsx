@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PasswordInput } from "@/components/password-input";
 import { registerCampaignChannelAction } from "@/lib/actions/campaign-manager-action";
 import { saveCampaignSmsConfigAction } from "@/lib/actions/campaign-sms-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
@@ -109,7 +110,7 @@ export default async function CampaignManagerPage({
             </label>
             <label className="step-note">
               <span>Senha do usuário</span>
-              <input className="step-input" name="senha" type="password" />
+              <PasswordInput name="senha" />
             </label>
             <button className="button" type="submit">
               Entrar como gestor
@@ -222,11 +223,9 @@ export default async function CampaignManagerPage({
                 </label>
                 <label className="step-note">
                   <span>Chave ou token do gateway</span>
-                  <input
-                    className="step-input"
+                  <PasswordInput
                     name="gatewayApiKey"
                     placeholder={smsContext?.gateway_api_key_configurada ? "Chave já configurada. Preencha apenas para substituir." : "Token informado pelo gateway ou workflow SMS"}
-                    type="password"
                   />
                 </label>
                 <label className="step-note">

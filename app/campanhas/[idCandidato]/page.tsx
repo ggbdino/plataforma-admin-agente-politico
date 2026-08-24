@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PasswordInput } from "@/components/password-input";
 import {
   importCampaignElectorBaseAction,
   recalculateCampaignFunnelCycleAction
@@ -94,7 +95,7 @@ export default async function CampaignOperationalPage({
             </label>
             <label className="step-note">
               <span>Senha do usuário</span>
-              <input className="step-input" name="senha" type="password" />
+              <PasswordInput name="senha" />
             </label>
             <button className="button" type="submit">
               Entrar na campanha

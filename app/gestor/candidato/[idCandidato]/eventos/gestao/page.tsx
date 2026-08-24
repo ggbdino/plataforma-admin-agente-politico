@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyLinkButton } from "@/components/copy-link-button";
+import { PasswordInput } from "@/components/password-input";
 import {
   createCampaignEventAction,
   deleteCampaignEventAction
@@ -106,7 +107,7 @@ export default async function CampaignEventManagementPage({
             </label>
             <label className="step-note">
               <span>Senha do usuário</span>
-              <input className="step-input" name="senha" type="password" />
+              <PasswordInput name="senha" />
             </label>
             <button className="button" type="submit">
               Entrar na gestão de eventos
