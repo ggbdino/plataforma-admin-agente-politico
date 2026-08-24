@@ -1,8 +1,8 @@
-export const APP_VERSION = "V22.3.3";
+export const APP_VERSION = "V22.4.0";
 
 export const APP_VERSION_DETAIL = {
   major: 22,
-  specification: 3,
-  hotfix: 3,
+  specification: 4,
+  hotfix: 0,
   label: APP_VERSION
 } as const;

@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { registerCampaignChannelAction } from "@/lib/actions/campaign-manager-action";
 import { saveCampaignSmsConfigAction } from "@/lib/actions/campaign-sms-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
-import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
+import { getCurrentPlatformSession, getDefaultPlatformRoute, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignManagerContext } from "@/lib/repositories/implantation";
 import { getCampaignSmsContext } from "@/lib/repositories/campaign-sms";
 
@@ -28,6 +28,11 @@ export default async function CampaignManagerPage({
   const query = searchParams ? await searchParams : undefined;
   const session = await getCurrentPlatformSession();
   const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_implantar");
+
+  if (session && !hasAccess) {
+    redirect(await getDefaultPlatformRoute(session));
+  }
+
   const data = await getCampaignManagerContext(idCandidato);
   const smsContext = hasAccess ? await getCampaignSmsContext(idCandidato) : null;
 

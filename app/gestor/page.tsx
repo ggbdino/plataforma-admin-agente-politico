@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentPlatformSession, getVisibleCandidateIdsForSession } from "@/lib/auth";
+import {
+  getCurrentPlatformSession,
+  getDefaultPlatformRoute,
+  getVisibleCandidateIdsForSession
+} from "@/lib/auth";
 import { listCandidates } from "@/lib/repositories/candidates";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 
@@ -11,6 +15,10 @@ export default async function GestorDashboardPage() {
 
   if (!session) {
     redirect("/");
+  }
+
+  if (!["administrador", "gestor_campanha"].includes(session.perfil)) {
+    redirect(await getDefaultPlatformRoute(session));
   }
 
   const visibleCandidateIds = await getVisibleCandidateIdsForSession(session);
@@ -37,12 +45,16 @@ export default async function GestorDashboardPage() {
           Visão executiva para acompanhar candidatos, progresso de implantação e o caminho para a operação de cada campanha.
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
-          <Link className="button secondary" href="/candidatos">
-            Voltar para candidatos
-          </Link>
-          <Link className="button secondary" href="/estatisticas">
-            Inteligência da Campanha
-          </Link>
+          {session.perfil === "administrador" ? (
+            <Link className="button secondary" href="/candidatos">
+              Voltar para candidatos
+            </Link>
+          ) : null}
+          {session.perfil === "administrador" ? (
+            <Link className="button secondary" href="/estatisticas">
+              Inteligência da Campanha
+            </Link>
+          ) : null}
         </div>
       </section>
 

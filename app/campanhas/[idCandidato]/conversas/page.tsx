@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
-import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
+import { getCurrentPlatformSession, getDefaultPlatformRoute, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignConversationExplorer } from "@/lib/repositories/campaign-analytics";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +29,7 @@ export default async function CampaignConversationsPage({
   const query = searchParams ? await searchParams : undefined;
   const session = await getCurrentPlatformSession();
   const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_operar_funil");
+  const canViewKpis = await hasCampaignAccess(session, idCandidato, "pode_ver_kpis");
   const explorer = await getCampaignConversationExplorer(idCandidato, {
     busca: query?.busca,
     etapa: query?.etapa,
@@ -42,6 +43,10 @@ export default async function CampaignConversationsPage({
   }
 
   if (!hasAccess) {
+    if (session) {
+      redirect(await getDefaultPlatformRoute(session));
+    }
+
     return (
       <main className="page-shell">
         {query?.feedback && query?.mensagem ? (
@@ -100,9 +105,11 @@ export default async function CampaignConversationsPage({
           <Link className="button secondary" href={`/campanhas/${idCandidato}`}>
             Voltar ao painel da campanha
           </Link>
-          <Link className="button secondary" href="/estatisticas">
-            Inteligência da Campanha
-          </Link>
+          {canViewKpis ? (
+            <Link className="button secondary" href={`/campanhas/${idCandidato}/inteligencia`}>
+              Inteligência da Campanha
+            </Link>
+          ) : null}
         </div>
       </section>
 

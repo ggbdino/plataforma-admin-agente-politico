@@ -1,10 +1,21 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import {
+  getDefaultPlatformRoute,
+  requireAuthenticatedPlatformSession
+} from "@/lib/auth";
 import { listCandidates } from "@/lib/repositories/candidates";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 
 export const dynamic = "force-dynamic";
 
 export default async function CandidatesPage() {
+  const session = await requireAuthenticatedPlatformSession();
+
+  if (session.perfil !== "administrador") {
+    redirect(await getDefaultPlatformRoute(session));
+  }
+
   const candidates = await listCandidates();
   const total = candidates.length;
   const withQr = candidates.filter((candidate) => Boolean(candidate.qr_code_url)).length;

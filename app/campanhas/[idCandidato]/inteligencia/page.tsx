@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
-import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
+import { getCurrentPlatformSession, getDefaultPlatformRoute, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { APP_VERSION } from "@/lib/version";
 
@@ -35,6 +35,10 @@ export default async function CampaignIntelligencePage({
   }
 
   if (!hasAccess) {
+    if (session) {
+      redirect(await getDefaultPlatformRoute(session));
+    }
+
     return (
       <main className="page-shell">
         {query?.feedback && query?.mensagem ? (
@@ -116,9 +120,11 @@ export default async function CampaignIntelligencePage({
               Conversas
             </Link>
           ) : null}
-          <Link className="button secondary" href="/estatisticas">
-            Visão consolidada
-          </Link>
+          {session?.perfil === "administrador" ? (
+            <Link className="button secondary" href="/estatisticas">
+              Visão consolidada
+            </Link>
+          ) : null}
         </div>
       </section>
 
@@ -483,4 +489,3 @@ function parsePeriodDays(value?: string) {
 
   return 14;
 }
-

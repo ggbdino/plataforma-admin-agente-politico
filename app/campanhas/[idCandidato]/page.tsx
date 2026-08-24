@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   importCampaignElectorBaseAction,
   recalculateCampaignFunnelCycleAction
 } from "@/lib/actions/campaign-analytics-action";
 import { authenticatePlatformAreaAction } from "@/lib/actions/platform-user-action";
-import { getCurrentPlatformSession, hasCampaignAccess } from "@/lib/auth";
+import { getCurrentPlatformSession, getDefaultPlatformRoute, hasCampaignAccess } from "@/lib/auth";
 import { getCampaignAnalyticsSnapshot } from "@/lib/repositories/campaign-analytics";
 import { getCampaignGovernanceSnapshot } from "@/lib/repositories/governance";
 import { CampaignTerritorialPanel } from "@/components/campaign-territorial-panel";
@@ -37,6 +37,11 @@ export default async function CampaignOperationalPage({
   const canImplantCampaign = await hasCampaignAccess(session, idCandidato, "pode_implantar");
   const canExportExecutive =
     hasAccess && (session?.perfil === "administrador" || session?.perfil === "gestor_campanha");
+
+  if (!hasAccess && session) {
+    redirect(await getDefaultPlatformRoute(session));
+  }
+
   const snapshot = await getCampaignAnalyticsSnapshot(idCandidato, selectedPeriodDays);
   const governance = await getCampaignGovernanceSnapshot(idCandidato);
 
@@ -68,11 +73,8 @@ export default async function CampaignOperationalPage({
             campanha de forma individualizada por candidato.
           </p>
           <div className="actions" style={{ marginTop: 18 }}>
-            <Link className="button secondary" href="/candidatos">
-              Voltar para candidatos
-            </Link>
-            <Link className="button secondary" href="/estatisticas">
-              Ver Inteligência da Campanha
+            <Link className="button secondary" href="/">
+              Voltar para entrada
             </Link>
           </div>
         </section>
@@ -187,7 +189,7 @@ export default async function CampaignOperationalPage({
               sem alterar histórico, funil ou interações.
             </p>
           </div>
-          <span className="pill">Controle do administrador</span>
+          <span className="pill">Controle do gestor</span>
         </div>
         {query?.operacao === "importacao" && query?.feedback && query?.mensagem ? (
           <section
@@ -992,9 +994,11 @@ export default async function CampaignOperationalPage({
               e operacional.
             </p>
           </div>
-          <Link className="button secondary" href="/estatisticas/governanca">
-            Ver governança do admin
-          </Link>
+          {session?.perfil === "administrador" ? (
+            <Link className="button secondary" href="/estatisticas/governanca">
+              Ver governança do admin
+            </Link>
+          ) : null}
         </div>
         <div className="grid grid-3" style={{ marginBottom: 16 }}>
           <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentPlatformSession, getVisibleCandidateIdsForSession } from "@/lib/auth";
+import {
+  getCurrentPlatformSession,
+  getDefaultPlatformRoute,
+  getVisibleCandidateIdsForSession
+} from "@/lib/auth";
 import { listCandidates } from "@/lib/repositories/candidates";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 
@@ -11,6 +15,10 @@ export default async function GestoraDashboardPage() {
 
   if (!session) {
     redirect("/");
+  }
+
+  if (!["administrador", "gestor_campanha"].includes(session.perfil)) {
+    redirect(await getDefaultPlatformRoute(session));
   }
 
   const visibleCandidateIds = await getVisibleCandidateIdsForSession(session);

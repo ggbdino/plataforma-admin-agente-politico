@@ -1,6 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  getCurrentPlatformSession,
+  getDefaultPlatformRoute,
+  hasCampaignAccess
+} from "@/lib/auth";
 import { getCandidateImplantation } from "@/lib/repositories/implantation";
 import { ImplantationStatusPill } from "@/components/implantation-status-pill";
 import { StepList } from "@/components/step-list";
@@ -23,6 +28,17 @@ export default async function CandidateImplantationPage({
 }: CandidatePageProps) {
   const { idCandidato } = await params;
   const query = searchParams ? await searchParams : undefined;
+  const session = await getCurrentPlatformSession();
+  const hasAccess = await hasCampaignAccess(session, idCandidato, "pode_implantar");
+
+  if (!session) {
+    redirect("/");
+  }
+
+  if (!hasAccess) {
+    redirect(await getDefaultPlatformRoute(session));
+  }
+
   const data = await getCandidateImplantation(idCandidato);
 
   if (!data) {
