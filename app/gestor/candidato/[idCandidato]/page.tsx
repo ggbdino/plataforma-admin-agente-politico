@@ -60,7 +60,10 @@ export default async function CampaignManagerPage({
         </p>
         <div className="actions" style={{ marginTop: 18 }}>
           <Link className="button secondary" href={`/candidatos/${idCandidato}`}>
-            Voltar para implantação
+            Implantação do candidato
+          </Link>
+          <Link className="button secondary" href={`/gestor/candidato/${idCandidato}/instrucoes`}>
+            Instruções básicas
           </Link>
           <Link className="button secondary" href="/admin/usuarios">
             Equipe da campanha

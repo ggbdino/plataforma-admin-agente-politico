@@ -104,6 +104,9 @@ export default async function StatisticsAdminPage({ searchParams }: StatisticsAd
           <Link className="button secondary" href="/candidatos">
             Ver implantação
           </Link>
+          <Link className="button secondary" href="/admin/implantacao">
+            Guia de implantação
+          </Link>
         </div>
       </section>
 

@@ -63,6 +63,9 @@ export default async function AdminCandidatesPage({ searchParams }: AdminCandida
           <Link className="button secondary" href="/admin/usuarios">
             Usuarios e perfis
           </Link>
+          <Link className="button secondary" href="/admin/implantacao">
+            Guia de implantacao e exclusao
+          </Link>
         </div>
       </section>
 

@@ -51,6 +51,7 @@ Adotar duas camadas de controle:
 
 - `V22.3.3`: incorpora os arquivos oficiais de logos partidarias em `public/partidos` e reativa a exibicao das marcas nas paginas publicas de confirmacao de eventos, mantendo fallback por sigla quando o partido nao tiver arquivo mapeado.
 - `V22.4.0`: consolida a UX por perfil, restringe as telas de candidatos e implantacao a usuarios autorizados e remove atalhos incompatíveis com o perfil autenticado.
+- `V22.5.0`: adiciona guias didáticos de implantação, exclusão e consulta operacional por perfil, com link configurável do formulário de cadastro do candidato.
 
 - `V22.3.2`: corrige exibicao das logos nas paginas publicas de confirmacao de eventos. A logo da GAP passa a ser carregada diretamente do diretorio publico e a legenda partidaria usa fallback por sigla enquanto nao houver arquivo oficial em `public/partidos`. Reforca que o dominio publico dos eventos e uma configuracao global da plataforma, nao uma configuracao por evento.
 
