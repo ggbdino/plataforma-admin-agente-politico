@@ -481,6 +481,10 @@ export async function userHasCampaignPermission(
     return true;
   }
 
+  if (!(await isCandidateVisibleForNonAdmin(idCandidato))) {
+    return false;
+  }
+
   if (perfil === "operador" && capability === "pode_ver_kpis") {
     return false;
   }
@@ -509,6 +513,27 @@ export async function userHasCampaignPermission(
   );
 
   return result.rows[0]?.allowed ?? false;
+}
+
+async function isCandidateVisibleForNonAdmin(idCandidato: string) {
+  await db.query(`
+    alter table candidatos
+      add column if not exists status_registro text not null default 'ativo',
+      add column if not exists exclusao_logica_em timestamptz,
+      add column if not exists exclusao_logica_motivo text
+  `);
+
+  const result = await db.query<{ visible: boolean }>(
+    `
+      select coalesce(status_registro, 'ativo') <> 'excluido_logico' as visible
+      from candidatos
+      where id_candidato = $1
+      limit 1
+    `,
+    [idCandidato]
+  );
+
+  return result.rows[0]?.visible ?? false;
 }
 
 export async function createPlatformSession(user: {

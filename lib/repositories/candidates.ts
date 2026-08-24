@@ -91,6 +91,7 @@ export async function listCandidates(): Promise<CandidateListItem[]> {
       ) manager_update on true
       where c.nome_urna is not null
         and btrim(c.nome_urna) <> ''
+        and coalesce(c.status_registro, 'ativo') <> 'excluido_logico'
       order by
         lower(coalesce(nullif(btrim(c.nome_urna), ''), c.nome_completo, c.id_candidato)),
         c.id_candidato
@@ -115,7 +116,10 @@ async function ensureCandidateOperationalColumns() {
   await db.query(`
     alter table candidatos
       add column if not exists numero_tre_tse text,
-      add column if not exists telefone_candidato text
+      add column if not exists telefone_candidato text,
+      add column if not exists status_registro text not null default 'ativo',
+      add column if not exists exclusao_logica_em timestamptz,
+      add column if not exists exclusao_logica_motivo text
   `);
 }
 

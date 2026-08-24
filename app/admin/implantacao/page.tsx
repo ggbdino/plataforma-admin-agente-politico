@@ -202,9 +202,9 @@ export default async function AdminImplantationGuidePage() {
           </Link>
         </div>
         <div className="grid grid-3">
-          <InstructionCard title="Eliminar eleitores" text="Mantém candidato, QR Code, permissões, workflows e configurações. Use para corrigir bases importadas com erro." />
-          <InstructionCard title="Excluir candidato" text="Remove candidato e dados vinculados. Depois, desative ou remova manualmente os workflows correspondentes no n8n." />
-          <InstructionCard title="Excluir todos" text="Use somente em saneamento total do ambiente, com backup e confirmação formal do administrador." />
+          <InstructionCard title="Arquivar candidato" text="Exclusão lógica: remove o candidato da operação regular, mas permite restauração pelo administrador." />
+          <InstructionCard title="Eliminar eleitores" text="Mantém candidato, QR Code, permissões, workflows e configurações. Antes de remover, gera arquivo JSON de recuperação." />
+          <InstructionCard title="Excluir definitivamente" text="Remove candidato e dados vinculados após gerar arquivo JSON. Depois, desative ou remova manualmente os workflows correspondentes no n8n." />
         </div>
       </section>
     </main>

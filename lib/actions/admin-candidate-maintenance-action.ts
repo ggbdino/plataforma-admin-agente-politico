@@ -6,7 +6,9 @@ import { requireAdminBootstrap } from "@/lib/auth";
 import {
   deleteAllCandidatesCascade,
   deleteCandidateCascade,
-  deleteCandidateElectorsCascade
+  deleteCandidateElectorsCascade,
+  logicallyDeleteCandidate,
+  restoreLogicallyDeletedCandidate
 } from "@/lib/repositories/admin-candidate-maintenance";
 import { recordGovernanceEvent } from "@/lib/repositories/governance";
 
@@ -33,8 +35,8 @@ export async function deleteCandidateAction(formData: FormData) {
       escopo: "admin",
       ator: "administrador",
       categoria: "saneamento_base",
-      acao: "candidato_excluido_cascata",
-      descricao: `Candidato ${idCandidato} removido com todos os dados vinculados.`,
+      acao: "candidato_excluido_definitivo",
+      descricao: `Candidato ${idCandidato} removido definitivamente com arquivo de recuperacao ${result.archiveFileName}.`,
       status: "sucesso",
       origem: "platform-admin",
       detalhes: result as Record<string, unknown>
@@ -46,7 +48,86 @@ export async function deleteCandidateAction(formData: FormData) {
   }
 
   revalidateAdminPaths();
-  redirectWithSuccess("Candidato e registros vinculados removidos da base com sucesso.");
+  redirectWithSuccess(`Candidato removido definitivamente. Arquivo de recuperacao: ${resultMessageArchive(idCandidato)}.`);
+}
+
+export async function logicallyDeleteCandidateAction(formData: FormData) {
+  await requireAdminBootstrap();
+
+  const idCandidato = String(formData.get("idCandidatoLogico") ?? "").trim();
+  const confirmacao = String(formData.get("confirmacaoLogica") ?? "").trim();
+  const motivo = String(formData.get("motivoLogico") ?? "").trim();
+  const esperado = `ARQUIVAR ${idCandidato}`;
+
+  if (!idCandidato) {
+    redirectWithError("Selecione um candidato para exclusao logica.");
+  }
+
+  if (confirmacao !== esperado) {
+    redirectWithError(`Confirme a operacao digitando exatamente: ${esperado}`);
+  }
+
+  try {
+    const result = await logicallyDeleteCandidate({ idCandidato, motivo });
+
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: "admin",
+      ator: "administrador",
+      categoria: "saneamento_base",
+      acao: "candidato_excluido_logicamente",
+      descricao: `Candidato ${idCandidato} arquivado logicamente e removido da operacao regular.`,
+      status: "sucesso",
+      origem: "platform-admin",
+      detalhes: result as Record<string, unknown>
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Nao foi possivel arquivar o candidato selecionado.";
+    redirectWithError(message);
+  }
+
+  revalidateAdminPaths();
+  redirectWithSuccess("Candidato arquivado logicamente. A operacao pode ser revertida pelo administrador.");
+}
+
+export async function restoreCandidateAction(formData: FormData) {
+  await requireAdminBootstrap();
+
+  const idCandidato = String(formData.get("idCandidatoRestaurar") ?? "").trim();
+  const confirmacao = String(formData.get("confirmacaoRestaurar") ?? "").trim();
+  const esperado = `RESTAURAR ${idCandidato}`;
+
+  if (!idCandidato) {
+    redirectWithError("Selecione um candidato arquivado para restaurar.");
+  }
+
+  if (confirmacao !== esperado) {
+    redirectWithError(`Confirme a operacao digitando exatamente: ${esperado}`);
+  }
+
+  try {
+    const result = await restoreLogicallyDeletedCandidate(idCandidato);
+
+    await recordGovernanceEvent({
+      idCandidato,
+      escopo: "admin",
+      ator: "administrador",
+      categoria: "saneamento_base",
+      acao: "candidato_restaurado_exclusao_logica",
+      descricao: `Candidato ${idCandidato} restaurado da exclusao logica.`,
+      status: "sucesso",
+      origem: "platform-admin",
+      detalhes: result as Record<string, unknown>
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Nao foi possivel restaurar o candidato selecionado.";
+    redirectWithError(message);
+  }
+
+  revalidateAdminPaths();
+  redirectWithSuccess("Candidato restaurado e liberado novamente para operacao.");
 }
 
 
@@ -56,6 +137,7 @@ export async function deleteCandidateElectorsAction(formData: FormData) {
   const idCandidato = String(formData.get("idCandidato") ?? "").trim();
   const confirmacao = String(formData.get("confirmacaoEleitores") ?? "").trim();
   const esperado = `EXCLUIR ELEITORES ${idCandidato}`;
+  let successMessage = "Eleitores, interacoes e participacoes removidos com arquivo de recuperacao registrado.";
 
   if (!idCandidato) {
     redirectWithError("Selecione um candidato para excluir os eleitores.");
@@ -67,6 +149,7 @@ export async function deleteCandidateElectorsAction(formData: FormData) {
 
   try {
     const result = await deleteCandidateElectorsCascade(idCandidato);
+    successMessage = `Eleitores, interacoes e participacoes removidos com arquivo de recuperacao ${result.archiveFileName}.`;
 
     await recordGovernanceEvent({
       idCandidato,
@@ -74,7 +157,7 @@ export async function deleteCandidateElectorsAction(formData: FormData) {
       ator: "administrador",
       categoria: "saneamento_base",
       acao: "eleitores_candidato_excluidos",
-      descricao: `Eleitores do candidato ${idCandidato} removidos sem excluir cadastro da campanha.`,
+      descricao: `Eleitores do candidato ${idCandidato} removidos com arquivo de recuperacao ${result.archiveFileName}.`,
       status: "sucesso",
       origem: "platform-admin",
       detalhes: result as Record<string, unknown>
@@ -86,7 +169,7 @@ export async function deleteCandidateElectorsAction(formData: FormData) {
   }
 
   revalidateAdminPaths();
-  redirectWithSuccess("Eleitores, interacoes e participacoes vinculadas ao candidato foram removidos com sucesso.");
+  redirectWithSuccess(successMessage);
 }
 export async function deleteAllCandidatesAction(formData: FormData) {
   await requireAdminBootstrap();
@@ -106,7 +189,7 @@ export async function deleteAllCandidatesAction(formData: FormData) {
       ator: "administrador",
       categoria: "saneamento_base",
       acao: "todos_candidatos_excluidos_cascata",
-      descricao: "Todos os candidatos e registros vinculados foram removidos da base.",
+      descricao: `Todos os candidatos e registros vinculados foram removidos com arquivo de recuperacao ${result.archiveFileName}.`,
       status: "sucesso",
       origem: "platform-admin",
       detalhes: result as Record<string, unknown>
@@ -118,7 +201,7 @@ export async function deleteAllCandidatesAction(formData: FormData) {
   }
 
   revalidateAdminPaths();
-  redirectWithSuccess("Toda a base de candidatos e seus dados relacionados foi removida com sucesso.");
+  redirectWithSuccess("Toda a base de candidatos foi removida definitivamente com arquivo de recuperacao registrado.");
 }
 
 function revalidateAdminPaths() {
@@ -139,4 +222,8 @@ function redirectWithError(message: string): never {
 
 function redirectWithSuccess(message: string): never {
   redirect(`/admin/candidatos?feedback=sucesso&mensagem=${encodeURIComponent(message)}`);
+}
+
+function resultMessageArchive(idCandidato: string) {
+  return `consulte a lista de arquivos de recuperacao na pagina de saneamento para ${idCandidato}`;
 }
