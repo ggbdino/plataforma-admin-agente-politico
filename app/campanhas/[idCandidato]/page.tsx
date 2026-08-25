@@ -1113,6 +1113,10 @@ function labelStage(stage: string | null) {
     return "não classificado";
   }
 
+  if (stage === "divulgador") {
+    return "divulgador da campanha";
+  }
+
   return stage.replace(/_/g, " ");
 }
 

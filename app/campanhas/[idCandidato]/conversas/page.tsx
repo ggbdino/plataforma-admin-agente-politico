@@ -360,6 +360,10 @@ function labelStage(stage: string | null) {
     return "não classificado";
   }
 
+  if (normalizedStage === "divulgador") {
+    return "divulgador da campanha";
+  }
+
   return normalizedStage.replace(/_/g, " ");
 }
 

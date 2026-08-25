@@ -55,6 +55,7 @@ Adotar duas camadas de controle:
 - `V22.6.0`: configura o link oficial do formulario, adiciona exclusao logica reversivel e passa a arquivar dados em JSON antes da exclusao definitiva.
 - `V22.6.1`: remove botao redundante da tela inicial de inteligencia e padroniza visualizacao de senhas e tokens com icone de olho.
 - `V22.7.0`: aprimora a inteligencia estatistica da campanha, remove UFs sem eleitores da distribuicao territorial, reclassifica temas genericos por leitura das conversas e moderniza os graficos de temas e metas.
+- `V22.8.0`: reforca a memoria conversacional do funil 02b, normaliza apoio como apoiador, preserva estagios avancados do eleitor e orienta a IA a retomar conversas pelo historico sem reapresentacao indevida.
 
 - `V22.3.2`: corrige exibicao das logos nas paginas publicas de confirmacao de eventos. A logo da GAP passa a ser carregada diretamente do diretorio publico e a legenda partidaria usa fallback por sigla enquanto nao houver arquivo oficial em `public/partidos`. Reforca que o dominio publico dos eventos e uma configuracao global da plataforma, nao uma configuracao por evento.
 

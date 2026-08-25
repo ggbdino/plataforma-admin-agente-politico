@@ -242,7 +242,7 @@ function inferFunnelCycle(row: ElectorCycleRow): CycleInference {
 }
 
 function inferIntention(row: ElectorCycleRow) {
-  const latest = normalizeNullable(row.ultima_intencao);
+  const latest = normalizeIntention(row.ultima_intencao);
 
   if (latest) {
     return latest;
@@ -252,7 +252,7 @@ function inferIntention(row: ElectorCycleRow) {
     return "engajado";
   }
 
-  return normalizeNullable(row.intencao_voto);
+  return normalizeIntention(row.intencao_voto);
 }
 
 function inferEngagementScore(
@@ -316,6 +316,10 @@ function inferStage(
 
   const suggested = normalizeNullable(row.ultima_etapa_sugerida);
 
+  if (suggested === "divulgador") {
+    return "divulgador";
+  }
+
   if (intention === "apoiador" || propensity >= 80) {
     return "engajado";
   }
@@ -342,6 +346,27 @@ function inferStage(
 function normalizeNullable(value: string | null | undefined) {
   const normalized = String(value ?? "").trim();
   return normalized ? normalized : null;
+}
+
+function normalizeIntention(value: string | null | undefined) {
+  const normalized = normalizeNullable(value)
+    ?.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (!normalized || normalized === "nao_classificada" || normalized === "nao_classificado") {
+    return null;
+  }
+
+  if (["apoio", "apoiador", "voto_confirmado", "confirmado"].includes(normalized)) {
+    return "apoiador";
+  }
+
+  if (["rejeicao", "rejeição", "opositor", "contra"].includes(normalized)) {
+    return "opositor";
+  }
+
+  return normalized;
 }
 
 function clampScore(value: number) {

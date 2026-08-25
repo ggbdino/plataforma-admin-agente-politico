@@ -37,6 +37,26 @@ const VALID_BRAZILIAN_UFS = [
 ];
 
 const VALID_BRAZILIAN_UF_SQL = VALID_BRAZILIAN_UFS.map((uf) => `'${uf}'`).join(", ");
+const SUPPORT_INTENTION_SQL =
+  "lower(coalesce(intencao_voto, '')) in ('apoiador', 'apoio', 'voto_confirmado', 'confirmado')";
+
+const ELECTOR_CONVERSATION_STAGE_SQL = `
+        case
+          when lower(coalesce(e.intencao_voto, '')) in ('apoiador', 'apoio', 'voto_confirmado', 'confirmado')
+            or lower(coalesce(ir.intencao_voto, '')) in ('apoiador', 'apoio', 'voto_confirmado', 'confirmado') then 'engajado'
+          when lower(coalesce(e.etapa_funil, '')) in ('', 'novo_lead', 'qualificado')
+            and lower(coalesce(ir.etapa_sugerida, '')) in ('engajado', 'relacionamento', 'nutricao', 'divulgador') then ir.etapa_sugerida
+          else e.etapa_funil
+        end as etapa_funil`;
+
+const ELECTOR_CONVERSATION_INTENTION_SQL = `
+        case
+          when lower(coalesce(e.intencao_voto, '')) in ('apoiador', 'apoio', 'voto_confirmado', 'confirmado')
+            or lower(coalesce(ir.intencao_voto, '')) in ('apoiador', 'apoio', 'voto_confirmado', 'confirmado') then 'apoiador'
+          when lower(coalesce(e.intencao_voto, '')) in ('', 'nao_classificada', 'nao_classificado', 'sem_leitura')
+            and nullif(trim(coalesce(ir.intencao_voto, '')), '') is not null then ir.intencao_voto
+          else e.intencao_voto
+        end as intencao_voto`;
 
 const CAMPAIGN_THEME_CLASSIFICATION_SQL = `
   case
@@ -179,8 +199,8 @@ export async function getCampaignAnalyticsSnapshot(
         coalesce((select count(*)::int from eleitor_base), 0) as total_eleitores,
         coalesce((select count(*)::int from eleitor_base where etapa_funil = 'novo_lead'), 0) as leads_novos,
         coalesce((select count(*)::int from eleitor_base where etapa_funil in ('qualificado', 'qualificado_quente')), 0) as leads_qualificados,
-        coalesce((select count(*)::int from eleitor_base where etapa_funil in ('engajado', 'relacionamento', 'nutricao')), 0) as leads_engajados,
-        coalesce((select count(*)::int from eleitor_base where intencao_voto = 'apoiador'), 0) as apoiadores,
+        coalesce((select count(*)::int from eleitor_base where etapa_funil in ('engajado', 'relacionamento', 'nutricao', 'divulgador')), 0) as leads_engajados,
+        coalesce((select count(*)::int from eleitor_base where ${SUPPORT_INTENTION_SQL}), 0) as apoiadores,
         coalesce((select count(*)::int from eleitor_base where intencao_voto = 'indeciso'), 0) as indecisos,
         coalesce((select count(*)::int from eleitor_base where opt_out = true), 0) as opt_outs,
         coalesce((select count(*)::int from interaction_base), 0) as interacoes_total,
@@ -196,7 +216,7 @@ export async function getCampaignAnalyticsSnapshot(
           when coalesce((select count(*) from eleitor_base), 0) = 0 then 0
           else round(
             (
-              coalesce((select count(*) from eleitor_base where intencao_voto = 'apoiador'), 0)::numeric /
+              coalesce((select count(*) from eleitor_base where ${SUPPORT_INTENTION_SQL}), 0)::numeric /
               greatest((select count(*) from eleitor_base), 1)::numeric
             ) * 100,
             2
@@ -259,12 +279,12 @@ export async function getCampaignAnalyticsSnapshot(
         coalesce((select count(*)::int from interaction_period), 0) as interacoes_periodo,
         coalesce((select count(*)::int from interaction_period where direcao = 'inbound'), 0) as inbound_periodo,
         coalesce((select count(*)::int from interaction_period where direcao = 'outbound'), 0) as outbound_periodo,
-        coalesce((select count(*)::int from lead_period where intencao_voto = 'apoiador'), 0) as apoiadores_periodo,
+        coalesce((select count(*)::int from lead_period where ${SUPPORT_INTENTION_SQL}), 0) as apoiadores_periodo,
         case
           when coalesce((select count(*) from lead_period), 0) = 0 then 0
           else round(
             (
-              coalesce((select count(*) from lead_period where intencao_voto = 'apoiador'), 0)::numeric /
+              coalesce((select count(*) from lead_period where ${SUPPORT_INTENTION_SQL}), 0)::numeric /
               greatest((select count(*) from lead_period), 1)::numeric
             ) * 100,
             2
@@ -308,17 +328,17 @@ export async function getCampaignAnalyticsSnapshot(
           )
         end as realizado_contatos_percentual,
         coalesce($3::numeric, 0) as meta_conversao_votos,
-        coalesce((select count(*)::int from eleitor_base where intencao_voto = 'apoiador'), 0) as apoiadores_atuais,
+        coalesce((select count(*)::int from eleitor_base where ${SUPPORT_INTENTION_SQL}), 0) as apoiadores_atuais,
         greatest(
           coalesce($3::numeric, 0) -
-            coalesce((select count(*)::int from eleitor_base where intencao_voto = 'apoiador'), 0),
+            coalesce((select count(*)::int from eleitor_base where ${SUPPORT_INTENTION_SQL}), 0),
           0
         ) as gap_conversao,
         case
           when coalesce($3::numeric, 0) = 0 then 0
           else round(
             (
-              coalesce((select count(*)::int from eleitor_base where intencao_voto = 'apoiador'), 0)::numeric /
+              coalesce((select count(*)::int from eleitor_base where ${SUPPORT_INTENTION_SQL}), 0)::numeric /
               greatest($3::numeric, 1)
             ) * 100,
             2
@@ -478,11 +498,11 @@ export async function getCampaignAnalyticsSnapshot(
             and referencia_contato < now() - interval '7 days'
         )::int as qualificados_sem_contato_7_dias,
         count(*) filter (
-          where etapa_funil in ('engajado', 'relacionamento', 'nutricao')
+          where etapa_funil in ('engajado', 'relacionamento', 'nutricao', 'divulgador')
             and referencia_contato < now() - interval '14 days'
         )::int as engajados_sem_contato_14_dias,
         count(*) filter (
-          where intencao_voto = 'apoiador'
+          where ${SUPPORT_INTENTION_SQL}
             and referencia_contato < now() - interval '21 days'
         )::int as apoiadores_sem_contato_21_dias,
         count(*) filter (
@@ -491,9 +511,9 @@ export async function getCampaignAnalyticsSnapshot(
           ) or (
             etapa_funil in ('qualificado', 'qualificado_quente') and referencia_contato < now() - interval '7 days'
           ) or (
-            etapa_funil in ('engajado', 'relacionamento', 'nutricao') and referencia_contato < now() - interval '14 days'
+            etapa_funil in ('engajado', 'relacionamento', 'nutricao', 'divulgador') and referencia_contato < now() - interval '14 days'
           ) or (
-            intencao_voto = 'apoiador' and referencia_contato < now() - interval '21 days'
+            ${SUPPORT_INTENTION_SQL} and referencia_contato < now() - interval '21 days'
           )
         )::int as leads_parados_total
       from eleitor_base
@@ -649,7 +669,7 @@ export async function getCampaignAnalyticsSnapshot(
         select
           uf_resolvida,
           count(*)::int as total,
-          count(*) filter (where intencao_voto = 'apoiador')::int as apoiadores,
+          count(*) filter (where ${SUPPORT_INTENTION_SQL})::int as apoiadores,
           count(distinct cidade_resolvida)::int as cidades_mapeadas
         from eleitor_base
         where uf_resolvida is not null
@@ -857,9 +877,9 @@ export async function getCampaignAnalyticsSnapshot(
         e.nome,
         e.telefone,
         e.origem_captacao,
-        e.etapa_funil,
+        ${ELECTOR_CONVERSATION_STAGE_SQL},
         e.sentimento,
-        e.intencao_voto,
+        ${ELECTOR_CONVERSATION_INTENTION_SQL},
         e.score_engajamento,
         e.score_propensao_voto,
         e.ultimo_contato_em::text as ultimo_contato_em,
@@ -1120,9 +1140,9 @@ export async function getCampaignConversationExplorer(
         e.nome,
         e.telefone,
         e.origem_captacao,
-        e.etapa_funil,
+        ${ELECTOR_CONVERSATION_STAGE_SQL},
         e.sentimento,
-        e.intencao_voto,
+        ${ELECTOR_CONVERSATION_INTENTION_SQL},
         e.score_engajamento,
         e.score_propensao_voto,
         e.ultimo_contato_em::text as ultimo_contato_em,
@@ -1243,8 +1263,8 @@ export async function getAdminCampaignStatsSnapshot(): Promise<AdminCampaignStat
         select
           id_candidato,
           count(*)::int as total_eleitores,
-          count(*) filter (where etapa_funil in ('engajado', 'relacionamento', 'nutricao'))::int as leads_engajados,
-          count(*) filter (where intencao_voto = 'apoiador')::int as apoiadores,
+          count(*) filter (where etapa_funil in ('engajado', 'relacionamento', 'nutricao', 'divulgador'))::int as leads_engajados,
+          count(*) filter (where ${SUPPORT_INTENTION_SQL})::int as apoiadores,
           count(*) filter (where nullif(trim(coalesce(nome, '')), '') is null)::int as sem_nome,
           count(*) filter (where nullif(trim(coalesce(telefone, '')), '') is null)::int as sem_telefone,
           ${
