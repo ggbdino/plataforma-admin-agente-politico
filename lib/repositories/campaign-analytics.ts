@@ -38,6 +38,77 @@ const VALID_BRAZILIAN_UFS = [
 
 const VALID_BRAZILIAN_UF_SQL = VALID_BRAZILIAN_UFS.map((uf) => `'${uf}'`).join(", ");
 
+const CAMPAIGN_THEME_CLASSIFICATION_SQL = `
+  case
+    when normalized.theme_key not in ('', 'geral', 'nao_classificado', 'nao classificado', 'não classificado') then normalized.theme_raw
+    when normalized.conversation_text like '%seguranc%'
+      or normalized.conversation_text like '%seguranç%'
+      or normalized.conversation_text like '%polici%'
+      or normalized.conversation_text like '%violencia%'
+      or normalized.conversation_text like '%violência%'
+      or normalized.conversation_text like '%crime%' then 'seguranca_publica'
+    when normalized.conversation_text like '%saude%'
+      or normalized.conversation_text like '%saúde%'
+      or normalized.conversation_text like '%hospital%'
+      or normalized.conversation_text like '%ubs%'
+      or normalized.conversation_text like '%medic%'
+      or normalized.conversation_text like '%vacina%' then 'saude'
+    when normalized.conversation_text like '%educa%'
+      or normalized.conversation_text like '%educaç%'
+      or normalized.conversation_text like '%escola%'
+      or normalized.conversation_text like '%creche%'
+      or normalized.conversation_text like '%professor%' then 'educacao'
+    when normalized.conversation_text like '%transporte%'
+      or normalized.conversation_text like '%onibus%'
+      or normalized.conversation_text like '%metro%'
+      or normalized.conversation_text like '%mobilidade%'
+      or normalized.conversation_text like '%transito%' then 'transporte_e_mobilidade'
+    when normalized.conversation_text like '%moradia%'
+      or normalized.conversation_text like '%habitacao%'
+      or normalized.conversation_text like '%habitação%'
+      or normalized.conversation_text like '%regulariza%'
+      or normalized.conversation_text like '%condominio%' then 'moradia_e_regularizacao'
+    when normalized.conversation_text like '%emprego%'
+      or normalized.conversation_text like '%renda%'
+      or normalized.conversation_text like '%trabalho%'
+      or normalized.conversation_text like '%empreendedor%' then 'emprego_e_renda'
+    when normalized.conversation_text like '%assistencia%'
+      or normalized.conversation_text like '%social%'
+      or normalized.conversation_text like '%familia%'
+      or normalized.conversation_text like '%família%'
+      or normalized.conversation_text like '%vulnerab%' then 'assistencia_social'
+    when normalized.conversation_text like '%reuniao%'
+      or normalized.conversation_text like '%reunião%'
+      or normalized.conversation_text like '%evento%'
+      or normalized.conversation_text like '%encontro%'
+      or normalized.conversation_text like '%agenda%' then 'eventos_e_reunioes'
+    when normalized.conversation_text like '%material%'
+      or normalized.conversation_text like '%panfleto%'
+      or normalized.conversation_text like '%divulga%'
+      or normalized.conversation_text like '%santinho%' then 'materiais_e_divulgacao'
+    when normalized.conversation_text like '%candidato%'
+      or normalized.conversation_text like '%ricardo%'
+      or normalized.conversation_text like '%proposta%'
+      or normalized.conversation_text like '%plataforma%' then 'propostas_do_candidato'
+    when normalized.conversation_text like '%equipe%'
+      or normalized.conversation_text like '%tarefa%'
+      or normalized.conversation_text like '%contatei%'
+      or normalized.conversation_text like '%mobiliza%' then 'mobilizacao_da_equipe'
+    when normalized.conversation_text like '%asfalto%'
+      or normalized.conversation_text like '%buraco%'
+      or normalized.conversation_text like '%iluminacao%'
+      or normalized.conversation_text like '%infraestrutura%' then 'infraestrutura_urbana'
+    when normalized.conversation_text like '%meio ambiente%'
+      or normalized.conversation_text like '%ambiental%'
+      or normalized.conversation_text like '%lixo%'
+      or normalized.conversation_text like '%recicla%' then 'meio_ambiente'
+    when normalized.conversation_text like '%esporte%'
+      or normalized.conversation_text like '%cultura%'
+      or normalized.conversation_text like '%lazer%' then 'cultura_esporte_e_lazer'
+    else 'geral'
+  end
+`;
+
 type CampaignImportReportRow = {
   status: string;
   descricao: string;
@@ -477,17 +548,22 @@ export async function getCampaignAnalyticsSnapshot(
         tema,
         count(*)::int as total
       from (
-        select coalesce(nullif(i.tema_classificado, ''), nullif(e.tema_interesse, ''), 'nao_classificado') as tema
+        select ${CAMPAIGN_THEME_CLASSIFICATION_SQL} as tema
         from eleitores e
         left join lateral (
-          select tema_classificado
+          select tema_classificado, mensagem, resposta_eleitor
           from interacoes
           where id_candidato = $1
             and eleitor_uid = e.eleitor_uid
-            and nullif(tema_classificado, '') is not null
           order by criado_em desc
           limit 1
         ) i on true
+        cross join lateral (
+          select
+            lower(coalesce(nullif(i.tema_classificado, ''), nullif(e.tema_interesse, ''), 'nao_classificado')) as theme_raw,
+            lower(replace(coalesce(nullif(i.tema_classificado, ''), nullif(e.tema_interesse, ''), 'nao_classificado'), '_', ' ')) as theme_key,
+            lower(concat_ws(' ', i.mensagem, i.resposta_eleitor, e.tema_interesse)) as conversation_text
+        ) normalized
         where e.id_candidato = $1
       ) themes
       group by tema
@@ -505,17 +581,22 @@ export async function getCampaignAnalyticsSnapshot(
         tema,
         count(*)::int as total
       from (
-        select coalesce(nullif(i.tema_classificado, ''), nullif(e.tema_interesse, ''), 'nao_classificado') as tema
+        select ${CAMPAIGN_THEME_CLASSIFICATION_SQL} as tema
         from eleitores e
         left join lateral (
-          select tema_classificado
+          select tema_classificado, mensagem, resposta_eleitor
           from interacoes
           where id_candidato = $1
             and eleitor_uid = e.eleitor_uid
-            and nullif(tema_classificado, '') is not null
           order by criado_em desc
           limit 1
         ) i on true
+        cross join lateral (
+          select
+            lower(coalesce(nullif(i.tema_classificado, ''), nullif(e.tema_interesse, ''), 'nao_classificado')) as theme_raw,
+            lower(replace(coalesce(nullif(i.tema_classificado, ''), nullif(e.tema_interesse, ''), 'nao_classificado'), '_', ' ')) as theme_key,
+            lower(concat_ws(' ', i.mensagem, i.resposta_eleitor, e.tema_interesse)) as conversation_text
+        ) normalized
         where e.id_candidato = $1
       ) themes
       group by tema
@@ -552,10 +633,7 @@ export async function getCampaignAnalyticsSnapshot(
   const regionalResult = await queryOrDefault<CampaignRegionalMetric>(
     "campaign-regional",
     `
-      with ufs(uf) as (
-        values ${VALID_BRAZILIAN_UFS.map((uf) => `('${uf}')`).join(", ")}
-      ),
-      eleitor_base as (
+      with eleitor_base as (
         select
           ${
             hasElectorUfColumn
@@ -591,23 +669,22 @@ export async function getCampaignAnalyticsSnapshot(
         group by uf_resolvida, cidade_resolvida
       )
       select
-        ufs.uf,
+        uf_totais.uf_resolvida as uf,
         cidade_rank.cidade_resolvida as cidade_destaque,
-        coalesce(uf_totais.total, 0) as total,
-        coalesce(uf_totais.apoiadores, 0) as apoiadores,
+        uf_totais.total as total,
+        uf_totais.apoiadores as apoiadores,
         case
-          when coalesce(uf_totais.total, 0) = 0 then 0
+          when uf_totais.total = 0 then 0
           else round((coalesce(uf_totais.apoiadores, 0)::numeric / greatest(uf_totais.total, 1)::numeric) * 100, 2)
         end as taxa_conversao_percentual,
-        coalesce(uf_totais.cidades_mapeadas, 0) as cidades_mapeadas,
+        uf_totais.cidades_mapeadas as cidades_mapeadas,
         coalesce(cidade_rank.total_cidade, 0) as total_cidade_destaque
-      from ufs
-      left join uf_totais
-        on uf_totais.uf_resolvida = ufs.uf
+      from uf_totais
       left join cidade_rank
-        on cidade_rank.uf_resolvida = ufs.uf
+        on cidade_rank.uf_resolvida = uf_totais.uf_resolvida
        and cidade_rank.rn = 1
-      order by coalesce(uf_totais.total, 0) desc, ufs.uf asc
+      where uf_totais.total > 0
+      order by uf_totais.total desc, uf_totais.uf_resolvida asc
     `,
     [idCandidato],
     []
@@ -1493,7 +1570,7 @@ function buildOutsidePlatformThemes(
     .filter((theme) => {
       const normalizedTheme = normalizeComparableText(theme.tema);
 
-      if (!normalizedTheme || normalizedTheme === "nao classificado") {
+      if (!normalizedTheme || normalizedTheme === "geral" || normalizedTheme === "nao classificado") {
         return false;
       }
 

@@ -1395,6 +1395,217 @@ button {
   line-height: 1.5;
 }
 
+.theme-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.theme-insight-card {
+  display: grid;
+  gap: 12px;
+  min-height: 190px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 14px 28px rgba(18, 78, 131, 0.1);
+}
+
+.theme-insight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.theme-insight-rank {
+  color: rgba(18, 78, 131, 0.68);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.theme-insight-signal {
+  width: 36px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.theme-insight-card > strong {
+  min-height: 2.8em;
+  color: var(--accent-deep);
+  font-size: 1.08rem;
+  line-height: 1.35;
+}
+
+.theme-insight-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.theme-insight-value span {
+  color: var(--accent-deep);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.theme-insight-value small {
+  color: var(--muted);
+}
+
+.theme-insight-meter {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(186, 214, 234, 0.58);
+}
+
+.theme-insight-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.outside-theme-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.outside-theme-chip {
+  display: inline-grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(145, 187, 219, 0.58);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 10px 20px rgba(18, 78, 131, 0.07);
+}
+
+.outside-theme-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.outside-theme-chip strong {
+  color: var(--accent-deep);
+}
+
+.outside-theme-chip span:last-child {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.goal-power-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr)) minmax(240px, 0.8fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.goal-gauge-card {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 170px;
+  padding: 18px;
+  border: 1px solid rgba(145, 187, 219, 0.6);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(235, 247, 255, 0.96)),
+    var(--surface);
+  box-shadow: 0 14px 30px rgba(18, 78, 131, 0.1);
+}
+
+.goal-gauge-visual {
+  position: relative;
+  width: 124px;
+  height: 124px;
+}
+
+.goal-gauge-visual svg {
+  width: 124px;
+  height: 124px;
+  transform: rotate(-90deg);
+}
+
+.goal-gauge-base,
+.goal-gauge-progress {
+  fill: none;
+  stroke-width: 12;
+}
+
+.goal-gauge-base {
+  stroke: rgba(186, 214, 234, 0.7);
+}
+
+.goal-gauge-progress {
+  stroke-linecap: round;
+}
+
+.goal-gauge-visual div {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.goal-gauge-visual strong {
+  color: var(--accent-deep);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.goal-gauge-visual span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.goal-gauge-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.goal-gauge-copy strong {
+  color: var(--accent-deep);
+  font-size: 1.9rem;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.goal-power-side {
+  display: grid;
+  gap: 10px;
+}
+
+.goal-power-side article {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid rgba(145, 187, 219, 0.54);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.goal-power-side strong {
+  color: var(--accent-deep);
+  font-size: 1.5rem;
+}
+
+.goal-power-side small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .conversation-timeline {
   display: grid;
   gap: 12px;
@@ -1513,6 +1724,15 @@ button {
 
   .campaign-pie-layout {
     grid-template-columns: 1fr;
+  }
+
+  .goal-power-layout,
+  .goal-gauge-card {
+    grid-template-columns: 1fr;
+  }
+
+  .goal-gauge-visual {
+    margin: 0 auto;
   }
 
   .campaign-line-footer {

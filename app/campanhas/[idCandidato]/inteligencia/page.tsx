@@ -88,8 +88,6 @@ export default async function CampaignIntelligencePage({
   const funnelTotal = Math.max(snapshot.funil.reduce((acc, item) => acc + item.total, 0), 1);
   const pieSegments = buildPieSegments(snapshot.funil);
   const maxRegional = Math.max(...snapshot.distribuicaoRegional.map((item) => item.total), 1);
-  const maxTheme = Math.max(...snapshot.temas.map((item) => item.total), 1);
-  const maxOutsideTheme = Math.max(...snapshot.temasForaPlataforma.map((item) => item.total), 1);
   const metaContatos = Number(snapshot.metas.meta_contatos_whatsapp || 0);
   const baseAtual = Number(snapshot.metas.base_total_atual || 0);
   const metaConversao = Number(snapshot.metas.meta_conversao_votos || 0);
@@ -208,6 +206,11 @@ export default async function CampaignIntelligencePage({
               </div>
             </div>
           ))}
+          {snapshot.distribuicaoRegional.length === 0 ? (
+            <div className="step-panel-callout">
+              Nenhuma UF válida com eleitor cadastrado foi encontrada para esta campanha.
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -219,25 +222,7 @@ export default async function CampaignIntelligencePage({
           </div>
           <span className="pill">Agenda programática</span>
         </div>
-        <div className="analytics-stack">
-          {snapshot.temas.map((item, index) => (
-            <div className="analytics-bar-row" key={item.tema}>
-              <div className="analytics-bar-label">
-                <strong>{labelText(item.tema)}</strong>
-                <span className="muted">{item.total} usuário(s)</span>
-              </div>
-              <div className="analytics-bar-track">
-                <div
-                  className="analytics-bar-fill"
-                  style={{
-                    width: `${Math.max((item.total / maxTheme) * 100, 6)}%`,
-                    background: getCampaignChartColor(index + 2)
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+        {renderThemeInsightGrid(snapshot.temas, snapshot.resumo.total_eleitores)}
       </section>
 
       <section className="card analytics-panel" style={{ marginBottom: 20 }}>
@@ -249,25 +234,7 @@ export default async function CampaignIntelligencePage({
           <span className="pill warn">{snapshot.temasForaPlataforma.length} tema(s)</span>
         </div>
         {snapshot.temasForaPlataforma.length > 0 ? (
-          <div className="analytics-stack">
-            {snapshot.temasForaPlataforma.map((item, index) => (
-              <div className="analytics-bar-row" key={item.tema}>
-                <div className="analytics-bar-label">
-                  <strong>{labelText(item.tema)}</strong>
-                  <span className="muted">{item.total} usuário(s)</span>
-                </div>
-                <div className="analytics-bar-track">
-                  <div
-                    className="analytics-bar-fill analytics-bar-fill-soft"
-                    style={{
-                      width: `${Math.max((item.total / maxOutsideTheme) * 100, 6)}%`,
-                      background: getCampaignChartColor(index + 4)
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          renderOutsideThemeChips(snapshot.temasForaPlataforma)
         ) : (
           <div className="step-panel-callout">
             Nenhum tema externo identificado com segurança a partir do perfil cadastrado.
@@ -357,12 +324,144 @@ export default async function CampaignIntelligencePage({
           </div>
           <span className="pill">Meta vs realizado</span>
         </div>
-        <div className="grid grid-2">
-          {renderGoalBar("Uso da ferramenta", baseAtual, metaContatos, "usuário(s)", 0)}
-          {renderGoalBar("Conversão em apoiadores", apoiadores, metaConversao, "apoiador(es)", 3)}
-        </div>
+        {renderGoalPowerPanel(baseAtual, metaContatos, apoiadores, metaConversao)}
       </section>
     </main>
+  );
+}
+
+function renderThemeInsightGrid(themes: Array<{ tema: string; total: number }>, totalUsers: number) {
+  if (themes.length === 0) {
+    return <div className="step-panel-callout">Nenhum tema foi identificado nas conversas desta campanha.</div>;
+  }
+
+  const max = Math.max(...themes.map((theme) => theme.total), 1);
+
+  return (
+    <div className="theme-insight-grid">
+      {themes.map((theme, index) => {
+        const percent = totalUsers > 0 ? (theme.total / totalUsers) * 100 : 0;
+        const intensity = Math.max(theme.total / max, 0.08);
+
+        return (
+          <article
+            className="theme-insight-card"
+            key={theme.tema}
+            style={{
+              borderColor: getCampaignChartColor(index),
+              background: `linear-gradient(135deg, color-mix(in srgb, ${getCampaignChartColor(index)} ${Math.round(
+                18 + intensity * 22
+              )}%, white), rgba(255, 255, 255, 0.96))`
+            }}
+          >
+            <div className="theme-insight-head">
+              <span className="theme-insight-rank">{String(index + 1).padStart(2, "0")}</span>
+              <span className="theme-insight-signal" style={{ background: getCampaignChartColor(index) }} />
+            </div>
+            <strong>{labelTheme(theme.tema)}</strong>
+            <div className="theme-insight-value">
+              <span>{theme.total}</span>
+              <small>usuário(s)</small>
+            </div>
+            <div className="theme-insight-meter">
+              <span
+                style={{
+                  width: `${Math.max(percent, theme.total > 0 ? 5 : 0)}%`,
+                  background: getCampaignChartColor(index)
+                }}
+              />
+            </div>
+            <div className="muted">{formatPercent(percent)} da base monitorada</div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderOutsideThemeChips(themes: Array<{ tema: string; total: number }>) {
+  return (
+    <div className="outside-theme-cloud">
+      {themes.map((theme, index) => (
+        <article className="outside-theme-chip" key={theme.tema}>
+          <span className="outside-theme-dot" style={{ background: getCampaignChartColor(index + 4) }} />
+          <strong>{labelTheme(theme.tema)}</strong>
+          <span>{theme.total} usuário(s)</span>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function renderGoalPowerPanel(baseAtual: number, metaContatos: number, apoiadores: number, metaConversao: number) {
+  const contactPercent = metaContatos > 0 ? Math.min((baseAtual / metaContatos) * 100, 100) : 0;
+  const conversionPercent = metaConversao > 0 ? Math.min((apoiadores / metaConversao) * 100, 100) : 0;
+  const contactGap = Math.max(metaContatos - baseAtual, 0);
+  const conversionGap = Math.max(metaConversao - apoiadores, 0);
+
+  return (
+    <div className="goal-power-layout">
+      {renderGoalGauge("Uso da ferramenta", baseAtual, metaContatos, contactPercent, "usuários", "#4dabf7")}
+      {renderGoalGauge("Conversão em apoiadores", apoiadores, metaConversao, conversionPercent, "apoiadores", "#38d9a9")}
+      <div className="goal-power-side">
+        <article>
+          <span className="metric-label">Gap de base</span>
+          <strong>{contactGap}</strong>
+          <small>usuário(s) até a previsão declarada</small>
+        </article>
+        <article>
+          <span className="metric-label">Gap de conversão</span>
+          <strong>{conversionGap}</strong>
+          <small>apoiador(es) até a meta esperada</small>
+        </article>
+        <article>
+          <span className="metric-label">Eficiência atual</span>
+          <strong>{baseAtual > 0 ? formatPercent((apoiadores / baseAtual) * 100) : "0.00%"}</strong>
+          <small>apoiadores em relação à base cadastrada</small>
+        </article>
+      </div>
+    </div>
+  );
+}
+
+function renderGoalGauge(
+  label: string,
+  current: number,
+  target: number,
+  percent: number,
+  unit: string,
+  color: string
+) {
+  const circumference = 2 * Math.PI * 44;
+  const dash = (percent / 100) * circumference;
+
+  return (
+    <article className="goal-gauge-card">
+      <div className="goal-gauge-visual">
+        <svg aria-label={`${label}: ${formatPercent(percent)}`} viewBox="0 0 110 110">
+          <circle className="goal-gauge-base" cx="55" cy="55" r="44" />
+          <circle
+            className="goal-gauge-progress"
+            cx="55"
+            cy="55"
+            r="44"
+            stroke={color}
+            strokeDasharray={`${dash} ${circumference - dash}`}
+          />
+        </svg>
+        <div>
+          <strong>{formatPercent(percent)}</strong>
+          <span>realizado</span>
+        </div>
+      </div>
+      <div className="goal-gauge-copy">
+        <span className="metric-label">{label}</span>
+        <strong>
+          {current} / {target || 0}
+        </strong>
+        <span className="muted">{unit}</span>
+      </div>
+    </article>
   );
 }
 
@@ -384,31 +483,6 @@ function renderLineChart(points: Array<{ x: number; y: number; data_referencia: 
         ))}
       </svg>
     </div>
-  );
-}
-
-function renderGoalBar(label: string, current: number, target: number, unit: string, colorOffset: number) {
-  const percent = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-
-  return (
-    <article className="metric-card" style={{ border: "1px solid var(--border-soft)" }}>
-      <span className="metric-label">{label}</span>
-      <strong className="metric-value">
-        {current} / {target || 0}
-      </strong>
-      <span className="muted">
-        {formatPercent(percent)} da previsão declarada | {unit}
-      </span>
-      <div className="analytics-bar-track" style={{ marginTop: 12 }}>
-        <div
-          className="analytics-bar-fill"
-          style={{
-            width: `${Math.max(percent, current > 0 ? 6 : 0)}%`,
-            background: getCampaignChartColor(colorOffset)
-          }}
-        />
-      </div>
-    </article>
   );
 }
 
@@ -469,6 +543,32 @@ function getCampaignChartColor(index: number) {
 
 function labelText(value: string | null) {
   return value ? value.replace(/_/g, " ") : "não classificado";
+}
+
+function labelTheme(value: string | null) {
+  const normalized = String(value ?? "").trim();
+  const labels: Record<string, string> = {
+    seguranca_publica: "Segurança pública",
+    "seguranca publica": "Segurança pública",
+    saude: "Saúde",
+    educacao: "Educação",
+    transporte_e_mobilidade: "Transporte e mobilidade",
+    moradia_e_regularizacao: "Moradia e regularização",
+    emprego_e_renda: "Emprego e renda",
+    assistencia_social: "Assistência social",
+    eventos_e_reunioes: "Eventos e reuniões",
+    materiais_e_divulgacao: "Materiais e divulgação",
+    propostas_do_candidato: "Propostas do candidato",
+    mobilizacao_da_equipe: "Mobilização da equipe",
+    infraestrutura_urbana: "Infraestrutura urbana",
+    meio_ambiente: "Meio ambiente",
+    cultura_esporte_e_lazer: "Cultura, esporte e lazer",
+    geral: "Geral",
+    nao_classificado: "Não classificado",
+    "nao classificado": "Não classificado"
+  };
+
+  return labels[normalized] ?? labelText(normalized);
 }
 
 function formatPercent(value: number) {
