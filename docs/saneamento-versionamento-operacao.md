@@ -49,6 +49,7 @@ Adotar duas camadas de controle:
 
 ## Release atual
 
+- `V22.8.1`: ajusta o reprocessamento da etapa de cadastro do candidato para exibir o resumo retornado pelo n8n e detalhar campos alterados; atualiza o workflow `01c` para considerar novas colunas do formulario nos dados brutos e no hash de sincronizacao.
 - `V22.3.3`: incorpora os arquivos oficiais de logos partidarias em `public/partidos` e reativa a exibicao das marcas nas paginas publicas de confirmacao de eventos, mantendo fallback por sigla quando o partido nao tiver arquivo mapeado.
 - `V22.4.0`: consolida a UX por perfil, restringe as telas de candidatos e implantacao a usuarios autorizados e remove atalhos incompatíveis com o perfil autenticado.
 - `V22.5.0`: adiciona guias didáticos de implantação, exclusão e consulta operacional por perfil, com link configurável do formulário de cadastro do candidato.

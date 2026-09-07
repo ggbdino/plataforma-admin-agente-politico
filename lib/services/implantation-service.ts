@@ -270,15 +270,58 @@ export async function executeImplantationStep(input: ExecuteStepInput) {
 }
 
 function buildStepSuccessMessage(nomeEtapa: string, responsePayload: unknown) {
+  const payload = normalizeWebhookResponsePayload(responsePayload);
+
+  if (payload) {
+    if (typeof payload.message === "string" && payload.message.trim()) {
+      return payload.message.trim();
+    }
+
+    const camposAlterados = Array.isArray(payload.campos_alterados)
+      ? payload.campos_alterados.filter((field): field is string => typeof field === "string")
+      : [];
+
+    if (camposAlterados.length > 0) {
+      const campos = camposAlterados.slice(0, 12).join(", ");
+      const complemento =
+        camposAlterados.length > 12 ? ` e mais ${camposAlterados.length - 12} campo(s)` : "";
+
+      return `Etapa ${nomeEtapa} atualizada com sucesso. Campos alterados: ${campos}${complemento}.`;
+    }
+  }
+
   if (
-    responsePayload &&
-    typeof responsePayload === "object" &&
-    "conciliado_localmente" in responsePayload
+    payload &&
+    "conciliado_localmente" in payload
   ) {
-    return `Etapa ${nomeEtapa} conciliada localmente: candidato ja existe na base da plataforma; o workflow do n8n nao retornou sucesso nesta execucao.`;
+    const erroN8n =
+      "erro_n8n" in payload && typeof payload.erro_n8n === "string"
+        ? ` Motivo técnico: ${payload.erro_n8n}`
+        : "";
+
+    return `Etapa ${nomeEtapa} conciliada localmente: o candidato já existe na base da plataforma, mas o n8n não confirmou a sincronização desta execução.${erroN8n}`;
   }
 
   return `Etapa ${nomeEtapa} executada com sucesso.`;
+}
+
+function normalizeWebhookResponsePayload(responsePayload: unknown): Record<string, unknown> | null {
+  if (Array.isArray(responsePayload)) {
+    const first = responsePayload[0] as unknown;
+
+    if (first && typeof first === "object" && "json" in first) {
+      const jsonPayload = (first as { json?: unknown }).json;
+      return jsonPayload && typeof jsonPayload === "object"
+        ? (jsonPayload as Record<string, unknown>)
+        : null;
+    }
+
+    return first && typeof first === "object" ? (first as Record<string, unknown>) : null;
+  }
+
+  return responsePayload && typeof responsePayload === "object"
+    ? (responsePayload as Record<string, unknown>)
+    : null;
 }
 
 async function resolveExistingCandidateRegistration(idCandidato: string) {
